@@ -1,0 +1,50 @@
+{
+  "name": "InvoiceStudio — Fatture Professionali per Freelancer",
+  "short_name": "InvoiceStudio",
+  "description": "Crea fatture professionali, accetta pagamenti online con Stripe e PayPal, e automatizza i reminder. La piattaforma SaaS per freelancer e agenzie italiane.",
+  "theme_color": "#0a0b0f",
+  "background_color": "#0a0b0f",
+  "display": "standalone",
+  "scope": "/",
+  "start_url": "/dashboard",
+  "orientation": "any",
+  "lang": "it",
+  "categories": ["business", "finance"],
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/playstore/screenshot-1.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Dashboard principale di InvoiceStudio"
+    },
+    {
+      "src": "/playstore/screenshot-2.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Creazione fattura professionale"
+    },
+    {
+      "src": "/playstore/screenshot-3.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Gestione clienti e pagamenti"
+    }
+  ]
+}

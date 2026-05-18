@@ -1,0 +1,133 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Eye, EyeOff } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+
+export default function SignupPage() {
+  const router = useRouter();
+
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    const supabase = createClient();
+    const { error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: name },
+        // emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+
+    if (authError) {
+      setError(authError.message);
+      setLoading(false);
+      return;
+    }
+
+    // Show confirmation message instead of redirecting
+    router.push("/login?signup=success");
+  };
+
+  return (
+    <div className="bg-[#0f1117] border border-[#1e2029] rounded-2xl p-8 shadow-2xl">
+      <div className="text-center mb-8">
+        <h1 className="text-2xl font-bold text-[#f0f0f2] font-[Georgia,serif]">
+          ✦ InvoiceStudio
+        </h1>
+        <p className="text-[#6b7280] text-sm mt-2">Crea il tuo account gratuito</p>
+      </div>
+
+      <form onSubmit={handleSignup} className="space-y-5">
+        <div>
+          <label htmlFor="name" className="block text-sm font-medium text-[#e5e7eb] mb-1">
+            Nome completo
+          </label>
+          <input
+            id="name"
+            type="text"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Marco Bianchi"
+            className="w-full bg-[#111318] border border-[#1e2029] rounded-lg px-4 py-2.5 text-[#f0f0f2] placeholder-[#6b7280] focus:outline-none focus:border-[#6c63ff] focus:ring-1 focus:ring-[#6c63ff] transition-colors"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium text-[#e5e7eb] mb-1">
+            Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="nome@studio.it"
+            className="w-full bg-[#111318] border border-[#1e2029] rounded-lg px-4 py-2.5 text-[#f0f0f2] placeholder-[#6b7280] focus:outline-none focus:border-[#6c63ff] focus:ring-1 focus:ring-[#6c63ff] transition-colors"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="password" className="block text-sm font-medium text-[#e5e7eb] mb-1">
+            Password
+          </label>
+          <div className="relative">
+            <input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              required
+              minLength={10}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Almeno 10 caratteri"
+              className="w-full bg-[#111318] border border-[#1e2029] rounded-lg px-4 py-2.5 pr-10 text-[#f0f0f2] placeholder-[#6b7280] focus:outline-none focus:border-[#6c63ff] focus:ring-1 focus:ring-[#6c63ff] transition-colors"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? "Nascondi password" : "Mostra password"}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-[#6b7280] hover:text-[#e5e7eb] transition-colors p-1 rounded"
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
+        </div>
+
+        {error && (
+          <div className="bg-[rgba(239,68,68,0.08)] border border-[rgba(239,68,68,0.2)] rounded-lg px-4 py-3 text-sm text-[#ef4444]">
+            {error}
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-[#6c63ff] hover:bg-[#5b52e0] disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-2.5 px-4 rounded-lg transition-colors"
+        >
+          {loading ? "Creazione account..." : "Crea account"}
+        </button>
+      </form>
+
+      <p className="text-center text-sm text-[#6b7280] mt-6">
+        Hai già un account?{" "}
+        <Link href="/login" className="text-[#6c63ff] hover:text-[#8b5cf6] transition-colors">
+          Accedi
+        </Link>
+      </p>
+    </div>
+  );
+}

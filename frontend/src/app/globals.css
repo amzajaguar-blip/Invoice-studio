@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  /* InvoiceStudio Design Tokens */
+  --color-surface-primary: var(--surface-primary);
+  --color-surface-secondary: var(--surface-secondary);
+  --color-surface-tertiary: var(--surface-tertiary);
+  --color-border-primary: var(--border-primary);
+  --color-border-secondary: var(--border-secondary);
+  --color-accent: var(--accent);
+  --color-accent-light: var(--accent-light);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-status-paid: var(--status-paid);
+  --color-status-pending: var(--status-pending);
+  --color-status-overdue: var(--status-overdue);
+  --color-status-draft: var(--status-draft);
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+
+  --surface-primary: #ffffff;
+  --surface-secondary: #f9fafb;
+  --surface-tertiary: #f3f4f6;
+  --border-primary: #e5e7eb;
+  --border-secondary: #d1d5db;
+  --accent: #6c63ff;
+  --accent-light: #8b5cf6;
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-muted: #6b7280;
+  --status-paid: #16a34a;
+  --status-pending: #d97706;
+  --status-overdue: #dc2626;
+  --status-draft: #6b7280;
+}
+
+.dark {
+  --background: #0a0b0f;
+  --foreground: #ededed;
+
+  --surface-primary: #0f1117;
+  --surface-secondary: #111318;
+  --surface-tertiary: #0d0e13;
+  --border-primary: #1e2029;
+  --border-secondary: #1a1c23;
+  --accent: #6c63ff;
+  --accent-light: #8b5cf6;
+  --text-primary: #f0f0f2;
+  --text-secondary: #e5e7eb;
+  --text-muted: #6b7280;
+  --status-paid: #22c55e;
+  --status-pending: #f59e0b;
+  --status-overdue: #ef4444;
+  --status-draft: #6b7280;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
