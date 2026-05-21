@@ -3,9 +3,9 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "com.invoicestudio.app",
+      "package_name": "com.Invoice_Studio.myapp",
       "sha256_cert_fingerprints": [
-        "PLACEHOLDER:SHA256_FINGERPRINT_FROM_PLAY_SIGNING"
+        "BD:35:51:DB:EC:EB:85:34:85:6C:F3:88:38:48:60:CD:F1:9F:94:B0:12:89:EC:25:80:C1:AE:1B:DD:1F:77:B4"
       ]
     }
   }
