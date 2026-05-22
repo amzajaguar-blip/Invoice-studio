@@ -21,7 +21,6 @@ const CSP = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
-  turbopack: false,
 
   async headers() {
     return [
