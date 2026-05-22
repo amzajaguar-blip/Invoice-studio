@@ -52,7 +52,7 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
-      - run: npx next build --no-turbo
+      - run: npm run build
       - name: Cache Next.js build
         uses: actions/cache/save@v4
         with:
