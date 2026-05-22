@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createClient, getCurrentOrgId } from "@/lib/supabase/server";
+import { getAuthFromRequest } from "@/lib/supabase/auth-helper";
 
 const createClientBodySchema = z.object({
   name: z.string().min(1),
@@ -12,10 +12,12 @@ const createClientBodySchema = z.object({
   notes: z.string().nullable().optional(),
 });
 
-export async function GET() {
-  const supabase = await createClient();
-  const orgId = await getCurrentOrgId();
-  if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export async function GET(request: Request) {
+  const auth = await getAuthFromRequest(request);
+  if (!auth.authenticated) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const { supabase, orgId } = auth;
 
   const { data, error } = await supabase
     .from("clients")
@@ -35,9 +37,11 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const orgId = await getCurrentOrgId();
-  if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await getAuthFromRequest(request);
+  if (!auth.authenticated) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const { supabase, orgId } = auth;
 
   const body = await request.json();
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient, getCurrentOrgId } from "@/lib/supabase/server";
+import { getAuthFromRequest } from "@/lib/supabase/auth-helper";
 
 // ─── GET /api/invoices/[id] ──────────────────────────────────────────────────
 
@@ -7,9 +7,11 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const supabase = await createClient();
-  const orgId = await getCurrentOrgId();
-  if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await getAuthFromRequest(request);
+  if (!auth.authenticated) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const { supabase, orgId } = auth;
 
   const { id } = await params;
 
@@ -38,9 +40,11 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const supabase = await createClient();
-  const orgId = await getCurrentOrgId();
-  if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await getAuthFromRequest(request);
+  if (!auth.authenticated) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const { supabase, orgId } = auth;
 
   const { id } = await params;
   const body = await request.json();
@@ -121,9 +125,11 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const supabase = await createClient();
-  const orgId = await getCurrentOrgId();
-  if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await getAuthFromRequest(request);
+  if (!auth.authenticated) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const { supabase, orgId } = auth;
 
   const { id } = await params;
 

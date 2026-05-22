@@ -2,7 +2,35 @@ import "server-only";
 
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let _resend: Resend | null = null;
+
+function getResend(): Resend {
+  if (!_resend) {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) throw new Error("RESEND_API_KEY environment variable is required");
+    _resend = new Resend(apiKey);
+  }
+  return _resend;
+}
+
+/**
+ * Returns the "from" address for outgoing emails.
+ *
+ * Priority:
+ *   1. RESEND_FROM_EMAIL env var (e.g. "InvoiceStudio <fatture@invoicestudio.app>")
+ *   2. Fallback to Resend sandbox sender — works immediately without domain verification
+ *
+ * ⚠️ The sandbox sender (onboarding@resend.dev) can only deliver to the
+ *    email address that owns the Resend account. Once you verify
+ *    invoicestudio.app on Resend → Domains, set RESEND_FROM_EMAIL in .env
+ *    and emails will reach any recipient.
+ */
+function getFromEmail(): string {
+  return (
+    process.env.RESEND_FROM_EMAIL ||
+    "InvoiceStudio <onboarding@resend.dev>"
+  );
+}
 
 export interface SendInvoiceEmailParams {
   to: string;
@@ -90,15 +118,15 @@ export async function sendInvoiceEmail(params: SendInvoiceEmailParams) {
 </html>
 `.trim();
 
-  const { data, error } = await resend.emails.send({
-    from: "InvoiceStudio <fatture@invoicestudio.app>",
+  const { data, error } = await getResend().emails.send({
+    from: getFromEmail(),
     to: [to],
     subject,
     html,
   });
 
   if (error) {
-    console.error("Resend send error:", error);
+    console.error("Resend send error details:", JSON.stringify(error, null, 2));
     throw error;
   }
 

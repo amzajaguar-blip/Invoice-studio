@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient, getCurrentOrgId } from "@/lib/supabase/server";
+import { getAuthFromRequest } from "@/lib/supabase/auth-helper";
 import crypto from "crypto";
 
 /**
@@ -7,13 +7,12 @@ import crypto from "crypto";
  * Returns the current user's referral code and stats.
  * If no code exists, generates one.
  */
-export async function GET() {
-  const supabase = await createClient();
-  const { data: authUser } = await supabase.auth.getUser();
-  if (!authUser.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const orgId = await getCurrentOrgId();
-  if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export async function GET(request: Request) {
+  const auth = await getAuthFromRequest(request);
+  if (!auth.authenticated) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const { supabase, orgId } = auth;
 
   // Get or create referral code
   const { data: org } = await supabase

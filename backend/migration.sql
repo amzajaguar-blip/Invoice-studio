@@ -10,23 +10,9 @@
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE EXTENSION IF NOT EXISTS "pgsodium";
 
--- ─── Helper: current_org_id() ─────────────────────────────────────────────────
--- Returns the org_id of the currently authenticated user.
--- Used by all RLS policies for tenant isolation.
-
-CREATE OR REPLACE FUNCTION current_org_id()
-RETURNS uuid
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = ''
-AS $$
-  SELECT org_id FROM public.org_members WHERE user_id = auth.uid() LIMIT 1;
-$$;
-
 -- ─── organizations ────────────────────────────────────────────────────────────
 
-CREATE TABLE public.organizations (
+CREATE TABLE IF NOT EXISTS public.organizations (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name        text NOT NULL,
   logo_url    text,
@@ -40,15 +26,11 @@ CREATE TABLE public.organizations (
 
 ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "org_owner_select" ON public.organizations
-  FOR SELECT USING (id = current_org_id());
-
-CREATE POLICY "org_owner_update" ON public.organizations
-  FOR UPDATE USING (id = current_org_id());
+-- Policies for organizations — defined AFTER current_org_id() below
 
 -- ─── org_members ──────────────────────────────────────────────────────────────
 
-CREATE TABLE public.org_members (
+CREATE TABLE IF NOT EXISTS public.org_members (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id     uuid NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
   user_id    uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -59,18 +41,58 @@ CREATE TABLE public.org_members (
 
 ALTER TABLE public.org_members ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "org_members_select" ON public.org_members
-  FOR SELECT USING (org_id = current_org_id());
+-- ─── Helper: current_org_id() ─────────────────────────────────────────────────
+-- Returns the org_id of the currently authenticated user.
+-- Used by all RLS policies for tenant isolation.
+-- MUST be defined AFTER org_members table and BEFORE any policies that reference it.
 
-CREATE POLICY "org_members_insert" ON public.org_members
-  FOR INSERT WITH CHECK (org_id = current_org_id());
+CREATE OR REPLACE FUNCTION current_org_id()
+RETURNS uuid
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+  SELECT org_id FROM public.org_members WHERE user_id = auth.uid() LIMIT 1;
+$$;
 
-CREATE POLICY "org_members_update" ON public.org_members
-  FOR UPDATE USING (org_id = current_org_id());
+-- ─── Policies for organizations (function exists now) ─────────────────────────
+
+DO $$ BEGIN
+  CREATE POLICY "org_owner_select" ON public.organizations
+    FOR SELECT USING (id = current_org_id());
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "org_owner_update" ON public.organizations
+    FOR UPDATE USING (id = current_org_id());
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- ─── Policies for org_members ─────────────────────────────────────────────────
+
+DO $$ BEGIN
+  CREATE POLICY "org_members_select" ON public.org_members
+    FOR SELECT USING (org_id = current_org_id());
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "org_members_insert" ON public.org_members
+    FOR INSERT WITH CHECK (org_id = current_org_id());
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "org_members_update" ON public.org_members
+    FOR UPDATE USING (org_id = current_org_id());
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- ─── clients ──────────────────────────────────────────────────────────────────
 
-CREATE TABLE public.clients (
+CREATE TABLE IF NOT EXISTS public.clients (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id     uuid NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
   name       text NOT NULL,
@@ -86,21 +108,33 @@ CREATE TABLE public.clients (
 
 ALTER TABLE public.clients ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "clients_tenant_select" ON public.clients
-  FOR SELECT USING (org_id = current_org_id());
+DO $$ BEGIN
+  CREATE POLICY "clients_tenant_select" ON public.clients
+    FOR SELECT USING (org_id = current_org_id());
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY "clients_tenant_insert" ON public.clients
-  FOR INSERT WITH CHECK (org_id = current_org_id());
+DO $$ BEGIN
+  CREATE POLICY "clients_tenant_insert" ON public.clients
+    FOR INSERT WITH CHECK (org_id = current_org_id());
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY "clients_tenant_update" ON public.clients
-  FOR UPDATE USING (org_id = current_org_id());
+DO $$ BEGIN
+  CREATE POLICY "clients_tenant_update" ON public.clients
+    FOR UPDATE USING (org_id = current_org_id());
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY "clients_tenant_delete" ON public.clients
-  FOR DELETE USING (org_id = current_org_id());
+DO $$ BEGIN
+  CREATE POLICY "clients_tenant_delete" ON public.clients
+    FOR DELETE USING (org_id = current_org_id());
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- ─── invoices ─────────────────────────────────────────────────────────────────
 
-CREATE TABLE public.invoices (
+CREATE TABLE IF NOT EXISTS public.invoices (
   id                   uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id               uuid NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
   client_id            uuid NOT NULL REFERENCES public.clients(id),
@@ -123,21 +157,33 @@ CREATE TABLE public.invoices (
 
 ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "invoices_tenant_select" ON public.invoices
-  FOR SELECT USING (org_id = current_org_id());
+DO $$ BEGIN
+  CREATE POLICY "invoices_tenant_select" ON public.invoices
+    FOR SELECT USING (org_id = current_org_id());
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY "invoices_tenant_insert" ON public.invoices
-  FOR INSERT WITH CHECK (org_id = current_org_id());
+DO $$ BEGIN
+  CREATE POLICY "invoices_tenant_insert" ON public.invoices
+    FOR INSERT WITH CHECK (org_id = current_org_id());
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY "invoices_tenant_update" ON public.invoices
-  FOR UPDATE USING (org_id = current_org_id());
+DO $$ BEGIN
+  CREATE POLICY "invoices_tenant_update" ON public.invoices
+    FOR UPDATE USING (org_id = current_org_id());
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY "invoices_tenant_delete" ON public.invoices
-  FOR DELETE USING (org_id = current_org_id());
+DO $$ BEGIN
+  CREATE POLICY "invoices_tenant_delete" ON public.invoices
+    FOR DELETE USING (org_id = current_org_id());
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- ─── invoice_items ────────────────────────────────────────────────────────────
 
-CREATE TABLE public.invoice_items (
+CREATE TABLE IF NOT EXISTS public.invoice_items (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   invoice_id  uuid NOT NULL REFERENCES public.invoices(id) ON DELETE CASCADE,
   description text NOT NULL,
@@ -149,29 +195,41 @@ CREATE TABLE public.invoice_items (
 
 ALTER TABLE public.invoice_items ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "items_tenant_select" ON public.invoice_items
-  FOR SELECT USING (
-    EXISTS (SELECT 1 FROM public.invoices WHERE id = invoice_items.invoice_id AND org_id = current_org_id())
-  );
+DO $$ BEGIN
+  CREATE POLICY "items_tenant_select" ON public.invoice_items
+    FOR SELECT USING (
+      EXISTS (SELECT 1 FROM public.invoices WHERE id = invoice_items.invoice_id AND org_id = current_org_id())
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY "items_tenant_insert" ON public.invoice_items
-  FOR INSERT WITH CHECK (
-    EXISTS (SELECT 1 FROM public.invoices WHERE id = invoice_items.invoice_id AND org_id = current_org_id())
-  );
+DO $$ BEGIN
+  CREATE POLICY "items_tenant_insert" ON public.invoice_items
+    FOR INSERT WITH CHECK (
+      EXISTS (SELECT 1 FROM public.invoices WHERE id = invoice_items.invoice_id AND org_id = current_org_id())
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY "items_tenant_update" ON public.invoice_items
-  FOR UPDATE USING (
-    EXISTS (SELECT 1 FROM public.invoices WHERE id = invoice_items.invoice_id AND org_id = current_org_id())
-  );
+DO $$ BEGIN
+  CREATE POLICY "items_tenant_update" ON public.invoice_items
+    FOR UPDATE USING (
+      EXISTS (SELECT 1 FROM public.invoices WHERE id = invoice_items.invoice_id AND org_id = current_org_id())
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY "items_tenant_delete" ON public.invoice_items
-  FOR DELETE USING (
-    EXISTS (SELECT 1 FROM public.invoices WHERE id = invoice_items.invoice_id AND org_id = current_org_id())
-  );
+DO $$ BEGIN
+  CREATE POLICY "items_tenant_delete" ON public.invoice_items
+    FOR DELETE USING (
+      EXISTS (SELECT 1 FROM public.invoices WHERE id = invoice_items.invoice_id AND org_id = current_org_id())
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- ─── invoice_events (audit trail) ─────────────────────────────────────────────
 
-CREATE TABLE public.invoice_events (
+CREATE TABLE IF NOT EXISTS public.invoice_events (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   invoice_id uuid NOT NULL REFERENCES public.invoices(id) ON DELETE CASCADE,
   event_type text NOT NULL CHECK (event_type IN ('created', 'sent', 'opened', 'paid', 'reminder_sent', 'cancelled', 'viewed')),
@@ -193,7 +251,7 @@ CREATE POLICY "events_tenant_insert" ON public.invoice_events
 
 -- ─── email_templates ──────────────────────────────────────────────────────────
 
-CREATE TABLE public.email_templates (
+CREATE TABLE IF NOT EXISTS public.email_templates (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id     uuid NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
   type       text NOT NULL CHECK (type IN ('invoice_sent', 'payment_received', 'reminder', 'welcome')),
@@ -213,7 +271,7 @@ CREATE POLICY "templates_tenant_all" ON public.email_templates
 
 -- ─── reminders ────────────────────────────────────────────────────────────────
 
-CREATE TABLE public.reminders (
+CREATE TABLE IF NOT EXISTS public.reminders (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   invoice_id  uuid NOT NULL REFERENCES public.invoices(id) ON DELETE CASCADE,
   template_id uuid REFERENCES public.email_templates(id) ON DELETE SET NULL,
@@ -237,7 +295,7 @@ CREATE POLICY "reminders_tenant_all" ON public.reminders
 
 -- ─── payment_tokens ───────────────────────────────────────────────────────────
 
-CREATE TABLE public.payment_tokens (
+CREATE TABLE IF NOT EXISTS public.payment_tokens (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   invoice_id uuid NOT NULL REFERENCES public.invoices(id) ON DELETE CASCADE,
   token_hash text UNIQUE NOT NULL,        -- SHA-256 of the 256-bit random token
@@ -261,7 +319,7 @@ CREATE POLICY "tokens_tenant_insert" ON public.payment_tokens
 
 -- ─── subscriptions ────────────────────────────────────────────────────────────
 
-CREATE TABLE public.subscriptions (
+CREATE TABLE IF NOT EXISTS public.subscriptions (
   id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id             uuid NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
   plan               text NOT NULL DEFAULT 'free' CHECK (plan IN ('free', 'pro', 'agency', 'enterprise')),
@@ -280,7 +338,7 @@ CREATE POLICY "subs_tenant_select" ON public.subscriptions
 
 -- ─── audit_logs (compliance) ──────────────────────────────────────────────────
 
-CREATE TABLE public.audit_logs (
+CREATE TABLE IF NOT EXISTS public.audit_logs (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id      uuid NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
   user_id     uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,

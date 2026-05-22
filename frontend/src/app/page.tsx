@@ -391,6 +391,7 @@ function Pricing() {
       description: "Per chi inizia e fattura poco.",
       features: [
         "Fino a 5 fatture al mese",
+        "Fatture extra gratis con video sponsorizzati",
         "Link di pagamento Stripe",
         "Template base",
         "Export CSV",

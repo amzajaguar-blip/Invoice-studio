@@ -45,6 +45,13 @@
       "type": "image/png",
       "form_factor": "narrow",
       "label": "Gestione clienti e pagamenti"
+    },
+    {
+      "src": "/playstore/screenshot-4.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Report e analytics"
     }
   ]
 }

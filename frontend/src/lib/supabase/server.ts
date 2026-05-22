@@ -57,7 +57,7 @@ export async function getCurrentOrgId(): Promise<string | null> {
     .from("org_members")
     .select("org_id")
     .eq("user_id", user.user.id)
-    .single();
+    .maybeSingle();
 
   return member?.org_id ?? null;
 }

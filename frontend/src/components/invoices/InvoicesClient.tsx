@@ -4,16 +4,32 @@ import { useState, useEffect, useCallback, useRef, type RefObject } from "react"
 import { InvoiceTable } from "@/components/invoices/InvoiceTable";
 import { InvoiceDetailPanel } from "@/components/invoices/InvoiceDetailPanel";
 import { InvoiceForm } from "@/components/invoices/InvoiceForm";
+import { LimitWarningBanner } from "@/components/rewards/LimitWarningBanner";
+import { HardLimitModal } from "@/components/rewards/HardLimitModal";
+import { RewardedAdModal } from "@/components/rewards/RewardedAdModal";
+import { useQuota } from "@/hooks/useRewards";
 import { createClient } from "@/lib/supabase/client";
 import type { Invoice } from "@/types";
 
-export function InvoicesClient({ initialInvoices }: { initialInvoices: Invoice[] }) {
+export function InvoicesClient({
+  initialInvoices,
+  orgId,
+}: {
+  initialInvoices: Invoice[];
+  orgId: string | null;
+}) {
   const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
   const [selected, setSelected] = useState<Invoice | null>(null);
   const [showNew, setShowNew] = useState(false);
   const [loading, setLoading] = useState(false);
   const [remindedInvoices, setRemindedInvoices] = useState<Set<string>>(new Set());
   const newInvoiceBtnRef = useRef<HTMLButtonElement>(null);
+
+  // ─── Quota & Rewarded Ads state ─────────────────────────────────────────
+
+  const { quota, refresh: refreshQuota } = useQuota();
+  const [showHardLimit, setShowHardLimit] = useState(false);
+  const [showRewardedAd, setShowRewardedAd] = useState(false);
 
   const loadInvoices = useCallback(async () => {
     setLoading(true);
@@ -63,8 +79,57 @@ export function InvoicesClient({ initialInvoices }: { initialInvoices: Invoice[]
     }
   };
 
+  // ─── New invoice handler with plan enforcement ──────────────────────────
+
+  const handleNewInvoice = () => {
+    if (!quota) return;
+
+    if (!quota.canCreateInvoice) {
+      setShowHardLimit(true);
+      return;
+    }
+
+    setShowNew(true);
+  };
+
+  // ─── After invoice save: refresh quota + list ───────────────────────────
+
+  const handleInvoiceSaved = () => {
+    loadInvoices();
+    refreshQuota();
+  };
+
+  // ─── Rewarded ad claimed: open invoice form ─────────────────────────────
+
+  const handleRewardClaimed = () => {
+    setShowRewardedAd(false);
+    refreshQuota().then((newQuota) => {
+      if (newQuota?.canCreateInvoice) {
+        setShowNew(true);
+      }
+    });
+  };
+
+  // ─── Upgrade handler ────────────────────────────────────────────────────
+
+  const handleUpgrade = () => {
+    // TODO: Stripe checkout/portal integration
+    window.location.href = "/settings"; // placeholder
+  };
+
   return (
     <div>
+      {/* ── Limit Warning Banner ─────────────────────────────────── */}
+      {quota && !quota.unlimited && (
+        <div className="mb-4">
+          <LimitWarningBanner
+            quota={quota}
+            onWatchAd={orgId ? () => setShowRewardedAd(true) : undefined}
+            onUpgrade={handleUpgrade}
+          />
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-bold text-[#f0f0f2] font-[Georgia,serif]">
@@ -72,11 +137,23 @@ export function InvoicesClient({ initialInvoices }: { initialInvoices: Invoice[]
           </h2>
           <p className="text-[#6b7280] text-sm mt-1">
             {invoices.length} fattur{invoices.length === 1 ? "a" : "e"}
+            {quota && !quota.unlimited && (
+              <span className="ml-2">
+                · {quota.currentMonthInvoices}/{quota.planLimit + quota.rewardedCredits}{" "}
+                questo mese
+                {quota.rewardedCredits > 0 && (
+                  <span className="text-[#22c55e]">
+                    {" "}
+                    (+{quota.rewardedCredits} extra)
+                  </span>
+                )}
+              </span>
+            )}
           </p>
         </div>
         <button
           ref={newInvoiceBtnRef}
-          onClick={() => setShowNew(true)}
+          onClick={handleNewInvoice}
           className="bg-[#6c63ff] hover:bg-[#5b52e0] text-white font-medium px-5 py-2.5 rounded-xl text-sm transition-colors border-none cursor-pointer"
         >
           ✦ Nuova Fattura
@@ -103,8 +180,34 @@ export function InvoicesClient({ initialInvoices }: { initialInvoices: Invoice[]
       {showNew && (
         <InvoiceForm
           onClose={() => setShowNew(false)}
-          onSave={() => loadInvoices()}
+          onSave={handleInvoiceSaved}
           triggerRef={newInvoiceBtnRef as RefObject<HTMLElement | null>}
+        />
+      )}
+
+      {/* Hard Limit Modal */}
+      {showHardLimit && quota && (
+        <HardLimitModal
+          quota={quota}
+          onClose={() => setShowHardLimit(false)}
+          onWatchAd={
+            orgId && quota.showRewardedAdOption
+              ? () => {
+                  setShowHardLimit(false);
+                  setShowRewardedAd(true);
+                }
+              : undefined
+          }
+          onUpgrade={handleUpgrade}
+        />
+      )}
+
+      {/* Rewarded Ad Modal */}
+      {showRewardedAd && orgId && (
+        <RewardedAdModal
+          orgId={orgId}
+          onClose={() => setShowRewardedAd(false)}
+          onRewardClaimed={handleRewardClaimed}
         />
       )}
 

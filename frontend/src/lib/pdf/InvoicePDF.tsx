@@ -10,21 +10,27 @@ import {
   renderToBuffer,
 } from "@react-pdf/renderer";
 
-// ─── Register fonts ──────────────────────────────────────────────────────────
+// ─── Register fonts (lazy — only on first PDF render) ────────────────────────
 
-Font.register({
-  family: "Inter",
-  fonts: [
-    {
-      src: "https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfMZhrib2Bg-4.ttf",
-      fontWeight: 400,
-    },
-    {
-      src: "https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuI6fMZhrib2Bg-4.ttf",
-      fontWeight: 700,
-    },
-  ],
-});
+let fontsRegistered = false;
+
+function ensureFonts(): void {
+  if (fontsRegistered) return;
+  Font.register({
+    family: "Inter",
+    fonts: [
+      {
+        src: "https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfMZhrib2Bg-4.ttf",
+        fontWeight: 400,
+      },
+      {
+        src: "https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuI6fMZhrib2Bg-4.ttf",
+        fontWeight: 700,
+      },
+    ],
+  });
+  fontsRegistered = true;
+}
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -423,5 +429,6 @@ export function InvoicePDF({ data }: { data: PDFInvoiceData }) {
 // ─── Server-side renderer ─────────────────────────────────────────────────────
 
 export async function generateInvoicePDF(data: PDFInvoiceData): Promise<Buffer> {
+  ensureFonts();
   return renderToBuffer(<InvoicePDF data={data} />);
 }

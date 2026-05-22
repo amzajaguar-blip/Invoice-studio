@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createClient, getCurrentOrgId } from "@/lib/supabase/server";
+import { getAuthFromRequest } from "@/lib/supabase/auth-helper";
+import { getUserQuota, consumeRewardedCredit } from "@/lib/plan";
+import { audit } from "@/lib/audit";
+import { rateLimit, getRateLimitKey } from "@/lib/rate-limit";
 
 // ─── Validation schemas ──────────────────────────────────────────────────────
 
@@ -25,9 +28,11 @@ const createInvoiceBodySchema = z.object({
 // ─── GET /api/invoices ────────────────────────────────────────────────────────
 
 export async function GET(request: Request) {
-  const supabase = await createClient();
-  const orgId = await getCurrentOrgId();
-  if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await getAuthFromRequest(request);
+  if (!auth.authenticated) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const { supabase, orgId } = auth;
 
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status");
@@ -68,12 +73,34 @@ export async function GET(request: Request) {
 // ─── POST /api/invoices ───────────────────────────────────────────────────────
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const { data: authUser } = await supabase.auth.getUser();
-  const orgId = await getCurrentOrgId();
-
-  if (!authUser.user || !orgId) {
+  const auth = await getAuthFromRequest(request);
+  if (!auth.authenticated) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const { supabase, user, orgId } = auth;
+
+  // ─── Plan limit enforcement ────────────────────────────────────────────
+
+  const quota = await getUserQuota(orgId);
+  if (!quota.canCreateInvoice) {
+    return NextResponse.json(
+      {
+        error: "Limite fatture raggiunto",
+        quota,
+        code: quota.reason === "max_credits_reached" ? "PLAN_LIMIT_HARD" : "PLAN_LIMIT",
+      },
+      { status: 402 }
+    );
+  }
+
+  // Rate limiting: 30 invoice creations per minute per user
+  const rateKey = getRateLimitKey(request, user.id);
+  const { allowed } = rateLimit(`invoice-create:${rateKey}`, 30, 60_000);
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "Troppe richieste. Riprova tra qualche secondo." },
+      { status: 429 }
+    );
   }
 
   const body = await request.json();
@@ -186,5 +213,39 @@ export async function POST(request: Request) {
     event_type: "created",
   });
 
-  return NextResponse.json({ data: invoice }, { status: 201 });
+  // Audit log (GDPR compliance)
+  await audit({
+    orgId,
+    userId: user.id,
+    action: "invoice.created",
+    entityType: "invoice",
+    entityId: invoice.id,
+  });
+
+  // ─── Consume rewarded credit if applicable ─────────────────────────────
+  // When a free-plan user exceeded their base quota, this invoice used a
+  // rewarded credit. Decrement the credit balance atomically.
+  let creditConsumed = false;
+  let remainingCredits = quota.rewardedCredits;
+
+  if (
+    !quota.unlimited &&
+    quota.currentMonthInvoices >= quota.planLimit
+  ) {
+    const result = await consumeRewardedCredit(orgId, invoice.id);
+    creditConsumed = result.consumed;
+    remainingCredits = result.remainingCredits;
+  }
+
+  return NextResponse.json(
+    {
+      data: invoice,
+      quota: {
+        ...quota,
+        rewardedCredits: remainingCredits,
+        creditConsumed,
+      },
+    },
+    { status: 201 }
+  );
 }

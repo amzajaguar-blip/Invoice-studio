@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency, generateTempId } from "@/lib/utils";
+import { useAISuggest } from "@/hooks/useAISuggest";
 import type { Currency } from "@/types";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -77,6 +78,11 @@ export function InvoiceForm({ onClose, onSave, triggerRef }: { onClose: () => vo
   // Autosave tracking
   const isDirtyRef = useRef(false);
   const loadedFromStorageRef = useRef(false);
+
+  // AI suggestions
+  const { suggest, loading: aiLoading } = useAISuggest();
+  const [aiSuggestingIndex, setAiSuggestingIndex] = useState<number | null>(null);
+  const [aiSuggestingNotes, setAiSuggestingNotes] = useState(false);
 
   // ─── Load clients ──────────────────────────────────────────────────────────
 
@@ -253,6 +259,53 @@ export function InvoiceForm({ onClose, onSave, triggerRef }: { onClose: () => vo
     return Object.keys(errors).length === 0;
   };
 
+  // ─── AI handlers ────────────────────────────────────────────────────────────
+
+  const handleAIDescription = useCallback(
+    async (index: number) => {
+      setAiSuggestingIndex(index);
+      const item = items[index];
+      const selectedClient = clients.find((c) => c.id === clientId);
+      const suggestion = await suggest({
+        type: "description",
+        context: {
+          client_name: selectedClient?.name || "",
+          other_items: items
+            .filter((_, i) => i !== index)
+            .map((it) => it.description)
+            .filter(Boolean),
+          notes: notes || "",
+        },
+        prompt: item.description || undefined,
+      });
+      if (suggestion) {
+        updateItem(index, "description", suggestion);
+      }
+      setAiSuggestingIndex(null);
+    },
+    [items, clientId, clients, notes, suggest, updateItem]
+  );
+
+  const handleAINotes = useCallback(async () => {
+    setAiSuggestingNotes(true);
+    const selectedClient = clients.find((c) => c.id === clientId);
+    const suggestion = await suggest({
+      type: "notes",
+      context: {
+        client_name: selectedClient?.name || "",
+        total: formatCurrency(netTotal, currency),
+        items: items.filter((it) => it.description.trim()).map((it) => it.description),
+        vat_rate: vatRate,
+        withholding_tax_rate: withholdingTaxRate,
+      },
+      prompt: notes || undefined,
+    });
+    if (suggestion) {
+      setNotes(suggestion);
+    }
+    setAiSuggestingNotes(false);
+  }, [clients, clientId, suggest, notes, setNotes, items, netTotal, currency, vatRate, withholdingTaxRate]);
+
   // ─── Save ──────────────────────────────────────────────────────────────────
 
   const handleSave = async () => {
@@ -261,10 +314,9 @@ export function InvoiceForm({ onClose, onSave, triggerRef }: { onClose: () => vo
     setSaving(true);
     setError(null);
 
-    const supabase = createClient();
     const validItems = items.filter((it) => it.description.trim());
 
-    const { error: saveError } = await fetch("/api/invoices", {
+    const res = await fetch("/api/invoices", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -280,10 +332,20 @@ export function InvoiceForm({ onClose, onSave, triggerRef }: { onClose: () => vo
           unit_price: it.unitPrice,
         })),
       }),
-    }).then((r) => r.json());
+    });
 
-    if (saveError) {
-      setError(saveError?.error || "Errore durante il salvataggio");
+    const json = await res.json();
+
+    if (!res.ok) {
+      // Plan limit reached (402) — parent InvoicesClient handles this
+      if (res.status === 402) {
+        setError(json.error || "Limite fatture raggiunto");
+        setSaving(false);
+        // Dispatch a custom event so the parent can show the limit modal
+        window.dispatchEvent(new CustomEvent("invoice:plan-limit", { detail: json }));
+        return;
+      }
+      setError(json?.error || "Errore durante il salvataggio");
       setSaving(false);
       return;
     }
@@ -390,16 +452,27 @@ export function InvoiceForm({ onClose, onSave, triggerRef }: { onClose: () => vo
             {items.map((it, i) => (
               <div
                 key={it.id}
-                className="grid grid-cols-[1fr_80px_100px_28px] gap-2 items-start"
+                className="grid grid-cols-[1fr_80px_100px_28px_28px] gap-2 items-start"
               >
-                <input
-                  ref={i === 0 ? firstItemRef : undefined}
-                  type="text"
-                  placeholder="Descrizione"
-                  value={it.description}
-                  onChange={(e) => updateItem(i, "description", e.target.value)}
-                  className="w-full bg-[#111318] border border-[#1e2029] rounded-lg px-3 py-2 text-sm text-[#f0f0f2] placeholder-[#6b7280] focus:outline-none focus:border-[#6c63ff] transition-colors"
-                />
+                <div className="relative">
+                  <input
+                    ref={i === 0 ? firstItemRef : undefined}
+                    type="text"
+                    placeholder="Descrizione"
+                    value={it.description}
+                    onChange={(e) => updateItem(i, "description", e.target.value)}
+                    className="w-full bg-[#111318] border border-[#1e2029] rounded-lg px-3 py-2 pr-8 text-sm text-[#f0f0f2] placeholder-[#6b7280] focus:outline-none focus:border-[#6c63ff] transition-colors"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleAIDescription(i)}
+                    disabled={aiSuggestingIndex === i}
+                    title="Suggerisci descrizione con AI"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded text-xs text-[#6b7280] hover:text-[#6c63ff] disabled:opacity-50 disabled:cursor-not-allowed bg-transparent border-none cursor-pointer transition-colors"
+                  >
+                    {aiSuggestingIndex === i ? "⏳" : "✨"}
+                  </button>
+                </div>
                 <input
                   type="number"
                   min={0}
@@ -500,9 +573,20 @@ export function InvoiceForm({ onClose, onSave, triggerRef }: { onClose: () => vo
 
         {/* Notes */}
         <div className="mb-6">
-          <label className="block text-xs font-medium text-[#6b7280] mb-1.5 uppercase tracking-wider">
-            Note (opzionali)
-          </label>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-xs font-medium text-[#6b7280] uppercase tracking-wider">
+              Note (opzionali)
+            </label>
+            <button
+              type="button"
+              onClick={handleAINotes}
+              disabled={aiSuggestingNotes}
+              title="Suggerisci note con AI"
+              className="text-xs text-[#6c63ff] hover:text-[#8b5cf6] disabled:opacity-50 disabled:cursor-not-allowed bg-transparent border-none cursor-pointer transition-colors flex items-center gap-1"
+            >
+              {aiSuggestingNotes ? "⏳ AI sta scrivendo..." : "✨ AI suggerisci"}
+            </button>
+          </div>
           <textarea
             rows={2}
             value={notes}

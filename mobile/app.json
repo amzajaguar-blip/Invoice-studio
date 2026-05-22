@@ -1,0 +1,61 @@
+{
+  "expo": {
+    "name": "InvoiceStudio",
+    "slug": "invoicestudio",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "invoicestudio",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0a0b0f"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.invoicestudio.mobile"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0a0b0f"
+      },
+      "package": "com.Invoice_Studio.myapp",
+      "versionCode": 5
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Consenti a InvoiceStudio di usare la fotocamera per scansionare le ricevute."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Consenti a InvoiceStudio di accedere alle tue foto per allegare documenti."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "supabaseUrl": "https://xiqebgohgwbbzynhisah.supabase.co",
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhpcWViZ29oZ3diYnp5bmhpc2FoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwODY4MjIsImV4cCI6MjA5NDY2MjgyMn0.xxWSzUd3zuuQeqMr0MVHCAll4nF3JkyEYND8S0uSy_A",
+      "apiUrl": "https://invoicestudio.app",
+      "eas": {
+        "projectId": "TBD"
+      }
+    }
+  }
+}

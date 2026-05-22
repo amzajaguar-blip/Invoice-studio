@@ -12,7 +12,7 @@ export default async function InvoicesPage() {
     .from("org_members")
     .select("org_id")
     .eq("user_id", user.id)
-    .single();
+    .maybeSingle();
   const orgId = memberData?.org_id;
 
   const { data: invoices } = await supabase
@@ -23,6 +23,9 @@ export default async function InvoicesPage() {
     .order("created_at", { ascending: false });
 
   return (
-    <InvoicesClient initialInvoices={(invoices as Invoice[]) || []} />
+    <InvoicesClient
+      initialInvoices={(invoices as Invoice[]) || []}
+      orgId={orgId}
+    />
   );
 }
