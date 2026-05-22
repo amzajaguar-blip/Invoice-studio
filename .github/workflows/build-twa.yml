@@ -89,6 +89,9 @@ jobs:
 
       - run: npm ci
 
+      - name: Prebuild Android (generate android/)
+        run: npx expo prebuild --platform android --no-install
+
       - name: Bundle AAB
         run: cd android && chmod +x gradlew && ./gradlew bundleRelease --no-daemon
 
