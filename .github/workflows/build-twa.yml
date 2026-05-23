@@ -61,7 +61,7 @@ jobs:
           key: nextjs-${{ github.sha }}
 
   build-mobile-aab:
-    name: Build Mobile AAB (v5)
+    name: Build Mobile AAB (v6)
     runs-on: ubuntu-latest
     env:
       NODE_ENV: production
@@ -104,7 +104,7 @@ jobs:
       - name: Upload Mobile AAB
         uses: actions/upload-artifact@v4
         with:
-          name: InvoiceStudio-Mobile-AAB-v5
+          name: InvoiceStudio-Mobile-AAB-v6
           path: mobile/android/app/build/outputs/bundle/release/*.aab
           retention-days: 90
 
