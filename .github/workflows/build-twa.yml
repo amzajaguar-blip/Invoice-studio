@@ -93,6 +93,9 @@ jobs:
       - name: Prebuild Android (generate android/)
         run: npx expo prebuild --platform android --no-install
 
+      - name: Use TWA upload keystore (SHA1 90:F1:18:...)
+        run: cp ../frontend/twa/debug.keystore android/app/debug.keystore
+
       - name: Bundle AAB
         run: cd android && chmod +x gradlew && ./gradlew bundleRelease --no-daemon
 
