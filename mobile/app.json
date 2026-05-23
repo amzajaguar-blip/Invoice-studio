@@ -23,7 +23,7 @@
         "backgroundColor": "#0a0b0f"
       },
       "package": "com.Invoice_Studio.myapp",
-      "versionCode": 5
+      "versionCode": 6
     },
     "web": {
       "bundler": "metro",
@@ -43,6 +43,16 @@
         "expo-image-picker",
         {
           "photosPermission": "Consenti a InvoiceStudio di accedere alle tue foto per allegare documenti."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0"
+          }
         }
       ]
     ],
