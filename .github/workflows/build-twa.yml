@@ -99,13 +99,23 @@ jobs:
           sed -i "s/keyAlias 'androiddebugkey'/keyAlias 'invoicestudio'/" android/app/build.gradle
 
       - name: Bundle AAB
-        run: cd android && chmod +x gradlew && ./gradlew bundleRelease --no-daemon
+        run: cd android && chmod +x gradlew && ./gradlew bundleRelease --no-daemon --stacktrace
 
-      - name: Upload Mobile AAB
+      - name: Find AAB (debug)
+        if: always()
+        run: |
+          echo "=== Searching for .aab files ==="
+          find android -name "*.aab" 2>/dev/null || echo "No .aab found"
+          echo "=== Release output dir ==="
+          ls -la android/app/build/outputs/bundle/release/ 2>/dev/null || echo "Dir not found"
+
+      - name: Upload Mobile AAB v6
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: InvoiceStudio-Mobile-AAB-v6
-          path: mobile/android/app/build/outputs/bundle/release/*.aab
+          path: mobile/android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
           retention-days: 90
 
   build-twa:
