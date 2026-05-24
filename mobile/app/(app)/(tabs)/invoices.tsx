@@ -1,9 +1,11 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   View, Text, StyleSheet, FlatList,
-  RefreshControl, ActivityIndicator,
+  RefreshControl, ActivityIndicator, TouchableOpacity,
 } from "react-native";
 import { apiFetch } from "@/lib/ai";
+import { useRewardedInvoice } from "@/lib/useRewardedInvoice";
+import InvoiceLimitModal from "../InvoiceLimitModal";
 
 interface Invoice {
   id: string;
@@ -28,6 +30,9 @@ export default function InvoicesScreen() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [limitModalVisible, setLimitModalVisible] = useState(false);
+
+  const { quota, adLoaded, adLoading, adError, showAd, refreshQuota } = useRewardedInvoice();
 
   const load = useCallback(async () => {
     const { data } = await apiFetch<{ data: Invoice[] }>("/api/invoices?limit=50");
@@ -42,12 +47,31 @@ export default function InvoicesScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await load();
+    await Promise.all([load(), refreshQuota()]);
     setRefreshing(false);
-  }, [load]);
+  }, [load, refreshQuota]);
 
   const fmt = (n: number, c = "EUR") =>
     new Intl.NumberFormat("it-IT", { style: "currency", currency: c }).format(n);
+
+  // Gestione tasto "Nuova Fattura"
+  const handleNewInvoice = useCallback(() => {
+    if (!quota.canCreate) {
+      setLimitModalVisible(true);
+      return;
+    }
+    // TODO: navigare alla schermata di creazione fattura
+  }, [quota.canCreate]);
+
+  const handleWatchAd = useCallback(() => {
+    showAd();
+    setLimitModalVisible(false);
+  }, [showAd]);
+
+  const handleUpgrade = useCallback(() => {
+    setLimitModalVisible(false);
+    // TODO: navigare alla schermata abbonamento Pro
+  }, []);
 
   if (loading) {
     return (
@@ -59,8 +83,30 @@ export default function InvoicesScreen() {
 
   return (
     <View style={s.container}>
-      <Text style={s.title}>Fatture</Text>
-      <Text style={s.sub}>{invoices.length} fattur{invoices.length === 1 ? "a" : "e"}</Text>
+      {/* Header */}
+      <View style={s.header}>
+        <View>
+          <Text style={s.title}>Fatture</Text>
+          <Text style={s.sub}>
+            {invoices.length} fattur{invoices.length === 1 ? "a" : "e"}
+          </Text>
+        </View>
+
+        {/* Quota badge */}
+        <TouchableOpacity
+          style={[s.quotaBadge, !quota.canCreate && s.quotaBadgeWarn]}
+          onPress={handleNewInvoice}
+        >
+          <Text style={[s.quotaText, !quota.canCreate && s.quotaTextWarn]}>
+            {quota.invoicesThisMonth}/{quota.limit} 📄
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Pulsante nuova fattura */}
+      <TouchableOpacity style={s.newBtn} onPress={handleNewInvoice} activeOpacity={0.85}>
+        <Text style={s.newBtnText}>+ Nuova Fattura</Text>
+      </TouchableOpacity>
 
       <FlatList
         data={invoices}
@@ -91,6 +137,17 @@ export default function InvoicesScreen() {
           </View>
         }
       />
+
+      {/* Modale limite raggiunto */}
+      <InvoiceLimitModal
+        visible={limitModalVisible}
+        adLoaded={adLoaded}
+        adLoading={adLoading}
+        adError={adError}
+        onWatchAd={handleWatchAd}
+        onUpgrade={handleUpgrade}
+        onClose={() => setLimitModalVisible(false)}
+      />
     </View>
   );
 }
@@ -98,8 +155,38 @@ export default function InvoicesScreen() {
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#0a0b0f", paddingTop: 60 },
   center: { justifyContent: "center", alignItems: "center" },
-  title: { fontSize: 24, fontWeight: "bold", color: "#f0f0f2", fontFamily: "serif", paddingHorizontal: 20 },
-  sub: { fontSize: 14, color: "#9ca3af", marginTop: 4, marginBottom: 16, paddingHorizontal: 20 },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  title: { fontSize: 24, fontWeight: "bold", color: "#f0f0f2", fontFamily: "serif" },
+  sub: { fontSize: 14, color: "#9ca3af", marginTop: 4 },
+  quotaBadge: {
+    backgroundColor: "#1e2029",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: "#2d2f3a",
+  },
+  quotaBadgeWarn: {
+    borderColor: "#ef444466",
+    backgroundColor: "#ef444411",
+  },
+  quotaText: { fontSize: 13, color: "#9ca3af", fontWeight: "600" },
+  quotaTextWarn: { color: "#ef4444" },
+  newBtn: {
+    marginHorizontal: 20,
+    marginBottom: 16,
+    backgroundColor: "#6c63ff",
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  newBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
   card: { backgroundColor: "#111318", borderRadius: 14, padding: 16, borderWidth: 1, borderColor: "#1e2029", marginBottom: 10 },
   row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   num: { fontSize: 15, fontWeight: "700", color: "#f0f0f2" },

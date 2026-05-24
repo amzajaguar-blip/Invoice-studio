@@ -2,7 +2,7 @@
   "expo": {
     "name": "InvoiceStudio",
     "slug": "invoicestudio",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "invoicestudio",
@@ -23,7 +23,7 @@
         "backgroundColor": "#0a0b0f"
       },
       "package": "com.Invoice_Studio.myapp",
-      "versionCode": 8,
+      "versionCode": 10,
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.INTERNET",
@@ -31,8 +31,7 @@
         "android.permission.RECORD_AUDIO",
         "android.permission.SYSTEM_ALERT_WINDOW",
         "android.permission.VIBRATE",
-        "android.permission.WRITE_EXTERNAL_STORAGE",
-        "!com.google.android.gms.permission.AD_ID"
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ]
     },
     "web": {
@@ -63,6 +62,13 @@
             "targetSdkVersion": 35,
             "buildToolsVersion": "35.0.0"
           }
+        }
+      ],
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-4053625490298263~3067488369",
+          "iosAppId": "ca-app-pub-4053625490298263~3067488369"
         }
       ]
     ],
