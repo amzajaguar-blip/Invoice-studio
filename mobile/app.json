@@ -23,7 +23,7 @@
         "backgroundColor": "#0a0b0f"
       },
       "package": "com.Invoice_Studio.myapp",
-      "versionCode": 7,
+      "versionCode": 8,
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.INTERNET",
