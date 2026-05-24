@@ -21,7 +21,7 @@ export default function PrivacyPage() {
           Privacy Policy
         </h1>
         <p className="text-sm text-[#9ca3af] mb-10">
-          Ultimo aggiornamento: 18 maggio 2026
+          Ultimo aggiornamento: 25 maggio 2026
         </p>
 
         {/* 1. Titolare del trattamento */}
@@ -65,6 +65,13 @@ export default function PrivacyPage() {
               <strong className="text-[#d1d5db]">Dati tecnici:</strong>{" "}
               indirizzo IP, tipo di browser, sistema operativo, pagine visitate
               (solo cookie tecnici essenziali).
+            </li>
+            <li>
+              <strong className="text-[#d1d5db]">Dati pubblicitari:</strong>{" "}
+              ID dispositivo (Advertising ID / AD_ID) e dati di interazione con
+              gli annunci (visualizzazioni video rewarded), raccolti tramite
+              Google AdMob per erogare annunci premiali facoltativi all&apos;interno
+              dell&apos;app mobile.
             </li>
           </ul>
         </section>
@@ -175,17 +182,16 @@ export default function PrivacyPage() {
           <p className="text-sm leading-relaxed text-[#9ca3af]">
             InvoiceStudio utilizza esclusivamente cookie tecnici essenziali per
             il funzionamento della piattaforma (autenticazione, sicurezza,
-            preferenze di sessione). Non utilizziamo cookie di profilazione, né
-            cookie di terze parti per finalità pubblicitarie o di tracciamento.
-            I cookie di sessione vengono eliminati alla chiusura del browser. Per
-            maggiori informazioni sui cookie, consulta{" "}
-            <a
-              href="https://www.garanteprivacy.it/cookie"
-              className="text-[#6c63ff] hover:text-[#8b5cf6] transition-colors"
-            >
-              la guida del Garante Privacy
-            </a>
-            .
+            preferenze di sessione). Non utilizziamo cookie di profilazione sul
+            sito web.
+          </p>
+          <p className="text-sm leading-relaxed text-[#9ca3af] mt-2">
+            L&apos;app mobile (Android) integra Google AdMob per la pubblicità
+            rewarded. AdMob può utilizzare l&apos;ID pubblicità del dispositivo
+            (AD_ID) per erogare annunci. Gli utenti possono reimpostare o
+            disattivare l&apos;ID pubblicità dalle impostazioni Android:
+            Impostazioni → Google → Annunci → &ldquo;Ripristina ID
+            pubblicità&rdquo; o &ldquo;Disattiva personalizzazione annunci&rdquo;.
           </p>
         </section>
 
@@ -226,6 +232,30 @@ export default function PrivacyPage() {
               transazionali (fatture, reminder).{" "}
               <a
                 href="https://resend.com/privacy"
+                className="text-[#6c63ff] hover:text-[#8b5cf6] transition-colors"
+              >
+                Privacy Policy
+              </a>
+              .
+            </li>
+            <li>
+              <strong className="text-[#d1d5db]">Google AdMob:</strong>{" "}
+              erogazione di annunci video rewarded nell&apos;app mobile. AdMob
+              raccoglie l&apos;ID dispositivo (AD_ID) e i dati di interazione con
+              gli annunci.{" "}
+              <a
+                href="https://policies.google.com/privacy"
+                className="text-[#6c63ff] hover:text-[#8b5cf6] transition-colors"
+              >
+                Privacy Policy
+              </a>
+              .
+            </li>
+            <li>
+              <strong className="text-[#d1d5db]">Sentry:</strong> monitoraggio
+              errori e diagnostica.{" "}
+              <a
+                href="https://sentry.io/privacy/"
                 className="text-[#6c63ff] hover:text-[#8b5cf6] transition-colors"
               >
                 Privacy Policy

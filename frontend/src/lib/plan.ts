@@ -47,22 +47,34 @@ export async function getCurrentMonthInvoiceCount(orgId: string): Promise<number
 
 /**
  * Get the org's rewarded credits for the current month.
+ * Reads from org_credits (unified wallet), consistent with mobile app.
  */
 export async function getRewardedCredits(orgId: string): Promise<{
   credits: number;
   maxCredits: number;
 }> {
   const supabase = await createClient();
-  const monthKey = getMonthKey();
-  const { data } = await supabase
-    .from("rewarded_credits")
-    .select("credits, max_credits")
+
+  // Read from org_credits (unified wallet — same table the mobile app writes to)
+  const { data: wallet } = await supabase
+    .from("org_credits")
+    .select("earned_credits, consumed_credits")
     .eq("org_id", orgId)
-    .eq("month_key", monthKey)
     .maybeSingle();
+
+  const earned = wallet?.earned_credits ?? 0;
+  const consumed = wallet?.consumed_credits ?? 0;
+  const available = Math.max(0, earned - consumed);
+
+  // Fetch max credits cap from rewarded_ad_config
+  const { data: config } = await supabase
+    .from("rewarded_ad_config")
+    .select("max_rewarded_invoices_month")
+    .single();
+
   return {
-    credits: data?.credits ?? 0,
-    maxCredits: data?.max_credits ?? 3,
+    credits: available,
+    maxCredits: config?.max_rewarded_invoices_month ?? 3,
   };
 }
 
@@ -122,7 +134,8 @@ export async function getUserQuota(orgId: string): Promise<UserQuota> {
 
 /**
  * Atomically grant rewarded credits to an org.
- * Uses upsert + row-level check to prevent exceeding max.
+ * Uses ad_impressions as idempotency gate (UNIQUE on verification_hash),
+ * then upserts org_credits and inserts credit_transactions ledger entry.
  */
 export async function grantRewardedCredit(
   orgId: string,
@@ -132,154 +145,176 @@ export async function grantRewardedCredit(
   rewardAmount: number = 1
 ): Promise<{ success: boolean; creditsGranted: number; totalCredits: number; error?: string }> {
   const supabase = await createClient();
-  const monthKey = getMonthKey();
   const quota = getPlanQuota(await getOrgPlan(orgId));
 
   if (!quota.rewardedAdsEnabled) {
     return { success: false, creditsGranted: 0, totalCredits: 0, error: "Rewarded ads not available on this plan" };
   }
 
-  // 1. Record the claim (idempotency check via UNIQUE on verification_hash)
-  const { error: claimError } = await supabase.from("reward_claims").insert({
+  // 1. Insert ad_impressions as idempotency gate (UNIQUE on admob_callback_id)
+  const { error: impressionError } = await supabase.from("ad_impressions").insert({
     org_id: orgId,
     user_id: userId,
-    ad_provider: adProvider,
-    verification_hash: verificationHash,
+    admob_callback_id: verificationHash,
+    ad_unit_id: "ssv_" + adProvider,
+    reward_type: "invoice_credit",
     reward_amount: rewardAmount,
+    verification_status: "verified",
+    verified_at: new Date().toISOString(),
   });
 
-  if (claimError) {
+  if (impressionError) {
     // Duplicate claim (UNIQUE violation) — already processed
-    if (claimError.code === "23505") {
+    if (impressionError.code === "23505") {
       const { data: existing } = await supabase
-        .from("rewarded_credits")
-        .select("credits")
+        .from("org_credits")
+        .select("earned_credits, consumed_credits")
         .eq("org_id", orgId)
-        .eq("month_key", monthKey)
         .maybeSingle();
-      return {
-        success: true,
-        creditsGranted: 0,
-        totalCredits: existing?.credits ?? 0,
-      };
+      const total = Math.max(0, (existing?.earned_credits ?? 0) - (existing?.consumed_credits ?? 0));
+      return { success: true, creditsGranted: 0, totalCredits: total };
     }
-    return { success: false, creditsGranted: 0, totalCredits: 0, error: "Failed to record reward claim" };
+    return { success: false, creditsGranted: 0, totalCredits: 0, error: "Failed to record ad impression" };
   }
 
-  // 2. Upsert rewarded_credits with cap check
+  // 2. Upsert org_credits (unified wallet)
   const { data: current } = await supabase
-    .from("rewarded_credits")
-    .select("credits, max_credits")
+    .from("org_credits")
+    .select("id, earned_credits, consumed_credits")
     .eq("org_id", orgId)
-    .eq("month_key", monthKey)
     .maybeSingle();
 
-  const maxCredits = current?.max_credits ?? quota.maxRewardedCredits;
-  const currentCredits = current?.credits ?? 0;
-  const newCredits = Math.min(currentCredits + rewardAmount, maxCredits);
+  const maxCredits = quota.maxRewardedCredits;
 
-  if (currentCredits >= maxCredits) {
-    // Already at cap — don't grant more, but claim was recorded
+  if (current) {
+    const currentAvailable = current.earned_credits - current.consumed_credits;
+    if (currentAvailable >= maxCredits) {
+      return { success: true, creditsGranted: 0, totalCredits: currentAvailable };
+    }
+    const newEarned = current.earned_credits + rewardAmount;
+    const balanceAfter = newEarned - current.consumed_credits;
+    const cappedEarned = Math.min(newEarned, current.consumed_credits + maxCredits);
+
+    await supabase
+      .from("org_credits")
+      .update({ earned_credits: cappedEarned, updated_at: new Date().toISOString() })
+      .eq("org_id", orgId);
+
+    // 3. Insert credit_transactions ledger entry
+    await supabase.from("credit_transactions").insert({
+      org_id: orgId,
+      entry_type: "earn",
+      amount: rewardAmount,
+      idempotency_key: `earn_${verificationHash}_${orgId}`,
+      balance_after: Math.min(balanceAfter, maxCredits),
+      reason: "Rewarded ad claim via SSV",
+    });
+
     return {
       success: true,
-      creditsGranted: 0,
-      totalCredits: currentCredits,
+      creditsGranted: cappedEarned - current.earned_credits,
+      totalCredits: cappedEarned - current.consumed_credits,
     };
   }
 
-  const { error: upsertError } = await supabase.from("rewarded_credits").upsert(
-    {
-      org_id: orgId,
-      month_key: monthKey,
-      credits: newCredits,
-      max_credits: maxCredits,
-    },
-    { onConflict: "org_id, month_key" }
-  );
+  // First credit for this org
+  await supabase.from("org_credits").insert({
+    org_id: orgId,
+    earned_credits: 1,
+    consumed_credits: 0,
+  });
 
-  if (upsertError) {
-    return { success: false, creditsGranted: 0, totalCredits: currentCredits, error: "Failed to update credits" };
-  }
+  await supabase.from("credit_transactions").insert({
+    org_id: orgId,
+    entry_type: "earn",
+    amount: 1,
+    idempotency_key: `earn_${verificationHash}_${orgId}`,
+    balance_after: 1,
+    reason: "Rewarded ad claim via SSV (first credit)",
+  });
 
-  return {
-    success: true,
-    creditsGranted: newCredits - currentCredits,
-    totalCredits: newCredits,
-  };
+  return { success: true, creditsGranted: 1, totalCredits: 1 };
 }
 
 /**
  * Consume one rewarded credit for invoice creation beyond the base plan limit.
- * Called AFTER successful invoice creation when the user has exceeded their
- * free plan invoice quota and is using a rewarded credit.
+ * Increments consumed_credits on org_credits and records a credit_transactions
+ * entry_type='consume'.
  *
- * Idempotent via invoice_id: each invoice can consume at most one credit.
+ * Idempotent via invoice_id: each invoice can consume at most one credit,
+ * enforced by UNIQUE(idempotency_key) on credit_transactions.
  */
 export async function consumeRewardedCredit(
   orgId: string,
   invoiceId: string
 ): Promise<{ consumed: boolean; remainingCredits: number }> {
   const supabase = await createClient();
-  const monthKey = getMonthKey();
 
-  // Guard: only consume if this invoice hasn't already consumed a credit
-  const { data: existingEvent } = await supabase
-    .from("invoice_events")
+  // Guard: check if this invoice already consumed a credit (idempotency)
+  const idempotencyKey = `consume_${invoiceId}_${orgId}`;
+  const { data: existingTx } = await supabase
+    .from("credit_transactions")
     .select("id")
-    .eq("invoice_id", invoiceId)
-    .eq("event_type", "rewarded_credit_used")
+    .eq("idempotency_key", idempotencyKey)
     .maybeSingle();
 
-  if (existingEvent) {
-    // Already consumed — idempotent
+  if (existingTx) {
+    // Already consumed — return current balance
     const { data: credits } = await supabase
-      .from("rewarded_credits")
-      .select("credits")
+      .from("org_credits")
+      .select("earned_credits, consumed_credits")
       .eq("org_id", orgId)
-      .eq("month_key", monthKey)
       .maybeSingle();
-    return { consumed: false, remainingCredits: credits?.credits ?? 0 };
+    const remaining = Math.max(0, (credits?.earned_credits ?? 0) - (credits?.consumed_credits ?? 0));
+    return { consumed: false, remainingCredits: remaining };
   }
 
-  // Fetch current credits
+  // Fetch current wallet
   const { data: current } = await supabase
-    .from("rewarded_credits")
-    .select("credits, max_credits")
+    .from("org_credits")
+    .select("earned_credits, consumed_credits")
     .eq("org_id", orgId)
-    .eq("month_key", monthKey)
     .maybeSingle();
 
-  const currentCredits = current?.credits ?? 0;
-  if (currentCredits <= 0) {
+  const earned = current?.earned_credits ?? 0;
+  const consumed = current?.consumed_credits ?? 0;
+  const available = earned - consumed;
+
+  if (available <= 0) {
     return { consumed: false, remainingCredits: 0 };
   }
 
-  const newCredits = currentCredits - 1;
+  const newConsumed = consumed + 1;
+  const balanceAfter = earned - newConsumed;
 
-  // Atomically decrement credits
-  const { error: updateError } = await supabase
-    .from("rewarded_credits")
-    .update({ credits: newCredits, updated_at: new Date().toISOString() })
-    .eq("org_id", orgId)
-    .eq("month_key", monthKey);
+  // Increment consumed_credits
+  await supabase
+    .from("org_credits")
+    .update({ consumed_credits: newConsumed, updated_at: new Date().toISOString() })
+    .eq("org_id", orgId);
 
-  if (updateError) {
-    console.error("Failed to consume credit:", updateError);
-    return { consumed: false, remainingCredits: currentCredits };
-  }
+  // Record the consumption in the ledger
+  await supabase.from("credit_transactions").insert({
+    org_id: orgId,
+    entry_type: "consume",
+    amount: 1,
+    invoice_id: invoiceId,
+    idempotency_key: idempotencyKey,
+    balance_after: balanceAfter,
+    reason: `Invoice ${invoiceId} created with rewarded credit`,
+  });
 
-  // Record the consumption event (idempotency gate via invoice_events)
+  // Also record in invoice_events for backward compatibility
   await supabase.from("invoice_events").insert({
     invoice_id: invoiceId,
     event_type: "rewarded_credit_used",
     metadata: {
-      month_key: monthKey,
-      credits_before: currentCredits,
-      credits_after: newCredits,
+      credits_before: available,
+      credits_after: balanceAfter,
     },
   });
 
-  return { consumed: true, remainingCredits: newCredits };
+  return { consumed: true, remainingCredits: balanceAfter };
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
