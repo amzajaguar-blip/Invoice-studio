@@ -9,13 +9,16 @@ function AdMobInitializer({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    const timeout = setTimeout(() => setReady(true), 5000);
     mobileAds()
       .initialize()
-      .then(() => setReady(true))
+      .then(() => { clearTimeout(timeout); setReady(true); })
       .catch((err) => {
+        clearTimeout(timeout);
         console.error("AdMob init failed:", err);
-        setReady(true); // continue anyway, ads will try to load later
+        setReady(true);
       });
+    return () => clearTimeout(timeout);
   }, []);
 
   if (!ready) {

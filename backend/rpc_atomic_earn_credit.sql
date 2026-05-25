@@ -28,6 +28,23 @@ DECLARE
   v_impression_error_code text;
 BEGIN
   -- ═══════════════════════════════════════════════════════════════════════
+  -- STEP 0: Pro guard — utenti Pro/Agency non hanno bisogno di crediti
+  -- ═══════════════════════════════════════════════════════════════════════
+  PERFORM 1 FROM public.subscriptions
+   WHERE org_id = p_org_id
+     AND plan IN ('pro', 'agency', 'enterprise')
+     AND status IN ('active', 'trialing');
+
+  IF FOUND THEN
+    RETURN jsonb_build_object(
+      'status', 'rejected',
+      'reason', 'Pro users have unlimited invoices — credits not needed',
+      'credits_granted', 0,
+      'balance', 9999
+    );
+  END IF;
+
+  -- ═══════════════════════════════════════════════════════════════════════
   -- STEP 1: Idempotency gate via ad_impressions (UNIQUE on admob_callback_id)
   -- ═══════════════════════════════════════════════════════════════════════
   SELECT id, verification_status
