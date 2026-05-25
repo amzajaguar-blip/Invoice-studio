@@ -345,22 +345,89 @@ export async function POST(request: Request) {
   });
 }
 
-// ─── AdMob Server-Side Verification ──────────────────────────────────────────
-//
-// In production, this calls Google's Rewarded Ads SSV endpoint:
-//   POST https://admanager.googleapis.com/v1/networks/{networkCode}/rewardedAds:verify
-//
-// The callback_id is a base64-encoded query string containing:
-//   - ad_network, ad_unit, reward_amount, custom_data, timestamp, signature
-//
-// The signature must be verified against Google's public key to prevent forgery.
-//
-// Reference: https://developers.google.com/admob/android/rewarded-video-ssv
+// ─── AdMob Server-Side Verification (Google API) ────────────────────────────
 
 interface VerificationResult {
   valid: boolean;
   reason?: string;
   estimatedEarningsUsdMicros?: number;
+}
+
+let cachedToken: { access_token: string; expires_at: number } | null = null;
+
+async function getGoogleAccessToken(): Promise<string> {
+  // Usa cache per evitare di richiedere un token a ogni chiamata
+  if (cachedToken && Date.now() < cachedToken.expires_at - 60_000) {
+    return cachedToken.access_token;
+  }
+
+  const clientEmail = process.env.GOOGLE_ADSSV_CLIENT_EMAIL;
+  const privateKey = process.env.GOOGLE_ADSSV_PRIVATE_KEY;
+
+  if (!clientEmail || !privateKey) {
+    throw new Error(
+      "GOOGLE_ADSSV_CLIENT_EMAIL and GOOGLE_ADSSV_PRIVATE_KEY must be set"
+    );
+  }
+
+  // Crea JWT firmato per OAuth2 Service Account
+  const header = { alg: "RS256", typ: "JWT" };
+  const now = Math.floor(Date.now() / 1000);
+  const payload = {
+    iss: clientEmail,
+    scope: "https://www.googleapis.com/auth/admanager",
+    aud: "https://oauth2.googleapis.com/token",
+    exp: now + 3600,
+    iat: now,
+  };
+
+  const encoder = new TextEncoder();
+  const encodedHeader = b64url(JSON.stringify(header));
+  const encodedPayload = b64url(JSON.stringify(payload));
+  const toSign = `${encodedHeader}.${encodedPayload}`;
+
+  // Importa la chiave privata RSA
+  const key = await crypto.subtle.importKey(
+    "pkcs8",
+    pemToArrayBuffer(privateKey),
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+
+  const signature = await crypto.subtle.sign(
+    "RSASSA-PKCS1-v1_5",
+    key,
+    encoder.encode(toSign)
+  );
+  const encodedSignature = b64url(
+    String.fromCharCode(...new Uint8Array(signature))
+  );
+
+  const jwt = `${toSign}.${encodedSignature}`;
+
+  // Scambia JWT per access token
+  const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion: jwt,
+    }),
+  });
+
+  if (!tokenResponse.ok) {
+    const err = await tokenResponse.text();
+    throw new Error(`Google OAuth2 token request failed: ${err}`);
+  }
+
+  const tokenData = await tokenResponse.json();
+  cachedToken = {
+    access_token: tokenData.access_token,
+    expires_at: Date.now() + (tokenData.expires_in ?? 3600) * 1000,
+  };
+
+  return cachedToken.access_token;
 }
 
 async function verifyAdMobCallback(
@@ -371,39 +438,78 @@ async function verifyAdMobCallback(
     return { valid: false, reason: "Invalid callback ID format" };
   }
 
-  // AdMob callback IDs contain a signature component separated by '~'
-  const parts = callbackId.split("~");
-  if (parts.length < 2) {
-    return { valid: false, reason: "Callback ID missing signature component" };
+  // ── Chiamata reale a Google AdMob SSV ────────────────────────────────────
+  const networkCode = process.env.ADMOB_NETWORK_CODE;
+
+  if (!networkCode) {
+    // Fallback: se ADMOB_NETWORK_CODE non è configurato, rifiuta
+    console.error("ADMOB_NETWORK_CODE env var not set — SSV disabled");
+    return {
+      valid: false,
+      reason: "SSV not configured — ADMOB_NETWORK_CODE missing",
+    };
   }
 
-  // ── TODO: Replace with actual Google AdMob API call ──────────────────────
-  //
-  // Production implementation:
-  //
-  // const accessToken = await getGoogleAccessToken(); // Service account JWT
-  // const response = await fetch(
-  //   `https://admanager.googleapis.com/v1/networks/${networkCode}/rewardedAds:verify`,
-  //   {
-  //     method: "POST",
-  //     headers: {
-  //       Authorization: `Bearer ${accessToken}`,
-  //       "Content-Type": "application/json",
-  //     },
-  //     body: JSON.stringify({ callbackId }),
-  //   }
-  // );
-  //
-  // const result = await response.json();
-  // return {
-  //   valid: result.isValid,
-  //   estimatedEarningsUsdMicros: result.estimatedEarningsUsdMicros,
-  // };
+  try {
+    const accessToken = await getGoogleAccessToken();
 
-  // Stub: accept well-formed callback IDs during development
-  // ⚠️ REMOVE BEFORE PRODUCTION — this allows any client to forge claims
-  return {
-    valid: true,
-    estimatedEarningsUsdMicros: undefined,
-  };
+    const response = await fetch(
+      `https://admanager.googleapis.com/v1/networks/${networkCode}/rewardedAds:verify`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ callbackId }),
+      }
+    );
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("Google SSV API error:", response.status, errText);
+      return { valid: false, reason: `SSV API error: ${response.status}` };
+    }
+
+    const result = await response.json();
+
+    return {
+      valid: result.isValid === true,
+      estimatedEarningsUsdMicros: result.estimatedEarningsUsdMicros ?? undefined,
+      reason: result.isValid ? undefined : "Google SSV rejected",
+    };
+  } catch (err) {
+    console.error("SSV verification exception:", err);
+    // In caso di errore di rete/API, rifiuta per sicurezza
+    return {
+      valid: false,
+      reason: "SSV verification failed — network or auth error",
+    };
+  }
+}
+
+// ─── Helpers per JWT OAuth2 ──────────────────────────────────────────────────
+
+/** Codifica base64url (senza padding) */
+function b64url(input: string): string {
+  return Buffer.from(input)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+/** Converte chiave privata PEM in ArrayBuffer per Web Crypto */
+function pemToArrayBuffer(pem: string): ArrayBuffer {
+  const b64 = pem
+    .replace(/-----BEGIN PRIVATE KEY-----/, "")
+    .replace(/-----END PRIVATE KEY-----/, "")
+    .replace(/\s+/g, "");
+  const binary = Buffer.from(b64, "base64").toString("binary");
+  const buffer = new ArrayBuffer(binary.length);
+  const view = new Uint8Array(buffer);
+  for (let i = 0; i < binary.length; i++) {
+    view[i] = binary.charCodeAt(i);
+  }
+  return buffer;
 }

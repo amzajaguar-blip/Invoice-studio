@@ -44,6 +44,9 @@ jobs:
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
       NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
       NEXT_PUBLIC_APP_URL: https://invoicestudio.app
+      ADMOB_NETWORK_CODE: ${{ secrets.ADMOB_NETWORK_CODE }}
+      GOOGLE_ADSSV_CLIENT_EMAIL: ${{ secrets.GOOGLE_ADSSV_CLIENT_EMAIL }}
+      GOOGLE_ADSSV_PRIVATE_KEY: ${{ secrets.GOOGLE_ADSSV_PRIVATE_KEY }}
       TURBOPACK: 0
     steps:
       - uses: actions/checkout@v4
