@@ -214,6 +214,7 @@ export function useRewardedInvoice(): {
   }, [rewarded, adLoaded]);
 
   // ─── Accreditamento credito con idempotency via RPC atomica ───────────────
+  // Deve essere definito PRIMA di loadAd per evitare TDZ ReferenceError
 
   const claimCredit = useCallback(async (admobCallbackId: string) => {
     if (!admobCallbackId) return;
@@ -229,8 +230,6 @@ export function useRewardedInvoice(): {
 
     if (!orgData?.org_id) return;
 
-    // Chiamata RPC atomica: ad_impressions + org_credits + credit_transactions
-    // in una singola transazione PostgreSQL. Nessuna race condition.
     const { data: result, error: rpcError } = await supabase.rpc(
       'atomic_earn_credit',
       {

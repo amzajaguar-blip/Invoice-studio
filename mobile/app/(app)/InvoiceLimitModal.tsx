@@ -3,7 +3,7 @@
  * limite di 5 fatture gratuite mensili.
  *
  * Offre due percorsi:
- * - Passa a Pro (primario, €19/mese) — fatture illimitate + tutte le funzioni
+ * - Passa a Pro (primario, €4,99/mese) — fatture illimitate + tutte le funzioni
  * - Guarda un video (secondario) — sblocca 1 fattura extra gratis via Rewarded Ad
  */
 
@@ -204,7 +204,7 @@ export default function InvoiceLimitModal({
               🚀
             </Text>
             <View style={s.proBtnText}>
-              <Text style={s.proBtnTitle}>Passa a Pro — €19/mese</Text>
+              <Text style={s.proBtnTitle}>Passa a Pro — €4,99/mese</Text>
               <View style={s.proFeatureList}>
                 <View style={s.proFeatureRow}>
                   <Text style={s.proFeatureCheck}>✓</Text>

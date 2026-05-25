@@ -25,6 +25,7 @@
       "package": "com.Invoice_Studio.myapp",
       "versionCode": 10,
       "permissions": [
+        "com.android.vending.BILLING",
         "android.permission.CAMERA",
         "android.permission.INTERNET",
         "android.permission.READ_EXTERNAL_STORAGE",
