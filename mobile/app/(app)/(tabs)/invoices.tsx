@@ -5,6 +5,7 @@ import {
 } from "react-native";
 import { apiFetch } from "@/lib/ai";
 import { useRewardedInvoice } from "@/lib/useRewardedInvoice";
+import { useRouter } from "expo-router";
 import InvoiceLimitModal from "../InvoiceLimitModal";
 
 interface Invoice {
@@ -27,6 +28,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default function InvoicesScreen() {
+  const router = useRouter();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -70,8 +72,8 @@ export default function InvoicesScreen() {
 
   const handleUpgrade = useCallback(() => {
     setLimitModalVisible(false);
-    // TODO: navigare alla schermata abbonamento Pro
-  }, []);
+    router.push("/(app)/ProUpgrade");
+  }, [router]);
 
   if (loading) {
     return (
