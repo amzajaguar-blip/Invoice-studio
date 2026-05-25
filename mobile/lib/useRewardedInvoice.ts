@@ -142,6 +142,40 @@ export function useRewardedInvoice(): {
     refreshQuota();
   }, [refreshQuota]);
 
+  // ─── Accreditamento credito con idempotency via RPC atomica ───────────────
+  // DEFINITO PRIMA di loadAd per evitare TDZ ReferenceError
+
+  const claimCredit = useCallback(async (admobCallbackId: string) => {
+    if (!admobCallbackId) return;
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: orgData } = await supabase
+      .from('org_members')
+      .select('org_id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (!orgData?.org_id) return;
+
+    const { data: result, error: rpcError } = await supabase.rpc(
+      'atomic_earn_credit',
+      {
+        p_org_id: orgData.org_id,
+        p_user_id: user.id,
+        p_callback_id: admobCallbackId,
+        p_ad_unit_id: REWARDED_AD_UNIT_ID,
+        p_reward_type: 'invoice_credit',
+        p_reward_amount: 1,
+      }
+    );
+
+    if (rpcError) {
+      console.error('atomic_earn_credit RPC failed:', rpcError);
+    }
+  }, []);
+
   // ─── Carica annuncio rewarded ───────────────────────────────────────────────
 
   const loadAd = useCallback(() => {
@@ -212,40 +246,6 @@ export function useRewardedInvoice(): {
       rewarded.show();
     }
   }, [rewarded, adLoaded]);
-
-  // ─── Accreditamento credito con idempotency via RPC atomica ───────────────
-  // Deve essere definito PRIMA di loadAd per evitare TDZ ReferenceError
-
-  const claimCredit = useCallback(async (admobCallbackId: string) => {
-    if (!admobCallbackId) return;
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data: orgData } = await supabase
-      .from('org_members')
-      .select('org_id')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (!orgData?.org_id) return;
-
-    const { data: result, error: rpcError } = await supabase.rpc(
-      'atomic_earn_credit',
-      {
-        p_org_id: orgData.org_id,
-        p_user_id: user.id,
-        p_callback_id: admobCallbackId,
-        p_ad_unit_id: REWARDED_AD_UNIT_ID,
-        p_reward_type: 'invoice_credit',
-        p_reward_amount: 1,
-      }
-    );
-
-    if (rpcError) {
-      console.error('atomic_earn_credit RPC failed:', rpcError);
-    }
-  }, []);
 
   return {
     quota,
