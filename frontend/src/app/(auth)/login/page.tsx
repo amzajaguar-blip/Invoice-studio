@@ -57,8 +57,7 @@ function LoginForm() {
       return;
     }
 
-    router.push(redirect);
-    router.refresh();
+    window.location.assign(redirect);
   };
 
   return (
