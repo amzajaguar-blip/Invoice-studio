@@ -20,13 +20,13 @@ export default function AuthLayout() {
     );
   }
 
-  if (!session) {
-    return <Redirect href="/(auth)/login" />;
+  if (session) {
+    return <Redirect href="/(app)/(tabs)" />;
   }
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="login" />
     </Stack>
   );
 }
