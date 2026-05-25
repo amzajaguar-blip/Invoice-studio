@@ -9,6 +9,7 @@ export default function LoginScreen() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
@@ -16,6 +17,10 @@ export default function LoginScreen() {
   const handleSubmit = async () => {
     if (!email.trim() || !password.trim()) {
       setError("Inserisci email e password");
+      return;
+    }
+    if (isSignUp && password !== confirmPassword) {
+      setError("Le password non coincidono");
       return;
     }
     setError(null);
@@ -66,6 +71,16 @@ export default function LoginScreen() {
             value={password}
             onChangeText={setPassword}
           />
+          {isSignUp && (
+            <TextInput
+              style={styles.input}
+              placeholder="Ripeti Password"
+              placeholderTextColor="#6b7280"
+              secureTextEntry
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+            />
+          )}
 
           {error && (
             <Text
