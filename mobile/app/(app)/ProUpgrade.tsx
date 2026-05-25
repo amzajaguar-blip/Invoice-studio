@@ -4,8 +4,7 @@ import {
   AccessibilityInfo,
 } from "react-native";
 import { useRouter } from "expo-router";
-// Purchases.configure() va chiamato in _layout.tsx PRIMA di usare questo screen
-// import Purchases from "react-native-purchases";
+import Purchases, { PurchasesPackage } from "react-native-purchases";
 
 const PURCHASE_TIMEOUT_MS = 15_000;
 
@@ -37,22 +36,42 @@ export default function ProUpgradeScreen() {
       setErrorMessage("Richiesta scaduta. Verifica la connessione e riprova.");
     }, PURCHASE_TIMEOUT_MS);
 
-    // TODO: sostituire con RevenueCat reale
-    // try {
-    //   const offerings = await Purchases.getOfferings();
-    //   const pkg = offerings.current?.availablePackages.find(...);
-    //   const { customerInfo } = await Purchases.purchasePackage(pkg);
-    //   if (customerInfo.entitlements.active['pro']) { router.back(); }
-    // } catch (e: any) {
-    //   if (!e.userCancelled) { setPurchaseState("error"); setErrorMessage(e.message); }
-    // }
+    try {
+      const offerings = await Purchases.getOfferings();
+      if (!offerings.current) {
+        throw new Error("Impossibile caricare i prezzi. Riprova più tardi.");
+      }
+      
+      // Mappiamo i nostri ID (mensile / annuale) all'offerta
+      const pkg = offerings.current.availablePackages.find(
+        (p: PurchasesPackage) => p.product.identifier === selectedPlan || 
+           (selectedPlan === "monthly" && p.product.identifier === "mensile") || 
+           (selectedPlan === "yearly" && p.product.identifier === "annuale")
+      );
 
-    // Mock per sviluppo
-    setTimeout(() => {
+      if (!pkg) {
+        throw new Error("Prodotto non trovato.");
+      }
+
+      const { customerInfo } = await Purchases.purchasePackage(pkg);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      setPurchaseState("idle");
-      router.back();
-    }, 1500);
+      
+      if (customerInfo.entitlements.active['pro']) {
+        setPurchaseState("idle");
+        router.back();
+      } else {
+        setPurchaseState("error");
+        setErrorMessage("Acquisto completato ma abbonamento non rilevato. Riavvia l'app.");
+      }
+    } catch (e: any) {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (!e.userCancelled) { 
+        setPurchaseState("error"); 
+        setErrorMessage(e.message || "Errore sconosciuto"); 
+      } else {
+        setPurchaseState("idle");
+      }
+    }
   };
 
   const handleRetry = () => {

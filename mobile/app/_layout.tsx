@@ -2,8 +2,9 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { AuthProvider } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
-import { View, ActivityIndicator } from "react-native";
+import { View, ActivityIndicator, Platform } from "react-native";
 import mobileAds from "react-native-google-mobile-ads";
+import Purchases from "react-native-purchases";
 
 function AdMobInitializer({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
@@ -33,6 +34,12 @@ function AdMobInitializer({ children }: { children: React.ReactNode }) {
 }
 
 export default function RootLayout() {
+  useEffect(() => {
+    if (Platform.OS === "android") {
+      Purchases.configure({ apiKey: "goog_jQbcLtPLxDFDpSxwHblTiWwaDhw" });
+    }
+  }, []);
+
   return (
     <AuthProvider>
       <StatusBar style="light" />
