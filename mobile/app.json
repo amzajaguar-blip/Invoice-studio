@@ -2,7 +2,7 @@
   "expo": {
     "name": "InvoiceStudio",
     "slug": "invoicestudio",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "invoicestudio",
@@ -23,7 +23,7 @@
         "backgroundColor": "#0a0b0f"
       },
       "package": "com.Invoice_Studio.myapp",
-      "versionCode": 13,
+      "versionCode": 14,
       "permissions": [
         "com.google.android.gms.permission.AD_ID",
         "com.android.vending.BILLING",
@@ -62,7 +62,10 @@
           "android": {
             "compileSdkVersion": 35,
             "targetSdkVersion": 35,
-            "buildToolsVersion": "35.0.0"
+            "buildToolsVersion": "35.0.0",
+            "extraPermissions": [
+              "com.google.android.gms.permission.AD_ID"
+            ]
           }
         }
       ],
