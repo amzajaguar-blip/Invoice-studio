@@ -1,8 +1,9 @@
 name: Build TWA (APK + AAB)
 
-# Trigger manual force-push after V12 bug fixes
 on:
   push:
+    branches: [main]
+  pull_request:
     branches: [main]
   workflow_dispatch:
     inputs:
@@ -14,6 +15,10 @@ on:
         options:
           - production
           - staging
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   verify:
