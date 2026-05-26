@@ -11,7 +11,7 @@ const PURCHASE_TIMEOUT_MS = 15_000;
 export default function ProUpgradeScreen() {
   const router = useRouter();
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "yearly">("yearly");
-  const [purchaseState, setPurchaseState] = useState<"idle" | "loading" | "error">("idle");
+  const [purchaseState, setPurchaseState] = useState<"idle" | "loading" | "restoring" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [reduceMotion, setReduceMotion] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -80,6 +80,24 @@ export default function ProUpgradeScreen() {
     handleSubscribe();
   };
 
+  const handleRestore = async () => {
+    setPurchaseState("restoring");
+    setErrorMessage("");
+    try {
+      const customerInfo = await Purchases.restorePurchases();
+      if (customerInfo.entitlements.active['pro']) {
+        setPurchaseState("idle");
+        router.back();
+      } else {
+        setPurchaseState("error");
+        setErrorMessage("Nessun acquisto da ripristinare su questo account.");
+      }
+    } catch (e: any) {
+      setPurchaseState("error");
+      setErrorMessage(e.message || "Errore durante il ripristino. Riprova.");
+    }
+  };
+
   const selectedPkg = packages.find((p) => p.id === selectedPlan)!;
 
   return (
@@ -140,9 +158,9 @@ export default function ProUpgradeScreen() {
 
       {/* CTA */}
       <TouchableOpacity
-        style={[s.ctaButton, purchaseState === "loading" && s.ctaDisabled]}
+        style={[s.ctaButton, (purchaseState === "loading" || purchaseState === "restoring") && s.ctaDisabled]}
         onPress={handleSubscribe}
-        disabled={purchaseState === "loading"}
+        disabled={purchaseState === "loading" || purchaseState === "restoring"}
         accessibilityRole="button"
         accessibilityLabel={`Attiva abbonamento ${selectedPlan === "yearly" ? "annuale" : "mensile"}. ${selectedPkg.recurring}. Rinnovo automatico.`}
         accessibilityHint="Completa l'acquisto tramite Google Play"
@@ -161,6 +179,26 @@ export default function ProUpgradeScreen() {
         )}
       </TouchableOpacity>
 
+      {/* Restore Purchases — obbligatorio Play Store Policy */}
+      <TouchableOpacity
+        style={[s.restoreBtn, purchaseState === "restoring" && s.ctaDisabled]}
+        onPress={handleRestore}
+        disabled={purchaseState === "loading" || purchaseState === "restoring"}
+        accessibilityRole="button"
+        accessibilityLabel="Ripristina acquisti precedenti"
+        accessibilityHint="Recupera un abbonamento Pro già acquistato su questo account Google"
+      >
+        {purchaseState === "restoring" ? (
+          reduceMotion ? (
+            <Text style={s.restoreText}>Ripristino in corso…</Text>
+          ) : (
+            <ActivityIndicator size="small" color="#6b7280" />
+          )
+        ) : (
+          <Text style={s.restoreText}>Ripristina acquisti</Text>
+        )}
+      </TouchableOpacity>
+
       {/* Error state */}
       {purchaseState === "error" && (
         <View style={s.errorBanner}>
@@ -171,15 +209,26 @@ export default function ProUpgradeScreen() {
         </View>
       )}
 
-      {/* Close */}
-      <TouchableOpacity
-        style={s.cancelBtn}
-        onPress={() => router.back()}
-        accessibilityRole="button"
-        accessibilityLabel="Continua con il piano gratuito"
-      >
-        <Text style={s.cancelText}>Continua con il piano gratuito</Text>
-      </TouchableOpacity>
+      {/* Close and Restore */}
+      <View style={s.footerLinks}>
+        <TouchableOpacity
+          style={s.cancelBtn}
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Continua con il piano gratuito"
+        >
+          <Text style={s.cancelText}>Continua con il piano gratuito</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={s.restoreBtn}
+          onPress={handleRestore}
+          accessibilityRole="button"
+          accessibilityLabel="Ripristina acquisti"
+        >
+          <Text style={s.restoreText}>Hai già acquistato? Ripristina</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -238,4 +287,8 @@ const s = StyleSheet.create({
 
   cancelBtn: { alignItems: "center", paddingVertical: 12 },
   cancelText: { color: "#6b7280", fontSize: 15 },
+  
+  footerLinks: { marginTop: 8, gap: 4 },
+  restoreBtn: { alignItems: "center", paddingVertical: 12 },
+  restoreText: { color: "#9ca3af", fontSize: 13, textDecorationLine: "underline" },
 });
