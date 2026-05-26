@@ -53,6 +53,8 @@ const nextConfig: NextConfig = {
     ],
   },
 
+  serverExternalPackages: ["tesseract.js"],
+
   experimental: {
     optimizePackageImports: ["lucide-react"],
   },

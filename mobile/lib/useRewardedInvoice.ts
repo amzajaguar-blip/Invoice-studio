@@ -33,9 +33,13 @@ const FREE_INVOICES_LIMIT = 5;
 export interface InvoiceQuota {
   invoicesThisMonth: number;
   creditsAvailable: number;
-  limit: number;         // 5 + crediti
-  canCreate: boolean;    // true se invoicesThisMonth < limit
+  limit: number;              // 5 + crediti disponibili
+  canCreate: boolean;         // true se invoicesThisMonth < limit
   isLoading: boolean;
+  dailyCreditsUsed: number;   // crediti guadagnati oggi
+  dailyMax: number;           // massimo giornaliero (10)
+  dailyResetIn: string;       // es. "14h 32m" — tempo al reset
+  reason?: "daily_limit_reached" | "max_credits_reached" | "no_credits";
 }
 
 // ─── Hook principale ──────────────────────────────────────────────────────────
@@ -54,6 +58,9 @@ export function useRewardedInvoice(): {
     limit: FREE_INVOICES_LIMIT,
     canCreate: true,
     isLoading: true,
+    dailyCreditsUsed: 0,
+    dailyMax: 10,
+    dailyResetIn: "",
   });
 
   const [adLoaded, setAdLoaded] = useState(false);
@@ -111,7 +118,7 @@ export function useRewardedInvoice(): {
       // Leggi crediti dal wallet unificato (org_credits)
       const { data: creditsData } = await supabase
         .from('org_credits')
-        .select('earned_credits, consumed_credits')
+        .select('earned_credits, consumed_credits, daily_earned_credits, daily_period_date')
         .eq('org_id', orgId)
         .maybeSingle();
 
@@ -121,6 +128,30 @@ export function useRewardedInvoice(): {
       const monthlyCount = invoiceCount ?? 0;
       const effectiveLimit = FREE_INVOICES_LIMIT + available;
 
+      // ── Daily limit ──────────────────────────────────────────────────────
+      const today = new Date().toISOString().slice(0, 10);
+      const rawDaily = creditsData?.daily_earned_credits ?? 0;
+      const dailyDate = creditsData?.daily_period_date ?? "1970-01-01";
+      const dailyCreditsUsed = dailyDate < today ? 0 : rawDaily;
+      const DAILY_MAX = 10;
+
+      // Time until midnight (local)
+      const now = new Date();
+      const midnight = new Date(now);
+      midnight.setHours(24, 0, 0, 0);
+      const msLeft = midnight.getTime() - now.getTime();
+      const hLeft = Math.floor(msLeft / 3_600_000);
+      const mLeft = Math.floor((msLeft % 3_600_000) / 60_000);
+      const dailyResetIn = hLeft > 0 ? `${hLeft}h ${mLeft}m` : `${mLeft}m`;
+
+      const isDailyLimitHit = dailyCreditsUsed >= DAILY_MAX;
+      let reason: InvoiceQuota["reason"];
+      if (monthlyCount >= effectiveLimit) {
+        if (isDailyLimitHit) reason = "daily_limit_reached";
+        else if (available >= 300) reason = "max_credits_reached";
+        else reason = "no_credits";
+      }
+
       if (mountedRef.current) {
         setQuota({
           invoicesThisMonth: monthlyCount,
@@ -128,6 +159,10 @@ export function useRewardedInvoice(): {
           limit: effectiveLimit,
           canCreate: monthlyCount < effectiveLimit,
           isLoading: false,
+          dailyCreditsUsed,
+          dailyMax: DAILY_MAX,
+          dailyResetIn,
+          reason,
         });
       }
     } catch (err) {

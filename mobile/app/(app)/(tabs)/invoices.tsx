@@ -146,6 +146,7 @@ export default function InvoicesScreen() {
         adLoaded={adLoaded}
         adLoading={adLoading}
         adError={adError}
+        quota={quota}
         onWatchAd={handleWatchAd}
         onUpgrade={handleUpgrade}
         onClose={() => setLimitModalVisible(false)}

@@ -19,12 +19,14 @@ import {
   Dimensions,
   AccessibilityInfo,
 } from 'react-native';
+import type { InvoiceQuota } from '@/lib/useRewardedInvoice';
 
 interface InvoiceLimitModalProps {
   visible: boolean;
   adLoaded: boolean;
   adLoading: boolean;
   adError: string | null;
+  quota?: InvoiceQuota;
   onWatchAd: () => void;
   onUpgrade: () => void;
   onClose: () => void;
@@ -38,10 +40,16 @@ export default function InvoiceLimitModal({
   adLoaded,
   adLoading,
   adError,
+  quota,
   onWatchAd,
   onUpgrade,
   onClose,
 }: InvoiceLimitModalProps) {
+  const isDailyLimitHit = quota?.reason === 'daily_limit_reached';
+  const dailyUsed = quota?.dailyCreditsUsed ?? 0;
+  const dailyMax = quota?.dailyMax ?? 10;
+  const dailyProgress = Math.min(dailyUsed / dailyMax, 1);
+  const dailyResetIn = quota?.dailyResetIn ?? '';
   const slideAnim = useRef(new Animated.Value(height)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [reduceMotion, setReduceMotion] = useState(false);
@@ -222,19 +230,34 @@ export default function InvoiceLimitModal({
             </View>
           </TouchableOpacity>
 
+          {/* ── Daily progress bar ──────────────────────────────────── */}
+          <View style={s.dailyRow}>
+            <Text style={s.dailyLabel}>
+              Crediti oggi: {dailyUsed}/{dailyMax}
+            </Text>
+            {isDailyLimitHit && dailyResetIn ? (
+              <Text style={s.dailyReset}>Reset in {dailyResetIn}</Text>
+            ) : null}
+          </View>
+          <View style={s.progressTrack}>
+            <View style={[s.progressBar, { width: `${dailyProgress * 100}%` as unknown as number }]} />
+          </View>
+
           {/* ── Opzione SECONDARIA: Guarda video ───────────────────────── */}
           <TouchableOpacity
-            style={[s.adBtn, (!adLoaded && !adLoading) && s.btnDisabled]}
+            style={[s.adBtn, (isDailyLimitHit || (!adLoaded && !adLoading)) && s.btnDisabled]}
             onPress={onWatchAd}
-            disabled={!adLoaded}
+            disabled={isDailyLimitHit || !adLoaded}
             activeOpacity={0.8}
             accessibilityRole="button"
             accessibilityLabel={
-              adLoaded
-                ? 'Guarda un video breve per sbloccare una fattura extra gratis'
-                : 'Video non disponibile. Riprova più tardi.'
+              isDailyLimitHit
+                ? `Limite giornaliero raggiunto. Reset in ${dailyResetIn}.`
+                : adLoaded
+                  ? 'Guarda un video breve per sbloccare una fattura extra gratis'
+                  : 'Video non disponibile. Riprova più tardi.'
             }
-            accessibilityState={{ disabled: !adLoaded }}
+            accessibilityState={{ disabled: isDailyLimitHit || !adLoaded }}
           >
             <View style={s.adBtnContent}>
               <View style={s.adBtnLeft}>
@@ -247,10 +270,22 @@ export default function InvoiceLimitModal({
                 </Text>
                 <View>
                   <Text style={s.adBtnTitle}>Guarda un video breve</Text>
-                  <Text style={s.adBtnSub}>Sblocca 1 fattura extra gratis</Text>
+                  {isDailyLimitHit ? (
+                    <Text style={[s.adBtnSub, s.adBtnSubWarn]}>
+                      Limite giornaliero · Reset in {dailyResetIn}
+                    </Text>
+                  ) : (
+                    <Text style={s.adBtnSub}>Sblocca 1 fattura extra gratis</Text>
+                  )}
                 </View>
               </View>
-              <AdState />
+              {isDailyLimitHit ? (
+                <View style={s.limitBadge}>
+                  <Text style={s.limitBadgeText}>ESAURITO</Text>
+                </View>
+              ) : (
+                <AdState />
+              )}
             </View>
           </TouchableOpacity>
 
@@ -452,6 +487,54 @@ const s = StyleSheet.create({
     fontSize: 11,
     color: '#6c63ff',
     fontWeight: '600',
+  },
+
+  // ── Daily progress ─────────────────────────────────────────────────────
+  dailyRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  dailyLabel: {
+    fontSize: 12,
+    color: '#9ca3af',
+  },
+  dailyReset: {
+    fontSize: 12,
+    color: '#f59e0b',
+    fontWeight: '600',
+  },
+  progressTrack: {
+    height: 4,
+    backgroundColor: '#1e2029',
+    borderRadius: 2,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: 4,
+    backgroundColor: '#6c63ff',
+    borderRadius: 2,
+  },
+
+  // ── Limit badge ────────────────────────────────────────────────────────
+  limitBadge: {
+    backgroundColor: '#ef444422',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: '#ef4444',
+  },
+  limitBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#ef4444',
+    letterSpacing: 0.5,
+  },
+  adBtnSubWarn: {
+    color: '#f59e0b',
   },
 
   // ── Close link ────────────────────────────────────────────────────────
