@@ -165,18 +165,20 @@ jobs:
 
       - name: Pre-configure bubblewrap (skip interactive JDK/SDK prompts)
         run: |
-          # bubblewrap reads ~/.llama/llama-config.json on init and skips the
-          # interactive JDK/Android SDK setup prompts when it finds valid paths.
-          # JAVA_HOME is set by setup-java@v4; ANDROID_HOME is set on the job env.
-          mkdir -p "$HOME/.llama"
-          cat > "$HOME/.llama/llama-config.json" <<EOF
-          {
-            "jdkPath": "${JAVA_HOME}",
-            "androidSdkPath": "${ANDROID_HOME}"
-          }
+          # bubblewrap loadOrCreateConfig() reads ~/.bubblewrap/config.json on
+          # every command and only prompts when jdkPath/androidSdkPath are empty.
+          # Pre-writing this file with valid paths skips the interactive setup
+          # entirely. JAVA_HOME is set by setup-java@v4; ANDROID_HOME by env above.
+          # Schema source: node_modules/@bubblewrap/core/dist/lib/Config.js
+          mkdir -p "$HOME/.bubblewrap"
+          cat > "$HOME/.bubblewrap/config.json" <<EOF
+          {"jdkPath":"${JAVA_HOME}","androidSdkPath":"${ANDROID_HOME}"}
           EOF
-          echo "Bubblewrap config:"
-          cat "$HOME/.llama/llama-config.json"
+          echo "Bubblewrap config written to $HOME/.bubblewrap/config.json:"
+          cat "$HOME/.bubblewrap/config.json"
+          echo ""
+          echo "bubblewrap doctor check:"
+          bubblewrap doctor || true
 
       # ─── Generate debug keystore (replace with your own for production) ──────
 
@@ -201,10 +203,11 @@ jobs:
             echo "TWA project already initialized, skipping bubblewrap init."
             exit 0
           fi
-          # Pipe "N" to any unexpected prompts as a defensive fallback; the
-          # llama-config.json pre-created above should already skip the JDK
-          # install question.
-          printf 'N\nN\nN\nN\n' | bubblewrap init \
+          # With ~/.bubblewrap/config.json pre-populated above, bubblewrap init
+          # skips its JDK/SDK setup prompts. We close stdin (< /dev/null) so any
+          # leftover inquirer prompt (which spin-loops on a non-TTY otherwise)
+          # immediately receives EOF and uses defaults instead of looping.
+          bubblewrap init \
             --manifest "${{ env.NEXT_PUBLIC_APP_URL }}/manifest.json" \
             --directory . \
             --package-name com.invoicestudio.app \
@@ -215,7 +218,8 @@ jobs:
             --theme-color "#0a0b0f" \
             --background-color "#0a0b0f" \
             --start-url "/dashboard" \
-            --fallback-url "${{ env.NEXT_PUBLIC_APP_URL }}/dashboard"
+            --fallback-url "${{ env.NEXT_PUBLIC_APP_URL }}/dashboard" \
+            < /dev/null
 
       - name: Copy assetlinks.json
         run: |
