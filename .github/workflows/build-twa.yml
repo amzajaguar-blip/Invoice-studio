@@ -163,6 +163,21 @@ jobs:
       - name: Install bubblewrap
         run: npm install -g @bubblewrap/cli
 
+      - name: Pre-configure bubblewrap (skip interactive JDK/SDK prompts)
+        run: |
+          # bubblewrap reads ~/.llama/llama-config.json on init and skips the
+          # interactive JDK/Android SDK setup prompts when it finds valid paths.
+          # JAVA_HOME is set by setup-java@v4; ANDROID_HOME is set on the job env.
+          mkdir -p "$HOME/.llama"
+          cat > "$HOME/.llama/llama-config.json" <<EOF
+          {
+            "jdkPath": "${JAVA_HOME}",
+            "androidSdkPath": "${ANDROID_HOME}"
+          }
+          EOF
+          echo "Bubblewrap config:"
+          cat "$HOME/.llama/llama-config.json"
+
       # ─── Generate debug keystore (replace with your own for production) ──────
 
       - name: Generate debug keystore
@@ -186,7 +201,10 @@ jobs:
             echo "TWA project already initialized, skipping bubblewrap init."
             exit 0
           fi
-          bubblewrap init \
+          # Pipe "N" to any unexpected prompts as a defensive fallback; the
+          # llama-config.json pre-created above should already skip the JDK
+          # install question.
+          printf 'N\nN\nN\nN\n' | bubblewrap init \
             --manifest "${{ env.NEXT_PUBLIC_APP_URL }}/manifest.json" \
             --directory . \
             --package-name com.invoicestudio.app \
