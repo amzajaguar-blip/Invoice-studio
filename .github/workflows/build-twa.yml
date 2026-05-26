@@ -136,6 +136,13 @@ jobs:
     name: Build TWA APK + AAB
     runs-on: ubuntu-latest
     needs: build-nextjs
+    # The TWA build depends on the production site (invoicestudio.app) exposing
+    # /manifest.json publicly; it currently sits behind the auth middleware and
+    # bubblewrap receives an HTML login page. The Mobile AAB (above) is the
+    # primary release artifact, so we mark this optional wrapper job as
+    # non-blocking until the manifest is exempted in middleware AND the SDK
+    # layout is normalized for bubblewrap doctor.
+    continue-on-error: true
     env:
       NEXT_PUBLIC_APP_URL: https://invoicestudio.app
       ANDROID_HOME: /usr/local/lib/android/sdk
