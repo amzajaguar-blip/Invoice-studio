@@ -1,5 +1,6 @@
 name: Build TWA (APK + AAB)
 
+# Trigger manual force-push after V12 bug fixes
 on:
   push:
     branches: [main]
