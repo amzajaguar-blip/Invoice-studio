@@ -103,6 +103,8 @@ export async function getUserQuota(orgId: string): Promise<UserQuota> {
       remainingBase: Infinity,
       rewardedCredits: 0,
       maxRewardedCredits: 0,
+      dailyRewardedCredits: 0,
+      maxDailyRewardedCredits: 0,
       canCreateInvoice: true,
       unlimited: true,
       showRewardedAdOption: false,
