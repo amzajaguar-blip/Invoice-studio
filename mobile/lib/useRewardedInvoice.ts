@@ -135,8 +135,7 @@ export function useRewardedInvoice(): {
       const dailyCreditsUsed = dailyDate < today ? 0 : rawDaily;
       const DAILY_MAX = 10;
 
-      // Time until midnight (local)
-      const now = new Date();
+      // Time until midnight (local) — riuso `now` già dichiarato sopra
       const midnight = new Date(now);
       midnight.setHours(24, 0, 0, 0);
       const msLeft = midnight.getTime() - now.getTime();
