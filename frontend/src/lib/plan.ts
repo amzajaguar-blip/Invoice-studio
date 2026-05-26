@@ -52,19 +52,26 @@ export async function getCurrentMonthInvoiceCount(orgId: string): Promise<number
 export async function getRewardedCredits(orgId: string): Promise<{
   credits: number;
   maxCredits: number;
+  dailyEarned: number;
+  dailyMax: number;
 }> {
   const supabase = await createClient();
 
   // Read from org_credits (unified wallet — same table the mobile app writes to)
   const { data: wallet } = await supabase
     .from("org_credits")
-    .select("earned_credits, consumed_credits")
+    .select("earned_credits, consumed_credits, daily_earned_credits, daily_period_date")
     .eq("org_id", orgId)
     .maybeSingle();
 
   const earned = wallet?.earned_credits ?? 0;
   const consumed = wallet?.consumed_credits ?? 0;
   const available = Math.max(0, earned - consumed);
+
+  const today = new Date().toISOString().slice(0, 10);
+  const rawDailyEarned = wallet?.daily_earned_credits ?? 0;
+  const dailyPeriodDate = wallet?.daily_period_date ?? "1970-01-01";
+  const dailyEarned = dailyPeriodDate < today ? 0 : rawDailyEarned;
 
   // Fetch max credits cap from rewarded_ad_config
   const { data: config } = await supabase
@@ -75,6 +82,8 @@ export async function getRewardedCredits(orgId: string): Promise<{
   return {
     credits: available,
     maxCredits: config?.max_rewarded_invoices_month ?? 3,
+    dailyEarned,
+    dailyMax: 10,
   };
 }
 
@@ -100,14 +109,16 @@ export async function getUserQuota(orgId: string): Promise<UserQuota> {
     };
   }
 
-  const { credits, maxCredits } = await getRewardedCredits(orgId);
+  const { credits, maxCredits, dailyEarned, dailyMax } = await getRewardedCredits(orgId);
   const remainingBase = Math.max(0, quota.maxInvoices - currentMonthInvoices);
   const totalCapacity = quota.maxInvoices + credits;
   const canCreateInvoice = currentMonthInvoices < totalCapacity;
 
   let reason: UserQuota["reason"] | undefined;
   if (!canCreateInvoice) {
-    if (credits >= maxCredits) {
+    if (dailyEarned >= dailyMax) {
+      reason = "daily_limit_reached";
+    } else if (credits >= maxCredits) {
       reason = "max_credits_reached";
     } else {
       reason = "no_credits";
@@ -121,12 +132,15 @@ export async function getUserQuota(orgId: string): Promise<UserQuota> {
     remainingBase,
     rewardedCredits: credits,
     maxRewardedCredits: maxCredits,
+    dailyRewardedCredits: dailyEarned,
+    maxDailyRewardedCredits: dailyMax,
     canCreateInvoice,
     unlimited: false,
     reason,
     showRewardedAdOption:
       quota.rewardedAdsEnabled &&
       remainingBase <= 0 &&
+      dailyEarned < dailyMax &&
       credits < maxCredits &&
       currentMonthInvoices < quota.maxInvoices + maxCredits,
   };
@@ -180,24 +194,53 @@ export async function grantRewardedCredit(
   // 2. Upsert org_credits (unified wallet)
   const { data: current } = await supabase
     .from("org_credits")
-    .select("id, earned_credits, consumed_credits")
+    .select("id, earned_credits, consumed_credits, daily_earned_credits, daily_period_date")
     .eq("org_id", orgId)
     .maybeSingle();
 
   const maxCredits = quota.maxRewardedCredits;
+  const maxDaily = quota.maxDailyRewardedCredits;
+  const today = new Date().toISOString().slice(0, 10);
 
   if (current) {
     const currentAvailable = current.earned_credits - current.consumed_credits;
     if (currentAvailable >= maxCredits) {
       return { success: true, creditsGranted: 0, totalCredits: currentAvailable };
     }
+
+    // ── Daily limit check (resets every 24h) ────────────────────────────────
+    const needsReset = !current.daily_period_date || current.daily_period_date < today;
+    const dailyEarned = needsReset ? 0 : (current.daily_earned_credits ?? 0);
+
+    if (dailyEarned + rewardAmount > maxDaily) {
+      return {
+        success: false,
+        creditsGranted: 0,
+        totalCredits: currentAvailable,
+        error: "Limite giornaliero raggiunto. Riprova domani.",
+      };
+    }
+
+    // Reset daily counter if needed
+    if (needsReset) {
+      await supabase
+        .from("org_credits")
+        .update({ daily_earned_credits: 0, daily_period_date: today, updated_at: new Date().toISOString() })
+        .eq("org_id", orgId);
+    }
+
     const newEarned = current.earned_credits + rewardAmount;
     const balanceAfter = newEarned - current.consumed_credits;
     const cappedEarned = Math.min(newEarned, current.consumed_credits + maxCredits);
+    const newDailyEarned = dailyEarned + rewardAmount;
 
     await supabase
       .from("org_credits")
-      .update({ earned_credits: cappedEarned, updated_at: new Date().toISOString() })
+      .update({
+        earned_credits: cappedEarned,
+        daily_earned_credits: newDailyEarned,
+        updated_at: new Date().toISOString(),
+      })
       .eq("org_id", orgId);
 
     // 3. Insert credit_transactions ledger entry
@@ -220,20 +263,22 @@ export async function grantRewardedCredit(
   // First credit for this org
   await supabase.from("org_credits").insert({
     org_id: orgId,
-    earned_credits: 1,
+    earned_credits: rewardAmount,
     consumed_credits: 0,
+    daily_earned_credits: rewardAmount,
+    daily_period_date: today,
   });
 
   await supabase.from("credit_transactions").insert({
     org_id: orgId,
     entry_type: "earn",
-    amount: 1,
+    amount: rewardAmount,
     idempotency_key: `earn_${verificationHash}_${orgId}`,
-    balance_after: 1,
+    balance_after: rewardAmount,
     reason: "Rewarded ad claim via SSV (first credit)",
   });
 
-  return { success: true, creditsGranted: 1, totalCredits: 1 };
+  return { success: true, creditsGranted: rewardAmount, totalCredits: rewardAmount };
 }
 
 /**

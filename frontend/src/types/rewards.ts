@@ -26,8 +26,10 @@ export interface RewardClaim {
 export interface PlanQuota {
   /** Maximum invoices per month (base plan limit) */
   maxInvoices: number;
-  /** Maximum rewarded ad credits per month */
+  /** Maximum rewarded ad credits per month (hard cap) */
   maxRewardedCredits: number;
+  /** Maximum rewarded ad credits per day (resets every 24h) */
+  maxDailyRewardedCredits: number;
   /** Whether rewarded ads are available for this plan */
   rewardedAdsEnabled: boolean;
   /** Whether the plan is unlimited */
@@ -37,25 +39,29 @@ export interface PlanQuota {
 export const PLAN_QUOTAS: Record<string, PlanQuota> = {
   free: {
     maxInvoices: 5,
-    maxRewardedCredits: 3,
+    maxRewardedCredits: 300,
+    maxDailyRewardedCredits: 10,
     rewardedAdsEnabled: true,
     unlimited: false,
   },
   pro: {
     maxInvoices: Infinity,
     maxRewardedCredits: 0,
+    maxDailyRewardedCredits: 0,
     rewardedAdsEnabled: false,
     unlimited: true,
   },
   agency: {
     maxInvoices: Infinity,
     maxRewardedCredits: 0,
+    maxDailyRewardedCredits: 0,
     rewardedAdsEnabled: false,
     unlimited: true,
   },
   enterprise: {
     maxInvoices: Infinity,
     maxRewardedCredits: 0,
+    maxDailyRewardedCredits: 0,
     rewardedAdsEnabled: false,
     unlimited: true,
   },
@@ -74,11 +80,13 @@ export interface UserQuota {
   remainingBase: number;
   rewardedCredits: number;
   maxRewardedCredits: number;
+  dailyRewardedCredits: number;
+  maxDailyRewardedCredits: number;
   canCreateInvoice: boolean;
   /** Whether the plan has no limits (Pro, Agency, Enterprise) */
   unlimited: boolean;
   /** If false, the reason why */
-  reason?: "plan_limit" | "no_credits" | "max_credits_reached";
+  reason?: "plan_limit" | "no_credits" | "max_credits_reached" | "daily_limit_reached";
   /** Whether the user should see the rewarded ad option */
   showRewardedAdOption: boolean;
 }

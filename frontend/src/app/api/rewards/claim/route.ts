@@ -81,9 +81,10 @@ export async function POST(request: Request) {
   );
 
   if (!result.success) {
+    const isDailyLimit = result.error?.includes("Limite giornaliero");
     return NextResponse.json(
       { success: false, error: result.error },
-      { status: 400 }
+      { status: isDailyLimit ? 429 : 400 }
     );
   }
 
