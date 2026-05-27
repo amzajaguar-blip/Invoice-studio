@@ -54,25 +54,30 @@ function applyTheme(resolved: ResolvedTheme) {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("dark"); // default dark for app
-  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("dark");
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-
-  // Initialize from localStorage on mount
-  useEffect(() => {
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window === "undefined") return "dark";
+    return (localStorage.getItem(STORAGE_KEY) as Theme) || "dark";
+  });
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => {
+    if (typeof window === "undefined") return "dark";
     const stored = (localStorage.getItem(STORAGE_KEY) as Theme) || "dark";
-    const resolved = resolveTheme(stored);
-    setThemeState(stored);
-    setResolvedTheme(resolved);
-    applyTheme(resolved);
+    return resolveTheme(stored);
+  });
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  });
+
+  // Apply theme on mount (DOM class injection)
+  useEffect(() => {
+    applyTheme(resolvedTheme);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Listen for system preference changes
   useEffect(() => {
     const mql = window.matchMedia("(prefers-color-scheme: dark)");
     const motionMql = window.matchMedia("(prefers-reduced-motion: reduce)");
-
-    setPrefersReducedMotion(motionMql.matches);
 
     const handleSystemChange = () => {
       if (theme === "system") {

@@ -7,7 +7,7 @@
  * skeleton state helpers, and reduced-motion support.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 interface ConfettiParticle {
   id: number;
@@ -129,6 +129,8 @@ export function SkeletonBlock({
   );
 }
 
+const SKELETON_ROW_WIDTHS = ["75%", "60%", "85%", "68%", "72%", "90%"];
+
 /**
  * SkeletonCard — card-shaped skeleton for invoice lists, etc.
  */
@@ -142,7 +144,7 @@ export function SkeletonCard({ rows = 3 }: { rows?: number }) {
       {Array.from({ length: rows }).map((_, i) => (
         <SkeletonBlock
           key={i}
-          width={`${60 + Math.random() * 35}%`}
+          width={SKELETON_ROW_WIDTHS[i % SKELETON_ROW_WIDTHS.length]}
           height="14px"
         />
       ))}
