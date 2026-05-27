@@ -63,7 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email,
       password,
       options: {
-        emailRedirectTo: "https://invoicestudio.app/auth/confirm",
+        emailRedirectTo: "https://invoicestudio.app/auth/callback?next=/dashboard",
       },
     });
     if (error) return { error: error.message };

@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 // Paths that do NOT require authentication
-const publicPaths = ["/", "/login", "/signup", "/auth/callback", "/pay", "/privacy", "/terms"];
+const publicPaths = ["/", "/login", "/signup", "/auth/callback", "/auth/confirm", "/pay", "/privacy", "/terms", "/delete-account", "/api/webhooks"];
 
 // Paths that redirect to /dashboard if user is already authenticated
 const authPaths = ["/login", "/signup"];

@@ -4,13 +4,11 @@ const isDev = process.env.NODE_ENV === "development";
 
 const CSP = [
   "default-src 'self'",
-  // Stripe + Google AdMob (rewarded ads) + TWA bridge
-  // unsafe-eval required by React in dev mode (Turbopack)
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://js.stripe.com https://pagead2.googlesyndication.com https://tpc.googlesyndication.com https://www.googletagservices.com`,
   "worker-src 'self'",
-  "style-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "img-src 'self' data: https: blob:",
-  "font-src 'self'",
+  "font-src 'self' https://fonts.gstatic.com",
   "connect-src 'self' https://*.supabase.co https://api.stripe.com https://api.resend.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net",
   "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://pagead2.googlesyndication.com https://tpc.googlesyndication.com",
   "form-action 'self' https://checkout.stripe.com",
@@ -21,6 +19,9 @@ const CSP = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  turbopack: {
+    root: __dirname,
+  },
 
   async headers() {
     return [
@@ -63,27 +64,11 @@ const nextConfig: NextConfig = {
 import { withSentryConfig } from "@sentry/nextjs";
 
 export default withSentryConfig(nextConfig, {
-  // For all available options, see:
-  // https://github.com/getsentry/sentry-webpack-plugin#options
-
   org: "invoice-studio",
   project: "frontend",
-
-  // Only print logs for uploading source maps in CI
   silent: !process.env.CI,
-
-  // For all available options, see:
-  // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
-
-  // Upload a larger set of source maps for prettier stack traces (increases build time)
   widenClientFileUpload: true,
-
-  // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
   tunnelRoute: "/monitoring",
-
-  // Hides source maps from generated client bundles
   hideSourceMaps: true,
-
-  // Automatically tree-shake Sentry logger statements to reduce bundle size
   disableLogger: true,
 });

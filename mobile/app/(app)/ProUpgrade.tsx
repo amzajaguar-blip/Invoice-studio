@@ -209,7 +209,7 @@ export default function ProUpgradeScreen() {
         </View>
       )}
 
-      {/* Close and Restore */}
+      {/* Close */}
       <View style={s.footerLinks}>
         <TouchableOpacity
           style={s.cancelBtn}
@@ -218,15 +218,6 @@ export default function ProUpgradeScreen() {
           accessibilityLabel="Continua con il piano gratuito"
         >
           <Text style={s.cancelText}>Continua con il piano gratuito</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={s.restoreBtn}
-          onPress={handleRestore}
-          accessibilityRole="button"
-          accessibilityLabel="Ripristina acquisti"
-        >
-          <Text style={s.restoreText}>Hai già acquistato? Ripristina</Text>
         </TouchableOpacity>
       </View>
     </View>

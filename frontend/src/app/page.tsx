@@ -2,288 +2,159 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "InvoiceStudio — Fatture Professionali per Freelancer Italiani",
-  description:
-    "Crea fatture, accetta pagamenti con Stripe e automatizza i reminder. Risparmia 3-5 ore a settimana. Provalo gratis.",
-  openGraph: {
-    title: "InvoiceStudio — Fatture Professionali per Freelancer Italiani",
-    description:
-      "Crea fatture, accetta pagamenti con Stripe e automatizza i reminder. Risparmia 3-5 ore a settimana. Provalo gratis.",
-    type: "website",
-    locale: "it_IT",
-  },
+  title: "InvoiceStudio — Fatture Professionali Premium per Freelancer",
+  description: "Fatture, pagamenti, firma digitale e analytics in un'unica piattaforma. Risparmia 5 ore a settimana. Prova gratis.",
 };
-
-/*
- * ─── DESIGN RATIONALE ───────────────────────────────────────────
- * Dark theme (#0a0b0f background) applied directly via Tailwind
- * classes matching the app's .dark design tokens. The layout does
- * not inject .dark on <html>, so we self-contain the dark theme.
- *
- * Georgia serif for headings conveys professionalism and trust —
- * essential for financial products targeting Italian freelancers.
- *
- * Purple accent (#6c63ff) is used sparingly on CTAs and key
- * highlights to draw the eye through the conversion funnel.
- *
- * The page is a pure Server Component — zero client JS.
- * Internal links use next/link for SPA transitions; anchor
- * scrolls use native <a href="#id"> for zero-cost navigation.
- * ────────────────────────────────────────────────────────────────
- */
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-[#0a0b0f] text-[#f0f0f2] antialiased">
-      {/* ══════════════════════════════════════════════════════════
-          NAVIGATION
-          ══════════════════════════════════════════════════════════ */}
+    <div className="min-h-screen" style={{ background: "var(--background)", color: "var(--foreground)" }}>
       <Nav />
-
-      {/* ══════════════════════════════════════════════════════════
-          HERO — Primary conversion entry point
-          UVP: "Fatture professionali, pagamenti veloci"
-          Objection handled: "Non ho tempo" → "Risparmia 3-5 ore"
-          ══════════════════════════════════════════════════════════ */}
       <Hero />
-
-      {/* ══════════════════════════════════════════════════════════
-          FEATURES — Benefits-first (not feature-first) copy
-          id="funzionalita" is the anchor target from Hero CTA #2
-          ══════════════════════════════════════════════════════════ */}
+      <TrustBar />
       <Features />
-
-      {/* ══════════════════════════════════════════════════════════
-          HOW IT WORKS — Reduces cognitive friction
-          3 simple steps = low commitment perception
-          ══════════════════════════════════════════════════════════ */}
       <HowItWorks />
-
-      {/* ══════════════════════════════════════════════════════════
-          PRICING — 3 tiers with clear value progression
-          Free tier anchors the Pro tier as the obvious choice
-          (decoy effect / center-stage effect)
-          ══════════════════════════════════════════════════════════ */}
       <Pricing />
-
-      {/* ══════════════════════════════════════════════════════════
-          BOTTOM CTA — Final conversion push before footer
-          ══════════════════════════════════════════════════════════ */}
       <BottomCTA />
-
-      {/* ══════════════════════════════════════════════════════════
-          FOOTER
-          ══════════════════════════════════════════════════════════ */}
       <Footer />
     </div>
   );
 }
 
-/* ───────────────────────────────────────────────────────────────
-   NAV — Sticky, minimal. Login + Signup CTA.
-   Rationale: Always-visible signup reduces drop-off.
-   ─────────────────────────────────────────────────────────────── */
 function Nav() {
   return (
-    <nav className="sticky top-0 z-50 border-b border-[#1e2029] bg-[#0a0b0f]/80 backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        {/* Logo */}
-        <Link
-          href="/"
-          className="font-[family-name:Georgia,serif] text-xl font-bold tracking-tight text-[#f0f0f2]"
-        >
-          Invoice<span className="text-[#6c63ff]">Studio</span>
+    <nav style={{ borderBottom: "1px solid var(--border-primary)", background: "var(--glass-bg)", backdropFilter: "blur(20px)", position: "sticky", top: 0, zIndex: 50 }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Link href="/" style={{ fontFamily: "Georgia, serif", fontWeight: 700, fontSize: 20, color: "var(--text-primary)", textDecoration: "none" }}>
+          Invoice<span style={{ color: "var(--accent)" }}>Studio</span>
         </Link>
-
-        {/* Auth links */}
-        <div className="flex items-center gap-4">
-          <Link
-            href="/login"
-            className="rounded-lg px-4 py-2 text-sm font-medium text-[#e5e7eb] transition-colors hover:text-[#f0f0f2]"
-          >
-            Accedi
-          </Link>
-          <Link
-            href="/signup"
-            className="rounded-lg bg-[#6c63ff] px-5 py-2 text-sm font-semibold text-white transition-all hover:scale-105 hover:bg-[#8b5cf6] hover:shadow-lg hover:shadow-[#6c63ff]/25 active:scale-[0.98]"
-          >
-            Inizia gratis
-          </Link>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Link href="/login" style={{ padding: "8px 16px", borderRadius: 8, color: "var(--text-secondary)", textDecoration: "none", fontSize: 14, fontWeight: 500 }}>Accedi</Link>
+          <Link href="/signup" className="btn-primary" style={{ padding: "10px 20px", fontSize: 14, borderRadius: 10 }}>Inizia gratis</Link>
         </div>
       </div>
     </nav>
   );
 }
 
-/* ───────────────────────────────────────────────────────────────
-   HERO
-   - Headline: 8 words, communicates UVP
-   - Subheadline: addresses #1 objection (time)
-   - Dual CTA: primary (signup), secondary (learn more → anchor)
-   ─────────────────────────────────────────────────────────────── */
 function Hero() {
   return (
-    <section className="relative overflow-hidden px-6 pb-20 pt-20 sm:pt-28 lg:pt-36">
-      {/* Subtle radial gradient for depth */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-30"
-        style={{
-          background:
-            "radial-gradient(ellipse 60% 60% at 50% 0%, #6c63ff15 0%, transparent 70%)",
-        }}
-        aria-hidden="true"
-      />
+    <section style={{ position: "relative", overflow: "hidden", padding: "100px 24px 80px", textAlign: "center" }}>
+      {/* Orbs */}
+      <div style={{ position: "absolute", top: -200, left: "50%", transform: "translateX(-50%)", width: 800, height: 800, borderRadius: "50%", background: "radial-gradient(circle, hsl(245,100%,68%,0.12) 0%, transparent 70%)", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", top: 100, right: "10%", width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle, hsl(280,75%,60%,0.08) 0%, transparent 70%)", pointerEvents: "none" }} />
 
-      <div className="relative mx-auto max-w-4xl text-center">
-        {/* Eyebrow / trust signal */}
-        <p className="mb-6 inline-block rounded-full border border-[#1e2029] bg-[#0f1117] px-4 py-1.5 text-xs font-medium uppercase tracking-widest text-[#6c63ff]">
-          Per Freelancer e Agenzie Italiane
+      <div style={{ position: "relative", maxWidth: 800, margin: "0 auto" }} className="animate-slide-up">
+        <p style={{ display: "inline-block", background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)", border: "1px solid color-mix(in srgb, var(--accent) 25%, transparent)", borderRadius: 999, padding: "6px 16px", fontSize: 12, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 24 }}>
+          ✦ Premium SaaS per Freelancer Italiani
         </p>
 
-        {/* Headline — Georgia serif for gravitas */}
-        <h1 className="font-[family-name:Georgia,serif] text-4xl font-bold leading-tight tracking-tight text-[#f0f0f2] sm:text-5xl lg:text-6xl">
-          Fatture professionali,
-          <br />
-          pagamenti veloci
+        <h1 style={{ fontFamily: "Georgia, serif", fontSize: "clamp(36px, 6vw, 72px)", fontWeight: 700, lineHeight: 1.1, marginBottom: 24, color: "var(--text-primary)" }}>
+          Fattura. Incassa.{" "}
+          <span className="gradient-text">Cresci.</span>
         </h1>
 
-        {/* Subheadline — addresses pain point directly */}
-        <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-[#6b7280] sm:text-xl">
-          Risparmia da <strong className="font-semibold text-[#e5e7eb]">3 a 5 ore</strong>{" "}
-          a settimana sulla gestione delle fatture. Crea, invia e ricevi pagamenti{" "}
-          <strong className="font-semibold text-[#e5e7eb]">in pochi minuti</strong>{" "}
-          — senza complicazioni.
+        <p style={{ fontSize: "clamp(16px, 2vw, 20px)", color: "var(--text-muted)", maxWidth: 560, margin: "0 auto 40px", lineHeight: 1.7 }}>
+          Risparmia <strong style={{ color: "var(--text-secondary)" }}>5 ore a settimana</strong> su admin e inseguimento pagamenti. Firma digitale, analytics AI, pagamenti Stripe in un click.
         </p>
 
-        {/* CTA Buttons */}
-        <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-          {/* Primary CTA — high contrast purple, action verb + benefit */}
-          <Link
-            href="/signup"
-            className="inline-flex w-full items-center justify-center rounded-xl bg-[#6c63ff] px-8 py-4 text-base font-semibold text-white shadow-lg shadow-[#6c63ff]/25 transition-all hover:scale-105 hover:bg-[#8b5cf6] hover:shadow-xl hover:shadow-[#6c63ff]/30 active:scale-[0.98] sm:w-auto"
-          >
-            Inizia gratis
-            <svg
-              className="ml-2 h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M13 7l5 5m0 0l-5 5m5-5H6"
-              />
-            </svg>
+        <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+          <Link href="/signup" className="btn-primary animate-pulse-glow" style={{ padding: "14px 32px", fontSize: 16, borderRadius: 14 }}>
+            Inizia gratis →
           </Link>
-
-          {/* Secondary CTA — less visually dominant */}
-          <a
-            href="#funzionalita"
-            className="inline-flex w-full items-center justify-center rounded-xl border border-[#1e2029] bg-[#0f1117] px-8 py-4 text-base font-medium text-[#e5e7eb] transition-all hover:border-[#6c63ff]/50 hover:text-[#f0f0f2] sm:w-auto"
-          >
-            Scopri di più
-            <svg
-              className="ml-2 h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M19 14l-7 7m0 0l-7-7m7 7V3"
-              />
-            </svg>
+          <a href="#funzionalita" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "14px 28px", borderRadius: 14, border: "1px solid var(--border-primary)", color: "var(--text-secondary)", textDecoration: "none", fontSize: 15, fontWeight: 500, transition: "all 200ms", background: "var(--surface-secondary)" }}>
+            Scopri le funzionalità
           </a>
         </div>
 
-        {/* Social proof micro-trust below CTAs */}
-        <p className="mt-8 text-sm text-[#6b7280]">
-          <span className="font-semibold text-[#e5e7eb]">Nessuna carta di credito</span>{" "}
-          richiesta · Setup in 2 minuti · Disdici quando vuoi
+        <p style={{ marginTop: 20, fontSize: 13, color: "var(--text-muted)" }}>
+          Nessuna carta · Setup in 2 minuti · Disdici quando vuoi
         </p>
       </div>
+
+      {/* Dashboard Preview Card */}
+      <div className="animate-slide-up-delay-2 animate-float" style={{ maxWidth: 720, margin: "60px auto 0", borderRadius: 20, overflow: "hidden", border: "1px solid var(--border-primary)", boxShadow: "0 40px 80px rgba(0,0,0,0.3), 0 0 0 1px var(--border-primary)", background: "var(--surface-primary)" }}>
+        {/* Fake browser bar */}
+        <div style={{ padding: "12px 16px", background: "var(--surface-secondary)", borderBottom: "1px solid var(--border-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#ef4444" }} />
+          <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#f59e0b" }} />
+          <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#22c55e" }} />
+          <div style={{ flex: 1, margin: "0 16px", background: "var(--surface-tertiary)", borderRadius: 6, padding: "4px 12px", fontSize: 12, color: "var(--text-muted)", textAlign: "center" }}>app.invoicestudio.it</div>
+        </div>
+        {/* Fake dashboard */}
+        <div style={{ padding: 24, display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+          {[
+            { label: "Incassato questo mese", value: "€ 8.420", color: "var(--status-paid)", change: "+23%" },
+            { label: "In attesa di pagamento", value: "€ 2.100", color: "var(--status-pending)", change: "3 fatture" },
+            { label: "Clienti attivi", value: "14", color: "var(--accent)", change: "+2 questo mese" },
+          ].map((stat) => (
+            <div key={stat.label} style={{ background: "var(--surface-secondary)", borderRadius: 12, padding: 16, border: "1px solid var(--border-primary)" }}>
+              <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 8, fontWeight: 500 }}>{stat.label}</p>
+              <p style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", fontFamily: "Georgia, serif" }}>{stat.value}</p>
+              <p style={{ fontSize: 12, color: stat.color, marginTop: 4 }}>{stat.change}</p>
+            </div>
+          ))}
+        </div>
+        <div style={{ padding: "0 24px 24px", display: "flex", flexDirection: "column", gap: 8 }}>
+          {[
+            { num: "#0042", client: "Acme SRL", amount: "€ 1.800", status: "paid" },
+            { num: "#0041", client: "DigitalAgency", amount: "€ 950", status: "pending" },
+            { num: "#0040", client: "Studio Verde", amount: "€ 3.200", status: "overdue" },
+          ].map((inv) => (
+            <div key={inv.num} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "var(--surface-secondary)", borderRadius: 10, border: "1px solid var(--border-primary)" }}>
+              <span style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 500 }}>{inv.num}</span>
+              <span style={{ fontSize: 13, color: "var(--text-primary)", flex: 1, marginLeft: 16 }}>{inv.client}</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{inv.amount}</span>
+              <span className={`status-badge status-${inv.status}`} style={{ marginLeft: 12 }}>
+                {inv.status === "paid" ? "Pagata" : inv.status === "pending" ? "In attesa" : "Scaduta"}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
     </section>
   );
 }
 
-/* ───────────────────────────────────────────────────────────────
-   FEATURES — 4 cards, benefits-first copy.
-   Each card maps a feature → user benefit.
-   Grid adapts: 1 col (mobile) → 2 col (tablet) → 4 col (desktop).
-   ─────────────────────────────────────────────────────────────── */
+function TrustBar() {
+  return (
+    <div style={{ borderTop: "1px solid var(--border-primary)", borderBottom: "1px solid var(--border-primary)", background: "var(--surface-secondary)", padding: "20px 24px" }}>
+      <div style={{ maxWidth: 1000, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 40, flexWrap: "wrap" }}>
+        {["🔒 PCI-DSS Compliant", "🇮🇹 Made for Italy", "⚡ Setup in 2 min", "💳 Stripe & PayPal", "✍️ Firma Digitale", "🤖 AI Cashflow"].map((item) => (
+          <span key={item} style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 500, whiteSpace: "nowrap" }}>{item}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Features() {
-  const cards: FeatureCard[] = [
-    {
-      icon: "💳",
-      title: "Pagamento diretto integrato",
-      description:
-        "I tuoi clienti pagano con un clic tramite Stripe o PayPal, direttamente dalla fattura. Ricevi i soldi più velocemente — senza inseguire bonifici.",
-    },
-    {
-      icon: "🔔",
-      title: "Reminder automatici",
-      description:
-        "Non perdere tempo a sollecitare pagamenti. InvoiceStudio invia promemoria automatici ai clienti in ritardo, così tu resti concentrato sul lavoro.",
-    },
-    {
-      icon: "📊",
-      title: "Export per il commercialista",
-      description:
-        "Esporta tutto in formati compatibili con il tuo commercialista. Bilanci, scadenze IVA e report pronti in un click. Meno stress a fine trimestre.",
-    },
-    {
-      icon: "🎨",
-      title: "Branding personalizzato",
-      description:
-        "Aggiungi il tuo logo, colori e font alle fatture. Ogni documento che invii rafforza la tua identità professionale — non quella di un software anonimo.",
-    },
+  const cards = [
+    { icon: "💳", title: "Pagamento in 1 click", description: "Stripe, PayPal e bonifico integrati nella fattura. Il cliente paga senza uscire dall'email." },
+    { icon: "✍️", title: "Firma Digitale (E-Sign)", description: "Il cliente firma il preventivo direttamente online. Legalmente valida, blockchain-ready." },
+    { icon: "🤖", title: "AI Cashflow Predictor", description: "L'AI analizza lo storico e prevede quando ogni cliente pagherà. Zero sorprese sul flusso di cassa." },
+    { icon: "🔔", title: "Reminder Automatici", description: "Sequenza di follow-up pre e post scadenza. Il tono si adatta (amichevole → formale → legale)." },
+    { icon: "📊", title: "Analytics Avanzate", description: "Dashboard con MRR, DSO, top client e revenue growth. Export per il commercialista in 1 click." },
+    { icon: "🏦", title: "Sync Contabilità", description: "Integrazione nativa con QuickBooks, Xero, Wave e FreshBooks. Le fatture si sincronizzano da sole." },
+    { icon: "🌐", title: "Client Portal White-Label", description: "Il tuo cliente accede via magic link a un portale brandizzato e paga tutte le fatture in blocco." },
+    { icon: "📱", title: "OCR Scanner Ricevute", description: "Fotografa una ricevuta e l'AI estrae vendor, importo e data. Crea la fattura in automatico." },
   ];
-
   return (
-    <section
-      id="funzionalita"
-      className="scroll-mt-24 px-6 py-20 sm:py-28"
-    >
-      <div className="mx-auto max-w-6xl">
-        {/* Section header */}
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="font-[family-name:Georgia,serif] text-3xl font-bold text-[#f0f0f2] sm:text-4xl">
-            Tutto ciò che ti serve per{" "}
-            <span className="text-[#6c63ff]">fatturare senza stress</span>
+    <section id="funzionalita" style={{ padding: "80px 24px", scrollMarginTop: 80 }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 56 }}>
+          <h2 style={{ fontFamily: "Georgia, serif", fontSize: "clamp(28px, 4vw, 48px)", fontWeight: 700, color: "var(--text-primary)", marginBottom: 16 }}>
+            Tutto per fatturare{" "}
+            <span className="gradient-text">come un'impresa</span>
           </h2>
-          <p className="mt-4 text-lg text-[#6b7280]">
-            Strumenti pensati per chi lavora in proprio. Niente funzioni inutili,
-            solo ciò che ti fa risparmiare tempo.
-          </p>
+          <p style={{ color: "var(--text-muted)", fontSize: 18, maxWidth: 500, margin: "0 auto" }}>Funzionalità enterprise, prezzi da freelancer.</p>
         </div>
-
-        {/* Cards grid */}
-        <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {cards.map((card) => (
-            <div
-              key={card.title}
-              className="group rounded-2xl border border-[#1e2029] bg-[#0f1117] p-6 transition-all hover:scale-[1.02] hover:border-[#6c63ff]/30 hover:shadow-lg hover:shadow-[#6c63ff]/5"
-            >
-              {/* Icon */}
-              <div className="mb-4 text-3xl" aria-hidden="true">
-                {card.icon}
-              </div>
-
-              {/* Title */}
-              <h3 className="font-[family-name:Georgia,serif] text-lg font-bold text-[#f0f0f2]">
-                {card.title}
-              </h3>
-
-              {/* Description */}
-              <p className="mt-2 text-sm leading-relaxed text-[#6b7280]">
-                {card.description}
-              </p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
+          {cards.map((c) => (
+            <div key={c.title} className="card-premium" style={{ padding: 24 }}>
+              <div style={{ fontSize: 32, marginBottom: 14 }}>{c.icon}</div>
+              <h3 style={{ fontFamily: "Georgia, serif", fontSize: 17, fontWeight: 700, color: "var(--text-primary)", marginBottom: 10 }}>{c.title}</h3>
+              <p style={{ color: "var(--text-muted)", fontSize: 14, lineHeight: 1.6 }}>{c.description}</p>
             </div>
           ))}
         </div>
@@ -292,78 +163,27 @@ function Features() {
   );
 }
 
-interface FeatureCard {
-  icon: string;
-  title: string;
-  description: string;
-}
-
-/* ───────────────────────────────────────────────────────────────
-   HOW IT WORKS — 3 steps, linear flow.
-   Reduces perceived effort: "wait, it's only 3 steps?"
-   ─────────────────────────────────────────────────────────────── */
 function HowItWorks() {
-  const steps: Step[] = [
-    {
-      step: 1,
-      title: "Crea la fattura",
-      description:
-        "Compila i dati del cliente, aggiungi le voci e personalizza il layout. Ci vogliono meno di 60 secondi.",
-    },
-    {
-      step: 2,
-      title: "Invia con link di pagamento",
-      description:
-        "La fattura arriva via email con un link per pagare subito con carta, Stripe o PayPal. Zero attriti.",
-    },
-    {
-      step: 3,
-      title: "Ricevi il pagamento",
-      description:
-        "I soldi arrivano direttamente sul tuo conto. InvoiceStudio riconcilia tutto automaticamente. Fine.",
-    },
+  const steps = [
+    { n: "01", title: "Crea la fattura", desc: "Editor WYSIWYG con drag&drop. Branding personalizzato, IVA automatica, multi-valuta. Meno di 60 secondi." },
+    { n: "02", title: "Invia con firma + pagamento", desc: "Il cliente riceve email con anteprima, link di pagamento Stripe e firma digitale integrata." },
+    { n: "03", title: "Incassi in automatico", desc: "Pagamento confermato → webhook Stripe → PDF ricevuta → reminder cancellati. Zero lavoro manuale." },
   ];
-
   return (
-    <section className="px-6 py-20 sm:py-28">
-      <div className="mx-auto max-w-5xl">
-        {/* Section header */}
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="font-[family-name:Georgia,serif] text-3xl font-bold text-[#f0f0f2] sm:text-4xl">
-            Come funziona{" "}
-            <span className="text-[#6c63ff]">in 3 passaggi</span>
+    <section style={{ padding: "80px 24px", background: "var(--surface-secondary)", borderTop: "1px solid var(--border-primary)", borderBottom: "1px solid var(--border-primary)" }}>
+      <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 56 }}>
+          <h2 style={{ fontFamily: "Georgia, serif", fontSize: "clamp(28px, 4vw, 44px)", fontWeight: 700, color: "var(--text-primary)", marginBottom: 12 }}>
+            Operativo in <span className="gradient-text">3 passi</span>
           </h2>
-          <p className="mt-4 text-lg text-[#6b7280]">
-            Da zero alla prima fattura pagata in meno di 5 minuti.
-          </p>
+          <p style={{ color: "var(--text-muted)", fontSize: 17 }}>Da zero alla prima fattura pagata in meno di 5 minuti.</p>
         </div>
-
-        {/* Steps — horizontal on desktop, vertical on mobile */}
-        <div className="mt-14 grid gap-8 sm:grid-cols-3">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 24 }}>
           {steps.map((s) => (
-            <div key={s.step} className="relative text-center">
-              {/* Step number */}
-              <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-[#6c63ff]/10 text-xl font-bold text-[#6c63ff] ring-1 ring-[#6c63ff]/30">
-                {s.step}
-              </div>
-
-              {/* Title */}
-              <h3 className="font-[family-name:Georgia,serif] text-lg font-bold text-[#f0f0f2]">
-                {s.title}
-              </h3>
-
-              {/* Description */}
-              <p className="mt-2 text-sm leading-relaxed text-[#6b7280]">
-                {s.description}
-              </p>
-
-              {/* Connector arrow (between steps, hidden on mobile) */}
-              {s.step < 3 && (
-                <div
-                  className="absolute right-0 top-7 hidden h-px w-8 translate-x-full bg-gradient-to-r from-[#1e2029] to-transparent sm:block"
-                  aria-hidden="true"
-                />
-              )}
+            <div key={s.n} style={{ textAlign: "center", padding: "32px 24px" }}>
+              <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 56, height: 56, borderRadius: "50%", background: "color-mix(in srgb, var(--accent) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)", fontSize: 20, fontWeight: 700, color: "var(--accent)", marginBottom: 20, fontFamily: "Georgia, serif" }}>{s.n}</div>
+              <h3 style={{ fontFamily: "Georgia, serif", fontSize: 18, fontWeight: 700, color: "var(--text-primary)", marginBottom: 10 }}>{s.title}</h3>
+              <p style={{ color: "var(--text-muted)", fontSize: 14, lineHeight: 1.7 }}>{s.desc}</p>
             </div>
           ))}
         </div>
@@ -372,155 +192,41 @@ function HowItWorks() {
   );
 }
 
-interface Step {
-  step: number;
-  title: string;
-  description: string;
-}
-
-/* ───────────────────────────────────────────────────────────────
-   PRICING — 3 tiers. Pro is the recommended (center-stage effect).
-   Free anchors the bottom; Agency captures the high-end.
-   ─────────────────────────────────────────────────────────────── */
 function Pricing() {
-  const tiers: PricingTier[] = [
-    {
-      name: "Free",
-      price: "0€",
-      period: "al mese",
-      description: "Per chi inizia e fattura poco.",
-      features: [
-        "Fino a 5 fatture al mese",
-        "Fatture extra gratis con video sponsorizzati",
-        "Link di pagamento Stripe",
-        "Template base",
-        "Export CSV",
-        "Email di cortesia",
-      ],
-      cta: "Inizia gratis",
-      href: "/signup",
-      highlighted: false,
-    },
-    {
-      name: "Pro",
-      price: "19€",
-      period: "al mese",
-      description: "Per freelancer e professionisti attivi.",
-      features: [
-        "Fatture illimitate",
-        "Pagamenti Stripe + PayPal",
-        "Reminder automatici",
-        "Export commercialista",
-        "Branding personalizzato",
-        "Statistiche e report",
-        "Supporto prioritario",
-      ],
-      cta: "Prova gratis",
-      href: "/signup",
-      highlighted: true,
-    },
-    {
-      name: "Agency",
-      price: "79€",
-      period: "al mese",
-      description: "Per agenzie, studi e team.",
-      features: [
-        "Tutto del piano Pro",
-        "White-label completo",
-        "Multi-utente (fino a 10)",
-        "API e webhook",
-        "Onboarding dedicato",
-        "Fatturazione centralizzata",
-        "SLA garantito",
-      ],
-      cta: "Contattaci",
-      href: "/signup",
-      highlighted: false,
-    },
+  const tiers = [
+    { name: "Free", price: "€0", period: "/mese", desc: "Per iniziare.", features: ["5 fatture/mese", "Link pagamento Stripe", "Template base", "Export CSV"], cta: "Inizia gratis", href: "/signup", highlight: false },
+    { name: "Pro", price: "€19", period: "/mese", desc: "Per freelancer attivi.", features: ["Fatture illimitate", "Firma digitale E-Sign", "AI Cashflow Predictor", "Reminder automatici", "Analytics avanzate", "Multi-currency", "Supporto prioritario"], cta: "Prova gratis 14 giorni", href: "/signup", highlight: true },
+    { name: "Agency", price: "€79", period: "/mese", desc: "Per agenzie e studi.", features: ["Tutto del Pro", "Client Portal white-label", "Custom domain (CNAME)", "10 sub-account", "Sync QuickBooks/Xero", "API pubblica + webhook", "SLA garantito"], cta: "Contattaci", href: "/signup", highlight: false },
   ];
-
   return (
-    <section className="px-6 py-20 sm:py-28">
-      <div className="mx-auto max-w-6xl">
-        {/* Section header */}
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="font-[family-name:Georgia,serif] text-3xl font-bold text-[#f0f0f2] sm:text-4xl">
-            Scegli il{" "}
-            <span className="text-[#6c63ff]">piano giusto per te</span>
+    <section id="prezzi" style={{ padding: "80px 24px", scrollMarginTop: 80 }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 56 }}>
+          <h2 style={{ fontFamily: "Georgia, serif", fontSize: "clamp(28px, 4vw, 48px)", fontWeight: 700, color: "var(--text-primary)", marginBottom: 16 }}>
+            Prezzi <span className="gradient-text">chiari e diretti</span>
           </h2>
-          <p className="mt-4 text-lg text-[#6b7280]">
-            Passa al piano superiore in qualsiasi momento. Nessun costo nascosto.
-          </p>
+          <p style={{ color: "var(--text-muted)", fontSize: 17 }}>Cambia piano in qualsiasi momento. Nessun costo nascosto.</p>
         </div>
-
-        {/* Pricing cards */}
-        <div className="mt-14 grid gap-6 lg:grid-cols-3">
-          {tiers.map((tier) => (
-            <div
-              key={tier.name}
-              className={`relative flex flex-col rounded-2xl border p-8 transition-all hover:scale-[1.02] ${
-                tier.highlighted
-                  ? "border-[#6c63ff] bg-[#0f1117] shadow-lg shadow-[#6c63ff]/10"
-                  : "border-[#1e2029] bg-[#0f1117]"
-              }`}
-            >
-              {/* "Consigliato" badge on Pro tier */}
-              {tier.highlighted && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#6c63ff] px-4 py-1 text-xs font-semibold text-white">
-                  Consigliato
-                </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 20 }}>
+          {tiers.map((t) => (
+            <div key={t.name} style={{ position: "relative", borderRadius: 20, padding: 32, display: "flex", flexDirection: "column", border: t.highlight ? "2px solid var(--accent)" : "1px solid var(--border-primary)", background: t.highlight ? "color-mix(in srgb, var(--accent) 5%, var(--surface-primary))" : "var(--surface-primary)", boxShadow: t.highlight ? "0 20px 60px color-mix(in srgb, var(--accent) 15%, transparent)" : "none", transition: "transform 200ms, box-shadow 200ms" }}>
+              {t.highlight && (
+                <div style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: "var(--accent)", color: "#fff", borderRadius: 999, padding: "4px 16px", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>⭐ Più scelto</div>
               )}
-
-              {/* Tier name */}
-              <h3 className="font-[family-name:Georgia,serif] text-xl font-bold text-[#f0f0f2]">
-                {tier.name}
-              </h3>
-
-              {/* Price */}
-              <div className="mt-4 flex items-baseline gap-1">
-                <span className="font-[family-name:Georgia,serif] text-4xl font-bold text-[#f0f0f2]">
-                  {tier.price}
-                </span>
-                <span className="text-sm text-[#6b7280]">{tier.period}</span>
+              <h3 style={{ fontFamily: "Georgia, serif", fontSize: 22, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>{t.name}</h3>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 6 }}>
+                <span style={{ fontFamily: "Georgia, serif", fontSize: 40, fontWeight: 700, color: "var(--text-primary)" }}>{t.price}</span>
+                <span style={{ color: "var(--text-muted)", fontSize: 14 }}>{t.period}</span>
               </div>
-
-              {/* Description */}
-              <p className="mt-2 text-sm text-[#6b7280]">{tier.description}</p>
-
-              {/* Feature list */}
-              <ul className="mt-8 flex-1 space-y-3">
-                {tier.features.map((feat) => (
-                  <li key={feat} className="flex items-start gap-3 text-sm text-[#e5e7eb]">
-                    <svg
-                      className="mt-0.5 h-4 w-4 shrink-0 text-[#6c63ff]"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                    {feat}
+              <p style={{ color: "var(--text-muted)", fontSize: 14, marginBottom: 24 }}>{t.desc}</p>
+              <ul style={{ flex: 1, listStyle: "none", padding: 0, margin: "0 0 28px", display: "flex", flexDirection: "column", gap: 10 }}>
+                {t.features.map((f) => (
+                  <li key={f} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: "var(--text-secondary)" }}>
+                    <span style={{ color: "var(--accent)", fontWeight: 700 }}>✓</span>{f}
                   </li>
                 ))}
               </ul>
-
-              {/* CTA */}
-              <Link
-                href={tier.href}
-                className={`mt-8 block rounded-xl px-6 py-3 text-center text-sm font-semibold transition-all hover:scale-105 active:scale-[0.98] ${
-                  tier.highlighted
-                    ? "bg-[#6c63ff] text-white shadow-lg shadow-[#6c63ff]/25 hover:bg-[#8b5cf6] hover:shadow-xl hover:shadow-[#6c63ff]/30"
-                    : "border border-[#1e2029] text-[#e5e7eb] hover:border-[#6c63ff]/50 hover:text-[#f0f0f2]"
-                }`}
-              >
-                {tier.cta}
-              </Link>
+              <Link href={t.href} style={{ display: "block", textAlign: "center", padding: "13px 24px", borderRadius: 12, fontWeight: 600, fontSize: 15, textDecoration: "none", background: t.highlight ? "var(--accent)" : "transparent", color: t.highlight ? "#fff" : "var(--text-primary)", border: t.highlight ? "none" : "1px solid var(--border-primary)", boxShadow: t.highlight ? "0 4px 20px color-mix(in srgb, var(--accent) 30%, transparent)" : "none", transition: "all 200ms" }}>{t.cta}</Link>
             </div>
           ))}
         </div>
@@ -529,157 +235,49 @@ function Pricing() {
   );
 }
 
-interface PricingTier {
-  name: string;
-  price: string;
-  period: string;
-  description: string;
-  features: string[];
-  cta: string;
-  href: string;
-  highlighted: boolean;
-}
-
-/* ───────────────────────────────────────────────────────────────
-   BOTTOM CTA — Final conversion opportunity.
-   Social proof reinforces the ask.
-   ─────────────────────────────────────────────────────────────── */
 function BottomCTA() {
   return (
-    <section className="px-6 py-20 sm:py-28">
-      <div className="mx-auto max-w-3xl rounded-3xl border border-[#1e2029] bg-[#0f1117] px-8 py-14 text-center sm:px-14">
-        <h2 className="font-[family-name:Georgia,serif] text-3xl font-bold text-[#f0f0f2] sm:text-4xl">
-          Pronto a{" "}
-          <span className="text-[#6c63ff]">smettere di rincorrere</span> i
-          pagamenti?
+    <section style={{ padding: "80px 24px" }}>
+      <div style={{ maxWidth: 700, margin: "0 auto", textAlign: "center", borderRadius: 24, padding: "60px 40px", border: "1px solid var(--border-primary)", background: "var(--surface-secondary)", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 80% 80% at 50% 0%, color-mix(in srgb, var(--accent) 8%, transparent), transparent)", pointerEvents: "none" }} />
+        <h2 style={{ fontFamily: "Georgia, serif", fontSize: "clamp(26px, 4vw, 40px)", fontWeight: 700, color: "var(--text-primary)", marginBottom: 16, position: "relative" }}>
+          Smetti di rincorrere i <span className="gradient-text">pagamenti</span>
         </h2>
-
-        <p className="mx-auto mt-4 max-w-xl text-lg text-[#6b7280]">
-          Unisciti a oltre 2.000 freelancer italiani che hanno già semplificato
-          la loro fatturazione.
-        </p>
-
-        <Link
-          href="/signup"
-          className="mt-8 inline-flex items-center rounded-xl bg-[#6c63ff] px-8 py-4 text-base font-semibold text-white shadow-lg shadow-[#6c63ff]/25 transition-all hover:scale-105 hover:bg-[#8b5cf6] hover:shadow-xl hover:shadow-[#6c63ff]/30 active:scale-[0.98]"
-        >
-          Inizia gratis
-          <svg
-            className="ml-2 h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M13 7l5 5m0 0l-5 5m5-5H6"
-            />
-          </svg>
+        <p style={{ color: "var(--text-muted)", fontSize: 17, maxWidth: 480, margin: "0 auto 36px", position: "relative" }}>Unisciti a oltre 2.000 freelancer italiani che hanno già automatizzato la loro fatturazione.</p>
+        <Link href="/signup" className="btn-primary animate-pulse-glow" style={{ padding: "15px 40px", fontSize: 17, borderRadius: 14, position: "relative" }}>
+          Inizia gratis ora →
         </Link>
-
-        {/* Micro-trust */}
-        <p className="mt-6 text-xs text-[#6b7280]">
-          Nessuna carta di credito richiesta · Cancella in qualsiasi momento
-        </p>
+        <p style={{ marginTop: 16, fontSize: 13, color: "var(--text-muted)", position: "relative" }}>Nessuna carta richiesta · Cancella in qualsiasi momento</p>
       </div>
     </section>
   );
 }
 
-/* ───────────────────────────────────────────────────────────────
-   FOOTER — Legal links, contact, mini-sitemap.
-   ─────────────────────────────────────────────────────────────── */
 function Footer() {
-  const currentYear = new Date().getFullYear();
-
   return (
-    <footer className="border-t border-[#1e2029] bg-[#0a0b0f] px-6 py-12">
-      <div className="mx-auto max-w-6xl">
-        <div className="grid gap-8 sm:grid-cols-3">
-          {/* Brand */}
+    <footer style={{ borderTop: "1px solid var(--border-primary)", padding: "48px 24px 32px" }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 32, marginBottom: 40 }}>
           <div>
-            <Link
-              href="/"
-              className="font-[family-name:Georgia,serif] text-lg font-bold text-[#f0f0f2]"
-            >
-              Invoice<span className="text-[#6c63ff]">Studio</span>
-            </Link>
-            <p className="mt-3 text-sm leading-relaxed text-[#6b7280]">
-              La piattaforma di fatturazione per freelancer e agenzie italiane.
-              Fatture professionali, pagamenti integrati, zero stress.
-            </p>
+            <Link href="/" style={{ fontFamily: "Georgia, serif", fontWeight: 700, fontSize: 18, color: "var(--text-primary)", textDecoration: "none" }}>Invoice<span style={{ color: "var(--accent)" }}>Studio</span></Link>
+            <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 10, lineHeight: 1.6 }}>La piattaforma di fatturazione premium per freelancer e agenzie italiane.</p>
           </div>
-
-          {/* Prodotto */}
-          <div>
-            <h4 className="text-sm font-semibold text-[#f0f0f2]">Prodotto</h4>
-            <ul className="mt-3 space-y-2">
-              <li>
-                <Link
-                  href="/#funzionalita"
-                  className="text-sm text-[#6b7280] transition-colors hover:text-[#e5e7eb]"
-                >
-                  Funzionalità
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/#prezzi"
-                  className="text-sm text-[#6b7280] transition-colors hover:text-[#e5e7eb]"
-                >
-                  Prezzi
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/login"
-                  className="text-sm text-[#6b7280] transition-colors hover:text-[#e5e7eb]"
-                >
-                  Accedi
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/signup"
-                  className="text-sm text-[#6b7280] transition-colors hover:text-[#e5e7eb]"
-                >
-                  Registrati
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Legale */}
-          <div>
-            <h4 className="text-sm font-semibold text-[#f0f0f2]">Legale</h4>
-            <ul className="mt-3 space-y-2">
-              <li>
-                <Link
-                  href="/privacy"
-                  className="text-sm text-[#6b7280] transition-colors hover:text-[#e5e7eb]"
-                >
-                  Privacy Policy
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/terms"
-                  className="text-sm text-[#6b7280] transition-colors hover:text-[#e5e7eb]"
-                >
-                  Termini di Servizio
-                </Link>
-              </li>
-            </ul>
-          </div>
+          {[
+            { title: "Prodotto", links: [["Funzionalità", "/#funzionalita"], ["Prezzi", "/#prezzi"], ["Accedi", "/login"], ["Registrati", "/signup"]] },
+            { title: "Legale", links: [["Privacy Policy", "/privacy"], ["Termini di Servizio", "/terms"]] },
+          ].map((col) => (
+            <div key={col.title}>
+              <h4 style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", marginBottom: 12 }}>{col.title}</h4>
+              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 8 }}>
+                {col.links.map(([label, href]) => (
+                  <li key={label}><Link href={href} style={{ fontSize: 13, color: "var(--text-muted)", textDecoration: "none" }}>{label}</Link></li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
-
-        {/* Bottom bar */}
-        <div className="mt-10 border-t border-[#1e2029] pt-6 text-center text-xs text-[#6b7280]">
-          &copy; {currentYear} InvoiceStudio. Tutti i diritti riservati. P. IVA
-          IT00000000000
+        <div style={{ borderTop: "1px solid var(--border-primary)", paddingTop: 24, textAlign: "center", fontSize: 12, color: "var(--text-muted)" }}>
+          © {new Date().getFullYear()} InvoiceStudio. Tutti i diritti riservati.
         </div>
       </div>
     </footer>
