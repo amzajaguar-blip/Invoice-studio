@@ -183,8 +183,8 @@ jobs:
             echo "TWA project already initialized, skipping bubblewrap init."
             exit 0
           fi
-          # Pipe "n" to skip JDK install prompt (JDK 17 already set up above)
-          printf "n\n" | bubblewrap init \
+          # yes n: auto-answer "n" to ALL interactive prompts (JDK already set up)
+          yes n | bubblewrap init \
             --manifest "${{ env.NEXT_PUBLIC_APP_URL }}/manifest.json" \
             --directory . \
             --package-name com.invoicestudio.app \
