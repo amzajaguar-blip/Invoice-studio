@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe/client";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { rateLimit, getRateLimitKey } from "@/lib/rate-limit";
+import { logPaymentAudit } from "@/lib/payment-audit";
 import type Stripe from "stripe";
 
 /**
@@ -9,10 +11,18 @@ import type Stripe from "stripe";
  * Receives: checkout.session.completed, checkout.session.expired
  */
 export async function POST(request: Request) {
+  // Rate limit: 60 webhook calls per minute per source IP
+  const rlKey = getRateLimitKey(request);
+  const { allowed } = rateLimit(`stripe-webhook:${rlKey}`, 60, 60_000);
+  if (!allowed) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   const body = await request.text();
   const sig = request.headers.get("stripe-signature");
 
   if (!sig) {
+    await logPaymentAudit({ event_type: "stripe.unknown", provider: "stripe", environment: "unknown", outcome: "failure", error_code: "missing_signature" });
     return NextResponse.json({ error: "Missing stripe-signature header" }, { status: 400 });
   }
 
@@ -25,11 +35,14 @@ export async function POST(request: Request) {
       process.env.STRIPE_WEBHOOK_SECRET!
     );
   } catch (err) {
-    console.error("Stripe webhook signature verification failed:", err);
+    // Log failure — do NOT log `err` details as they may contain PII
+    await logPaymentAudit({ event_type: "stripe.unknown", provider: "stripe", environment: "unknown", outcome: "failure", error_code: "invalid_signature" });
+    console.error("Stripe webhook signature verification failed");
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
   const supabase = createAdminClient();
+  const env = event.livemode ? "production" : "sandbox";
 
   try {
     switch (event.type) {
@@ -83,6 +96,16 @@ export async function POST(request: Request) {
           metadata: { stripe_session_id: session.id },
         });
 
+        // PCI-DSS audit log — only IDs, no card data
+        await logPaymentAudit({
+          event_type: "stripe.checkout.completed",
+          provider: "stripe",
+          invoice_id: invoiceId,
+          external_event_id: event.id,
+          environment: env,
+          outcome: "success",
+        });
+
         break;
       }
 
@@ -126,13 +149,28 @@ export async function POST(request: Request) {
       }
 
       default:
-        // Unhandled event type — acknowledge receipt
+        // Unhandled event type — acknowledge receipt, log as ignored
+        await logPaymentAudit({
+          event_type: `stripe.${event.type}`,
+          provider: "stripe",
+          external_event_id: event.id,
+          environment: env,
+          outcome: "ignored",
+        });
         break;
     }
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error("Stripe webhook handler error:", error);
+    // Log failure code only — no raw error details to avoid PII leakage
+    await logPaymentAudit({
+      event_type: "stripe.handler_error",
+      provider: "stripe",
+      environment: "unknown",
+      outcome: "failure",
+      error_code: "internal_error",
+    });
+    console.error("Stripe webhook handler error");
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

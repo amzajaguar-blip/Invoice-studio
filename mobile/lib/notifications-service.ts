@@ -13,6 +13,7 @@ export interface NotificationPayload {
   message: string;
   deepLink?: string;
   timestamp: Date;
+  triggerDate?: Date;
 }
 
 export interface NotificationSettings {
@@ -59,8 +60,11 @@ export async function initializePushNotifications(): Promise<string | null> {
       projectId: 'invoice-studio',
     });
 
-    // Save token
+    // Save token locally
     await AsyncStorage.setItem(DEVICE_TOKEN_KEY, token.data);
+
+    // Register token with backend (fire-and-forget, non-fatal)
+    registerPushTokenWithBackend(token.data).catch(() => {});
 
     // Set notification handler
     Notifications.setNotificationHandler({
@@ -83,19 +87,18 @@ export async function initializePushNotifications(): Promise<string | null> {
 /**
  * Send local notification
  */
-export async function sendLocalNotification(payload: NotificationPayload): Promise<void> {
+export async function sendLocalNotification(payload: NotificationPayload): Promise<string | null> {
   try {
     const settings = await getNotificationSettings();
 
-    // Check if notifications are enabled for this type
     if (!shouldSendNotification(payload.type, settings)) {
-      return;
+      return null;
     }
 
     const title = getTitleForType(payload.type);
     const body = payload.message;
 
-    await Notifications.scheduleNotificationAsync({
+    const notificationId = await Notifications.scheduleNotificationAsync({
       content: {
         title,
         body,
@@ -108,10 +111,15 @@ export async function sendLocalNotification(payload: NotificationPayload): Promi
         sound: 'default',
         badge: 1,
       },
-      trigger: { type: 'timeInterval', seconds: 1 } as any,
+      trigger: payload.triggerDate
+        ? { date: payload.triggerDate }
+        : ({ type: 'timeInterval', seconds: 1 } as any),
     });
+
+    return notificationId;
   } catch (error) {
     console.error('Failed to send local notification:', error);
+    return null;
   }
 }
 
@@ -149,35 +157,71 @@ export async function sendPushNotification(
 }
 
 /**
- * Schedule payment reminder notifications
+ * Schedule a single invoice reminder at a specific date
+ */
+export async function scheduleInvoiceReminder(
+  invoice: any,
+  daysBeforeDue: number
+): Promise<string | null> {
+  try {
+    const settings = await getNotificationSettings();
+    if (!settings.reminderAlerts) return null;
+
+    const dueDate = new Date(invoice.dueDate);
+    const reminderDate = new Date(dueDate);
+    reminderDate.setDate(reminderDate.getDate() - daysBeforeDue);
+    reminderDate.setHours(9, 0, 0, 0);
+
+    // Skip if reminder date is in the past
+    if (reminderDate <= new Date()) return null;
+
+    return await sendLocalNotification({
+      type: 'payment_reminder',
+      invoiceId: invoice.id,
+      invoiceNumber: invoice.invoiceNumber,
+      clientName: invoice.client?.name,
+      amount: invoice.total,
+      message: `Promemoria: Fattura #${invoice.invoiceNumber} scade tra ${daysBeforeDue} giorni (${formatCurrency(invoice.total)})`,
+      deepLink: `/(app)/${invoice.id}`,
+      timestamp: new Date(),
+      triggerDate: reminderDate,
+    });
+  } catch (error) {
+    console.error('Failed to schedule invoice reminder:', error);
+    return null;
+  }
+}
+
+/**
+ * Cancel all scheduled reminders for an invoice
+ */
+export async function cancelInvoiceReminders(invoiceId: string): Promise<void> {
+  try {
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    for (const n of scheduled) {
+      const data = n.content.data as any;
+      if (data?.invoiceId === invoiceId) {
+        await Notifications.cancelScheduledNotificationAsync(n.identifier);
+      }
+    }
+  } catch (error) {
+    console.error('Failed to cancel invoice reminders:', error);
+  }
+}
+
+/**
+ * Schedule payment reminder notifications for an array of invoices
  */
 export async function schedulePaymentReminders(invoices: any[]): Promise<void> {
   try {
-    const settings = await getNotificationSettings();
-
-    if (!settings.reminderAlerts) {
-      return;
-    }
-
-    // Schedule reminders for invoices due in 3, 7, and 14 days
     for (const invoice of invoices) {
       if (invoice.status === 'sent' || invoice.status === 'pending') {
-        const dueDate = new Date(invoice.dueDate);
-        const now = new Date();
-        const daysUntilDue = Math.floor((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
-        if (daysUntilDue === 3 || daysUntilDue === 7 || daysUntilDue === 14) {
-          await sendLocalNotification({
-            type: 'payment_reminder',
-            invoiceId: invoice.id,
-            invoiceNumber: invoice.invoiceNumber,
-            clientName: invoice.client?.name,
-            amount: invoice.total,
-            message: `Invoice #${invoice.invoiceNumber} is due in ${daysUntilDue} days ($${invoice.total.toFixed(2)})`,
-            deepLink: `/invoice/${invoice.id}`,
-            timestamp: new Date(),
-          });
-        }
+        // Cancel any existing reminders first to avoid duplicates
+        await cancelInvoiceReminders(invoice.id);
+        // Schedule reminders at 14, 7, and 3 days before due date
+        await scheduleInvoiceReminder(invoice, 14);
+        await scheduleInvoiceReminder(invoice, 7);
+        await scheduleInvoiceReminder(invoice, 3);
       }
     }
   } catch (error) {
@@ -186,44 +230,50 @@ export async function schedulePaymentReminders(invoices: any[]): Promise<void> {
 }
 
 /**
- * Schedule overdue notifications
+ * Schedule overdue notifications for an array of invoices
  */
 export async function scheduleOverdueNotifications(invoices: any[]): Promise<void> {
   try {
     const settings = await getNotificationSettings();
-
-    if (!settings.overdueAlerts) {
-      return;
-    }
+    if (!settings.overdueAlerts) return;
 
     const now = new Date();
+    const todayKey = now.toISOString().slice(0, 10);
+    const notifiedKey = `overdue_notified_${todayKey}`;
+    const alreadyNotified = await AsyncStorage.getItem(notifiedKey);
+    if (alreadyNotified) return; // Only once per day
 
+    let notifiedCount = 0;
     for (const invoice of invoices) {
       if (invoice.status === 'sent' || invoice.status === 'pending') {
         const dueDate = new Date(invoice.dueDate);
-
         if (dueDate < now) {
           const daysOverdue = Math.floor((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
-
-          // Send overdue notification every 7 days
-          if (daysOverdue % 7 === 0) {
-            await sendLocalNotification({
-              type: 'invoice_overdue',
-              invoiceId: invoice.id,
-              invoiceNumber: invoice.invoiceNumber,
-              clientName: invoice.client?.name,
-              amount: invoice.total,
-              message: `Invoice #${invoice.invoiceNumber} is ${daysOverdue} days overdue ($${invoice.total.toFixed(2)})`,
-              deepLink: `/invoice/${invoice.id}`,
-              timestamp: new Date(),
-            });
-          }
+          await sendLocalNotification({
+            type: 'invoice_overdue',
+            invoiceId: invoice.id,
+            invoiceNumber: invoice.invoiceNumber,
+            clientName: invoice.client?.name,
+            amount: invoice.total,
+            message: `Fattura #${invoice.invoiceNumber} scaduta da ${daysOverdue} giorni (${formatCurrency(invoice.total)})`,
+            deepLink: `/(app)/${invoice.id}`,
+            timestamp: new Date(),
+          });
+          notifiedCount++;
         }
       }
+    }
+
+    if (notifiedCount > 0) {
+      await AsyncStorage.setItem(notifiedKey, 'true');
     }
   } catch (error) {
     console.error('Failed to schedule overdue notifications:', error);
   }
+}
+
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(amount);
 }
 
 /**
@@ -281,17 +331,58 @@ export async function getDevicePushToken(): Promise<string | null> {
 }
 
 /**
+ * Register the push token with the backend (called after acquiring token).
+ * Requires a valid Supabase Bearer session token.
+ */
+export async function registerPushTokenWithBackend(
+  expoToken: string,
+  sessionToken?: string
+): Promise<void> {
+  try {
+    const { Platform } = await import('react-native');
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (sessionToken) headers['Authorization'] = `Bearer ${sessionToken}`;
+
+    await fetch('https://invoicestudio.app/api/push-token', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        token: expoToken,
+        platform: Platform.OS === 'ios' ? 'ios' : 'android',
+      }),
+    });
+  } catch (err) {
+    console.error('Failed to register push token with backend:', err);
+  }
+}
+
+/**
+ * Unregister push token on logout.
+ */
+export async function unregisterPushToken(sessionToken: string): Promise<void> {
+  try {
+    await fetch('https://invoicestudio.app/api/push-token', {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${sessionToken}` },
+    });
+    await AsyncStorage.removeItem(DEVICE_TOKEN_KEY);
+  } catch (err) {
+    console.error('Failed to unregister push token:', err);
+  }
+}
+
+/**
  * Send payment received notification
  */
 export async function notifyPaymentReceived(invoice: any, paymentAmount: number): Promise<void> {
   await sendLocalNotification({
     type: 'payment_received',
     invoiceId: invoice.id,
-    invoiceNumber: invoice.invoiceNumber,
-    clientName: invoice.client?.name,
+    invoiceNumber: invoice.invoice_number ?? invoice.invoiceNumber,
+    clientName: invoice.clients?.name ?? invoice.client?.name,
     amount: paymentAmount,
-    message: `Payment of $${paymentAmount.toFixed(2)} received for Invoice #${invoice.invoiceNumber}`,
-    deepLink: `/invoice/${invoice.id}`,
+    message: `💰 Pagamento di ${formatCurrency(paymentAmount)} ricevuto per la fattura #${invoice.invoice_number ?? invoice.invoiceNumber}`,
+    deepLink: `/(app)/${invoice.id}`,
     timestamp: new Date(),
   });
 }
@@ -303,11 +394,11 @@ export async function notifyInvoiceSent(invoice: any): Promise<void> {
   await sendLocalNotification({
     type: 'invoice_sent',
     invoiceId: invoice.id,
-    invoiceNumber: invoice.invoiceNumber,
-    clientName: invoice.client?.name,
+    invoiceNumber: invoice.invoice_number ?? invoice.invoiceNumber,
+    clientName: invoice.clients?.name ?? invoice.client?.name,
     amount: invoice.total,
-    message: `Invoice #${invoice.invoiceNumber} sent to ${invoice.client?.name}`,
-    deepLink: `/invoice/${invoice.id}`,
+    message: `📤 Fattura #${invoice.invoice_number ?? invoice.invoiceNumber} inviata a ${invoice.clients?.name ?? invoice.client?.name ?? 'cliente'}`,
+    deepLink: `/(app)/${invoice.id}`,
     timestamp: new Date(),
   });
 }
@@ -319,10 +410,10 @@ export async function notifyInvoiceViewed(invoice: any): Promise<void> {
   await sendLocalNotification({
     type: 'invoice_viewed',
     invoiceId: invoice.id,
-    invoiceNumber: invoice.invoiceNumber,
-    clientName: invoice.client?.name,
-    message: `Invoice #${invoice.invoiceNumber} was viewed by ${invoice.client?.name}`,
-    deepLink: `/invoice/${invoice.id}`,
+    invoiceNumber: invoice.invoice_number ?? invoice.invoiceNumber,
+    clientName: invoice.clients?.name ?? invoice.client?.name,
+    message: `👁️ Fattura #${invoice.invoice_number ?? invoice.invoiceNumber} visualizzata da ${invoice.clients?.name ?? invoice.client?.name ?? 'cliente'}`,
+    deepLink: `/(app)/${invoice.id}`,
     timestamp: new Date(),
   });
 }

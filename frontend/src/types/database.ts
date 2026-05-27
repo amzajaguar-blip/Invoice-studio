@@ -220,6 +220,68 @@ export interface Database {
           created_at?: string;
         };
       };
+      user_push_tokens: {
+        Row: {
+          id: string;
+          user_id: string;
+          token: string;
+          platform: "android" | "ios";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          token: string;
+          platform: "android" | "ios";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          token?: string;
+          platform?: "android" | "ios";
+          updated_at?: string;
+        };
+      };
+      payment_audit_logs: {
+        Row: {
+          id: string;
+          event_type: string;
+          provider: "stripe" | "revenuecat";
+          invoice_id: string | null;
+          org_id: string | null;
+          external_event_id: string | null;
+          environment: "sandbox" | "production" | "unknown";
+          outcome: "success" | "failure" | "ignored";
+          error_code: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          event_type: string;
+          provider: "stripe" | "revenuecat";
+          invoice_id?: string | null;
+          org_id?: string | null;
+          external_event_id?: string | null;
+          environment: "sandbox" | "production" | "unknown";
+          outcome: "success" | "failure" | "ignored";
+          error_code?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          event_type?: string;
+          provider?: "stripe" | "revenuecat";
+          invoice_id?: string | null;
+          org_id?: string | null;
+          external_event_id?: string | null;
+          environment?: "sandbox" | "production" | "unknown";
+          outcome?: "success" | "failure" | "ignored";
+          error_code?: string | null;
+        };
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

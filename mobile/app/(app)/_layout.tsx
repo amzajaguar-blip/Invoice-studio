@@ -1,9 +1,17 @@
 import { Redirect, Stack } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 import { useAuth } from "@/hooks/useAuth";
+import { useEffect } from "react";
+import { initializePushNotifications } from "@/lib/notifications-service";
 
 export default function AuthLayout() {
   const { session, loading } = useAuth();
+
+  useEffect(() => {
+    if (session) {
+      initializePushNotifications().catch(() => {});
+    }
+  }, [session]);
 
   if (loading) {
     return (
@@ -24,6 +32,7 @@ export default function AuthLayout() {
       <Stack.Screen name="clients" options={{ presentation: "modal" }} />
       <Stack.Screen name="settings" options={{ presentation: "modal" }} />
       <Stack.Screen name="scanner" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
+      <Stack.Screen name="[invoice]" options={{ presentation: "card", animation: "slide_from_right" }} />
     </Stack>
   );
 }

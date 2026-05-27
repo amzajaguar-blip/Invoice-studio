@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { rateLimit, getRateLimitKey } from "@/lib/rate-limit";
+import { logPaymentAudit } from "@/lib/payment-audit";
 
 // Definizione stretta dei tipi per il Webhook di RevenueCat
 type RevenueCatEventType =
@@ -25,13 +27,21 @@ interface RevenueCatWebhookPayload {
 }
 
 export async function POST(req: Request) {
+  // Rate limit: 60 calls per minute per source IP
+  const rlKey = getRateLimitKey(req);
+  const { allowed } = rateLimit(`rc-webhook:${rlKey}`, 60, 60_000);
+  if (!allowed) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   try {
     // 🛡️ SECURITY LAYER 1: Validazione Header di Autorizzazione
     const authHeader = req.headers.get("authorization");
     const secret = process.env.REVENUECAT_WEBHOOK_SECRET;
 
     if (!secret || authHeader !== `Bearer ${secret}`) {
-      console.warn("🚨 [RevenueCat Webhook] Tentativo non autorizzato.");
+      await logPaymentAudit({ event_type: "revenuecat.unknown", provider: "revenuecat", environment: "unknown", outcome: "failure", error_code: "unauthorized" });
+      console.warn("[RevenueCat Webhook] Unauthorized attempt.");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -96,21 +106,40 @@ export async function POST(req: Request) {
         .eq("id", orgId);
 
       if (error) {
-        console.error(
-          `❌ [RevenueCat Webhook] Errore DB aggiornando org ${orgId}:`,
-          error
-        );
+        await logPaymentAudit({
+          event_type: `revenuecat.${type.toLowerCase()}`,
+          provider: "revenuecat",
+          org_id: orgId,
+          environment: environment === "PRODUCTION" ? "production" : "sandbox",
+          outcome: "failure",
+          error_code: error.code,
+        });
+        console.error("[RevenueCat Webhook] DB error updating org");
         throw error;
       }
 
-      console.log(
-        `✅ [RevenueCat Webhook] Org ${orgId} aggiornata con successo a piano: ${targetPlan}`
-      );
+      // PCI-DSS audit log — only IDs and event type
+      await logPaymentAudit({
+        event_type: `revenuecat.${type.toLowerCase()}`,
+        provider: "revenuecat",
+        org_id: orgId,
+        environment: environment === "PRODUCTION" ? "production" : "sandbox",
+        outcome: "success",
+      });
+
+      console.log(`[RevenueCat Webhook] Org ${orgId} updated to plan: ${targetPlan}`);
     }
 
     return NextResponse.json({ success: true, plan_applied: targetPlan });
   } catch (error) {
-    console.error("🔥 [RevenueCat Webhook] Fatal Error:", error);
+    await logPaymentAudit({
+      event_type: "revenuecat.handler_error",
+      provider: "revenuecat",
+      environment: "unknown",
+      outcome: "failure",
+      error_code: "internal_error",
+    });
+    console.error("[RevenueCat Webhook] Fatal error");
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }
