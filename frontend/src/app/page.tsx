@@ -145,7 +145,7 @@ function Features() {
         <div style={{ textAlign: "center", marginBottom: 56 }}>
           <h2 style={{ fontFamily: "Georgia, serif", fontSize: "clamp(28px, 4vw, 48px)", fontWeight: 700, color: "var(--text-primary)", marginBottom: 16 }}>
             Tutto per fatturare{" "}
-            <span className="gradient-text">come un'impresa</span>
+            <span className="gradient-text">come un&apos;impresa</span>
           </h2>
           <p style={{ color: "var(--text-muted)", fontSize: 18, maxWidth: 500, margin: "0 auto" }}>Funzionalità enterprise, prezzi da freelancer.</p>
         </div>

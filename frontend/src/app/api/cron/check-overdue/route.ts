@@ -50,11 +50,14 @@ export async function POST(request: Request) {
   console.log(`Marked ${count ?? 0} invoices as overdue`);
 
   // Send push notifications to users with overdue invoices
+  type OrgMember = { user_id: string };
+  type OverdueInvoice = { id: string; number: string; total: number | null; org_id: string; org_members: OrgMember[] };
+
   if (overdueInvoices && overdueInvoices.length > 0) {
     // Collect unique user IDs from org_members
     const userIds = [...new Set(
-      overdueInvoices.flatMap((inv: any) =>
-        (inv.org_members ?? []).map((m: any) => m.user_id)
+      (overdueInvoices as OverdueInvoice[]).flatMap((inv) =>
+        (inv.org_members ?? []).map((m) => m.user_id)
       )
     )];
 
@@ -70,10 +73,10 @@ export async function POST(request: Request) {
           new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(n);
 
         const messages = tokenRows.map((row: { user_id: string; token: string }) => {
-          const userInvoices = overdueInvoices.filter((inv: any) =>
-            (inv.org_members ?? []).some((m: any) => m.user_id === row.user_id)
+          const userInvoices = (overdueInvoices as OverdueInvoice[]).filter((inv) =>
+            (inv.org_members ?? []).some((m) => m.user_id === row.user_id)
           );
-          const total = userInvoices.reduce((s: number, inv: any) => s + (inv.total ?? 0), 0);
+          const total = userInvoices.reduce((s: number, inv) => s + (inv.total ?? 0), 0);
           const count = userInvoices.length;
           return {
             to: row.token,
