@@ -23,7 +23,7 @@
         "backgroundColor": "#0a0b0f"
       },
       "package": "com.Invoice_Studio.myapp",
-      "versionCode": 15,
+      "versionCode": 17,
       "permissions": [
         "com.google.android.gms.permission.AD_ID",
         "com.android.vending.BILLING",
@@ -55,9 +55,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/notification-icon.png",
-          "color": "#6c63ff",
-          "sounds": ["./assets/notification-sound.wav"]
+          "color": "#6c63ff"
         }
       ],
       [
