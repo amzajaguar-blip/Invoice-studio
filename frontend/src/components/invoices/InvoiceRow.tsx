@@ -9,9 +9,12 @@ interface InvoiceRowProps {
   invoice: Invoice;
   onSelect: (invoice: Invoice) => void;
   selected: boolean;
+  // Multi-select
+  checked: boolean;
+  onCheck: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-export function InvoiceRow({ invoice, onSelect, selected }: InvoiceRowProps) {
+export function InvoiceRow({ invoice, onSelect, selected, checked, onCheck }: InvoiceRowProps) {
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -21,7 +24,13 @@ export function InvoiceRow({ invoice, onSelect, selected }: InvoiceRowProps) {
       onMouseLeave={() => setHovered(false)}
       className="cursor-pointer border-b border-[#1a1c23] transition-colors"
       style={{
-        background: selected ? "#16181f" : hovered ? "#13151b" : "transparent",
+        background: checked
+          ? "rgba(108,99,255,0.06)"
+          : selected
+          ? "#16181f"
+          : hovered
+          ? "#13151b"
+          : "transparent",
       }}
       role="button"
       tabIndex={0}
@@ -33,6 +42,16 @@ export function InvoiceRow({ invoice, onSelect, selected }: InvoiceRowProps) {
       }}
       aria-label={`Fattura ${invoice.number}`}
     >
+      {/* Checkbox */}
+      <td className="py-3 px-3 w-8" onClick={(e) => e.stopPropagation()}>
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={onCheck}
+          aria-label={`Seleziona ${invoice.number}`}
+          className="w-4 h-4 rounded border-[#1e2029] bg-[#111318] accent-[#6c63ff] cursor-pointer"
+        />
+      </td>
       <td className="py-3 px-4 text-sm font-medium text-[#f0f0f2]">
         {invoice.number}
       </td>

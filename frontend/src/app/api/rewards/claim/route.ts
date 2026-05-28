@@ -46,14 +46,11 @@ export async function POST(request: Request) {
 
   const { nonce, signature, timestamp, rewardAmount } = parsed.data;
 
-  // Verify the HMAC signature
-  // In dev, fall back to the same secret the client uses (NEXT_PUBLIC_REWARD_SECRET or "dev-secret")
-  const secret =
-    process.env.REWARD_VERIFICATION_SECRET ||
-    process.env.NEXT_PUBLIC_REWARD_SECRET ||
-    "dev-secret";
+  // Verify the HMAC signature using server-side-only secret.
+  // NEXT_PUBLIC_* secrets are exposed in the client bundle and MUST NOT be used here.
+  const secret = process.env.REWARD_VERIFICATION_SECRET;
   if (!secret) {
-    console.error("REWARD_VERIFICATION_SECRET not set");
+    console.error("REWARD_VERIFICATION_SECRET env var not set — rewards claim disabled");
     return NextResponse.json(
       { success: false, error: "Server configuration error" },
       { status: 500 }

@@ -9,6 +9,9 @@ interface InvoiceTableProps {
   invoices: Invoice[];
   onSelectInvoice: (invoice: Invoice) => void;
   selectedId: string | null;
+  // Multi-select
+  selectedIds: Set<string>;
+  onSelectionChange: (ids: Set<string>) => void;
 }
 
 const STATUS_FILTERS: Array<{ label: string; value: InvoiceStatus | "all" }> = [
@@ -19,7 +22,13 @@ const STATUS_FILTERS: Array<{ label: string; value: InvoiceStatus | "all" }> = [
   { label: "Pagate", value: "paid" },
 ];
 
-export function InvoiceTable({ invoices, onSelectInvoice, selectedId }: InvoiceTableProps) {
+export function InvoiceTable({
+  invoices,
+  onSelectInvoice,
+  selectedId,
+  selectedIds,
+  onSelectionChange,
+}: InvoiceTableProps) {
   const [filter, setFilter] = useState<InvoiceStatus | "all">("all");
   const [search, setSearch] = useState("");
 
@@ -36,6 +45,31 @@ export function InvoiceTable({ invoices, onSelectInvoice, selectedId }: InvoiceT
       return true;
     });
   }, [invoices, filter, search]);
+
+  const allFilteredSelected =
+    filtered.length > 0 && filtered.every((inv) => selectedIds.has(inv.id));
+
+  function toggleAll() {
+    if (allFilteredSelected) {
+      // Deselect all filtered
+      const next = new Set(selectedIds);
+      filtered.forEach((inv) => next.delete(inv.id));
+      onSelectionChange(next);
+    } else {
+      // Select all filtered
+      const next = new Set(selectedIds);
+      filtered.forEach((inv) => next.add(inv.id));
+      onSelectionChange(next);
+    }
+  }
+
+  function toggleOne(id: string, e: React.ChangeEvent<HTMLInputElement>) {
+    e.stopPropagation();
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    onSelectionChange(next);
+  }
 
   return (
     <div>
@@ -80,6 +114,16 @@ export function InvoiceTable({ invoices, onSelectInvoice, selectedId }: InvoiceT
           <table className="w-full border-collapse">
             <thead>
               <tr className="text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider border-b border-[#1a1c23]">
+                {/* Select all checkbox */}
+                <th className="py-3 px-3 w-8">
+                  <input
+                    type="checkbox"
+                    checked={allFilteredSelected}
+                    onChange={toggleAll}
+                    aria-label="Seleziona tutte"
+                    className="w-4 h-4 rounded border-[#1e2029] bg-[#111318] accent-[#6c63ff] cursor-pointer"
+                  />
+                </th>
                 <th className="py-3 px-4">Fattura</th>
                 <th className="py-3 px-4">Cliente</th>
                 <th className="py-3 px-4">Importo</th>
@@ -96,6 +140,8 @@ export function InvoiceTable({ invoices, onSelectInvoice, selectedId }: InvoiceT
                   invoice={inv}
                   onSelect={onSelectInvoice}
                   selected={inv.id === selectedId}
+                  checked={selectedIds.has(inv.id)}
+                  onCheck={(e) => toggleOne(inv.id, e)}
                 />
               ))}
             </tbody>
@@ -105,6 +151,9 @@ export function InvoiceTable({ invoices, onSelectInvoice, selectedId }: InvoiceT
 
       <p className="text-xs text-[#6b7280] mt-3">
         {filtered.length} fattur{filtered.length === 1 ? "a" : "e"}
+        {selectedIds.size > 0 && (
+          <span className="ml-2 text-[#6c63ff]">· {selectedIds.size} selezionat{selectedIds.size === 1 ? "a" : "e"}</span>
+        )}
       </p>
     </div>
   );

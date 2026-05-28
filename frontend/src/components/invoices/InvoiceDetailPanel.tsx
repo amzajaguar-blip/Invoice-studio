@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { StatusBadge } from "./StatusBadge";
 import { formatCurrency, formatItalianDate } from "@/lib/utils";
 import { ShareInvoice } from "@/components/promotion/ShareInvoice";
@@ -52,6 +52,16 @@ export function InvoiceDetailPanel({
     return () => window.removeEventListener("keydown", handleKey);
   }, [onClose]);
 
+  // ── Action states ────────────────────────────────────────────────────────
+  const [paymentLink, setPaymentLink] = useState<string | null>(invoice.payment_link ?? null);
+  const [stripeUrl, setStripeUrl] = useState<string | null>(null);
+  const [generatingLink, setGeneratingLink] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
   const items = invoice.invoice_items || [];
   const events = (invoice.invoice_events || []).sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -60,6 +70,81 @@ export function InvoiceDetailPanel({
 
   const currency = (invoice.currency as "EUR" | "USD" | "GBP" | "CHF") || "EUR";
   const vatRate = invoice.tax_rate ?? invoice.vatRate ?? 22;
+
+  // ── Generate Stripe payment link ─────────────────────────────────────────
+  async function handleGeneratePaymentLink() {
+    setGeneratingLink(true);
+    setActionError(null);
+    try {
+      const res = await fetch(`/api/invoices/${invoice.id}/generate-payment-link`, {
+        method: "POST",
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setActionError(json.error || "Errore nella generazione del link");
+      } else {
+        setPaymentLink(json.data.payUrl);
+        setStripeUrl(json.data.stripeUrl);
+      }
+    } catch {
+      setActionError("Errore di rete. Riprova.");
+    } finally {
+      setGeneratingLink(false);
+    }
+  }
+
+  // ── Copy payment link ────────────────────────────────────────────────────
+  async function handleCopyLink() {
+    if (!paymentLink) return;
+    await navigator.clipboard.writeText(paymentLink);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  }
+
+  // ── Send invoice email ───────────────────────────────────────────────────
+  async function handleSendEmail() {
+    setSendingEmail(true);
+    setEmailError(null);
+
+    // If no payment link yet, generate first
+    let link = paymentLink;
+    if (!link) {
+      try {
+        const linkRes = await fetch(`/api/invoices/${invoice.id}/generate-payment-link`, {
+          method: "POST",
+        });
+        const linkJson = await linkRes.json();
+        if (!linkRes.ok) {
+          setEmailError(linkJson.error || "Errore nella generazione del link di pagamento");
+          setSendingEmail(false);
+          return;
+        }
+        link = linkJson.data.payUrl;
+        setPaymentLink(link);
+        setStripeUrl(linkJson.data.stripeUrl);
+      } catch {
+        setEmailError("Errore di rete. Riprova.");
+        setSendingEmail(false);
+        return;
+      }
+    }
+
+    try {
+      const res = await fetch(`/api/invoices/${invoice.id}/send-email`, {
+        method: "POST",
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setEmailError(json.error || "Errore nell'invio email");
+      } else {
+        setEmailSent(true);
+      }
+    } catch {
+      setEmailError("Errore di rete. Riprova.");
+    } finally {
+      setSendingEmail(false);
+    }
+  }
 
   return (
     <>
@@ -230,13 +315,120 @@ export function InvoiceDetailPanel({
             </div>
           )}
 
+          {/* Error banner */}
+          {(actionError || emailError) && (
+            <div className="mb-4 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400">
+              {actionError || emailError}
+            </div>
+          )}
+
+          {/* ── Payment Link section (when generated) ── */}
+          {paymentLink && invoice.status !== "paid" && (
+            <div className="mb-4 bg-[#6c63ff]/8 border border-[#6c63ff]/20 rounded-xl p-4 space-y-2">
+              <p className="text-xs font-medium text-[#6c63ff] uppercase tracking-wider">
+                Link di pagamento generato
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleCopyLink}
+                  className="flex-1 py-2 text-xs rounded-lg bg-[#111318] border border-[#1e2029] text-[#9ca3af] hover:text-[#f0f0f2] transition-colors cursor-pointer truncate"
+                >
+                  {linkCopied ? "✓ Copiato!" : "📋 Copia link"}
+                </button>
+                {stripeUrl && (
+                  <a
+                    href={stripeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 py-2 text-xs rounded-lg bg-[#6c63ff] text-white text-center hover:bg-[#5b52e0] transition-colors no-underline"
+                  >
+                    🔗 Apri Stripe
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Actions */}
           <div className="space-y-2 pt-4 border-t border-[#1e2029]">
+
+            {/* PDF download — always available */}
+            <a
+              href={`/api/invoices/${invoice.id}/pdf`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex w-full items-center justify-center py-3 rounded-xl text-sm font-medium transition-colors no-underline cursor-pointer"
+              style={{
+                background: "#111318",
+                border: "1px solid #1e2029",
+                color: "#9ca3af",
+              }}
+            >
+              📄 Scarica PDF
+            </a>
+
+            {/* Generate / show Stripe payment link */}
+            {invoice.status !== "paid" && invoice.status !== "cancelled" && (
+              !paymentLink ? (
+                <button
+                  onClick={handleGeneratePaymentLink}
+                  disabled={generatingLink}
+                  className="w-full py-3 rounded-xl text-sm font-medium transition-colors cursor-pointer border-none"
+                  style={{
+                    background: generatingLink ? "rgba(108,99,255,0.3)" : "rgba(108,99,255,0.12)",
+                    border: "1px solid rgba(108,99,255,0.3)",
+                    color: generatingLink ? "#9ca3af" : "#6c63ff",
+                  }}
+                >
+                  {generatingLink ? "⏳ Generazione..." : "💳 Genera Link Pagamento Stripe"}
+                </button>
+              ) : (
+                <button
+                  onClick={handleCopyLink}
+                  className="w-full py-3 rounded-xl text-sm font-medium transition-colors cursor-pointer border-none"
+                  style={{
+                    background: "rgba(108,99,255,0.12)",
+                    border: "1px solid rgba(108,99,255,0.3)",
+                    color: linkCopied ? "#22c55e" : "#6c63ff",
+                  }}
+                >
+                  {linkCopied ? "✓ Link copiato!" : "📋 Copia link pagamento"}
+                </button>
+              )
+            )}
+
+            {/* Send email (draft / sent / overdue) */}
+            {(invoice.status === "draft" || invoice.status === "sent" || invoice.status === "overdue") && (
+              <button
+                onClick={handleSendEmail}
+                disabled={sendingEmail || emailSent}
+                className="w-full py-3 rounded-xl text-sm font-medium transition-colors cursor-pointer border-none"
+                style={{
+                  background: emailSent
+                    ? "rgba(34,197,94,0.12)"
+                    : sendingEmail
+                    ? "#111318"
+                    : "#6c63ff",
+                  border: emailSent
+                    ? "1px solid rgba(34,197,94,0.3)"
+                    : "1px solid transparent",
+                  color: emailSent ? "#22c55e" : sendingEmail ? "#9ca3af" : "#fff",
+                }}
+              >
+                {emailSent
+                  ? "✓ Email inviata al cliente"
+                  : sendingEmail
+                  ? "⏳ Invio in corso..."
+                  : "📤 Invia fattura via email"}
+              </button>
+            )}
+
+            {/* Reminder */}
             {(invoice.status === "sent" || invoice.status === "overdue") && (
               <button
                 onClick={onRemind}
                 disabled={reminded}
-                className="w-full py-3 rounded-xl text-sm font-medium transition-colors cursor-pointer"
+                className="w-full py-3 rounded-xl text-sm font-medium transition-colors cursor-pointer border-none"
                 style={{
                   background: reminded ? "rgba(34,197,94,0.12)" : "#111318",
                   border: reminded ? "1px solid rgba(34,197,94,0.3)" : "1px solid #1e2029",
@@ -247,12 +439,7 @@ export function InvoiceDetailPanel({
               </button>
             )}
 
-            {invoice.status === "draft" && (
-              <button className="w-full py-3 bg-[#6c63ff] hover:bg-[#5b52e0] text-white font-medium rounded-xl text-sm border-none cursor-pointer transition-colors">
-                📤 Invia fattura
-              </button>
-            )}
-
+            {/* Paid badge */}
             {invoice.status === "paid" && (
               <div className="w-full py-3 bg-[rgba(34,197,94,0.08)] border border-[rgba(34,197,94,0.2)] text-[#22c55e] font-medium rounded-xl text-sm text-center">
                 ✓ Pagata il{" "}

@@ -38,3 +38,15 @@ frontend/twa/
 *.log
 npm-debug.log*
 aab/
+
+# Google Cloud / Firebase service account keys — NEVER commit these
+json.google/
+*.json.google
+*service-account*.json
+*-firebase-adminsdk-*.json
+
+# ZIP files and extracted project artifacts
+*.zip
+"NUOVE IMPLEMENTAZIONI/extracted/"
+NUOVE IMPLEMENTAZIONI/extracted/
+NUOVE IMPLEMENTAZIONI/*.zip

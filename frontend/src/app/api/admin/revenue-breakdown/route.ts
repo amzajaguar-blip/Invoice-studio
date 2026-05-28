@@ -12,17 +12,21 @@ import { getCurrentUser } from "@/lib/supabase/server";
  * Query params:
  *   ?period=month|quarter|year  (default: month)
  */
+// Admin emails allowed to access this endpoint (server-side only, not exposed to client)
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "").split(",").map((e) => e.trim()).filter(Boolean);
+
 export async function GET(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const adminClient = createAdminClient();
+  // Enforce admin-only access: user email must be in ADMIN_EMAILS env var
+  if (ADMIN_EMAILS.length === 0 || !ADMIN_EMAILS.includes(user.email ?? "")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
-  // TODO: Replace with proper admin role check
-  // For MVP, any authenticated user can see aggregated revenue (not per-org)
-  // In production: check against admin_users table or org_members.role = 'owner'
+  const adminClient = createAdminClient();
 
   const { searchParams } = new URL(request.url);
   const period = searchParams.get("period") || "month";

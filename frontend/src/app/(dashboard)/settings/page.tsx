@@ -1,16 +1,44 @@
-import { getCurrentUser } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+import { createClient, getCurrentUser } from "@/lib/supabase/server";
+import { getUserQuota } from "@/lib/plan";
+import { SettingsClient } from "./SettingsClient";
 
 export default async function SettingsPage() {
-  await getCurrentUser();
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  const supabase = await createClient();
+
+  // Fetch org data
+  const { data: memberData } = await supabase
+    .from("org_members")
+    .select("org_id, role")
+    .eq("user_id", user.id)
+    .single();
+
+  const orgId = memberData?.org_id ?? null;
+
+  const { data: org } = orgId
+    ? await supabase
+        .from("organizations")
+        .select("id, name, plan, iban, brand_color")
+        .eq("id", orgId)
+        .single()
+    : { data: null };
+
+  // Quota info
+  const quota = orgId ? await getUserQuota(orgId) : null;
 
   return (
-    <div>
-      <h2 className="text-2xl font-bold text-[#f0f0f2] font-[Georgia,serif] mb-6">
-        Impostazioni
-      </h2>
-      <div className="bg-[#111318] border border-[#1e2029] rounded-xl p-8 text-center">
-        <p className="text-[#6b7280]">Impostazioni dell&apos;account in arrivo.</p>
-      </div>
-    </div>
+    <SettingsClient
+      user={{
+        id: user.id,
+        email: user.email ?? "",
+        fullName: user.user_metadata?.full_name ?? "",
+      }}
+      org={org ?? null}
+      quota={quota}
+      role={memberData?.role ?? "member"}
+    />
   );
 }

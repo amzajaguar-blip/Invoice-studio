@@ -25,6 +25,11 @@ export function InvoicesClient({
   const [remindedInvoices, setRemindedInvoices] = useState<Set<string>>(new Set());
   const newInvoiceBtnRef = useRef<HTMLButtonElement>(null);
 
+  // ─── Multi-select state ────────────────────────────────────────────────
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkError, setBulkError] = useState<string | null>(null);
+
   // ─── Quota & Rewarded Ads state ─────────────────────────────────────────
 
   const { quota, refresh: refreshQuota } = useQuota();
@@ -97,6 +102,7 @@ export function InvoicesClient({
   const handleInvoiceSaved = () => {
     loadInvoices();
     refreshQuota();
+    setSelectedIds(new Set()); // Clear selection after save
   };
 
   // ─── Rewarded ad claimed: open invoice form ─────────────────────────────
@@ -110,11 +116,72 @@ export function InvoicesClient({
     });
   };
 
-  // ─── Upgrade handler ────────────────────────────────────────────────────
+  // ─── Upgrade handler → Settings > Piano tab ─────────────────────────────
 
   const handleUpgrade = () => {
-    // TODO: Stripe checkout/portal integration
-    window.location.href = "/settings"; // placeholder
+    window.location.href = "/settings#piano";
+  };
+
+  // ─── Bulk: delete selected invoices ────────────────────────────────────
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    const confirmed = window.confirm(
+      `Eliminare ${selectedIds.size} fattur${selectedIds.size === 1 ? "a" : "e"}? Questa azione è reversibile solo dal database.`
+    );
+    if (!confirmed) return;
+
+    setBulkLoading(true);
+    setBulkError(null);
+
+    try {
+      const ids = Array.from(selectedIds);
+      const results = await Promise.allSettled(
+        ids.map((id) =>
+          fetch(`/api/invoices/${id}`, { method: "DELETE" })
+        )
+      );
+      const failed = results.filter((r) => r.status === "rejected").length;
+      if (failed > 0) setBulkError(`${failed} eliminazione/i fallita/e`);
+      setSelectedIds(new Set());
+      await loadInvoices();
+    } catch {
+      setBulkError("Errore durante l'eliminazione. Riprova.");
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  // ─── Bulk: export CSV ───────────────────────────────────────────────────
+
+  const handleBulkExportCSV = async () => {
+    setBulkLoading(true);
+    setBulkError(null);
+    try {
+      const res = await fetch("/api/invoices/export-csv", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ids: selectedIds.size > 0 ? Array.from(selectedIds) : undefined,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        setBulkError(err.error || "Errore export");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `InvoiceStudio_export_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setBulkError("Errore di rete. Riprova.");
+    } finally {
+      setBulkLoading(false);
+    }
   };
 
   return (
@@ -160,6 +227,42 @@ export function InvoicesClient({
         </button>
       </div>
 
+      {/* ── Bulk Toolbar ──────────────────────────────────────────── */}
+      {selectedIds.size > 0 && (
+        <div className="mb-4 flex items-center gap-3 bg-[#111318] border border-[#6c63ff]/30 rounded-xl px-4 py-3">
+          <span className="text-sm text-[#6c63ff] font-medium flex-1">
+            {selectedIds.size} fattur{selectedIds.size === 1 ? "a" : "e"} selezionat{selectedIds.size === 1 ? "a" : "e"}
+          </span>
+          <button
+            onClick={handleBulkExportCSV}
+            disabled={bulkLoading}
+            className="text-xs font-medium px-3 py-1.5 rounded-lg bg-[#6c63ff]/10 text-[#6c63ff] border border-[#6c63ff]/20 hover:bg-[#6c63ff]/20 transition-colors cursor-pointer"
+          >
+            {bulkLoading ? "⏳" : "📥"} Esporta CSV
+          </button>
+          <button
+            onClick={handleBulkDelete}
+            disabled={bulkLoading}
+            className="text-xs font-medium px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors cursor-pointer"
+          >
+            {bulkLoading ? "⏳" : "🗑"} Elimina
+          </button>
+          <button
+            onClick={() => setSelectedIds(new Set())}
+            className="text-xs text-[#6b7280] hover:text-[#e5e7eb] cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Bulk error */}
+      {bulkError && (
+        <div className="mb-4 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400">
+          {bulkError}
+        </div>
+      )}
+
       {loading && invoices.length === 0 ? (
         <div className="bg-[#111318] border border-[#1e2029] rounded-xl p-8">
           <div className="space-y-3 animate-pulse">
@@ -173,6 +276,8 @@ export function InvoicesClient({
           invoices={invoices}
           onSelectInvoice={handleSelectInvoice}
           selectedId={selected?.id ?? null}
+          selectedIds={selectedIds}
+          onSelectionChange={setSelectedIds}
         />
       )}
 
