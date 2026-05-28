@@ -1,5 +1,11 @@
 import type { Currency, Invoice } from "@/types";
 
+// ─── ClassName Merger ────────────────────────────────────────────────────────
+
+export function cn(...inputs: Array<string | false | null | undefined>): string {
+  return inputs.filter(Boolean).join(" ");
+}
+
 // ─── Currency Formatting ──────────────────────────────────────────────────────
 
 const currencyFormatters = new Map<string, Intl.NumberFormat>();
