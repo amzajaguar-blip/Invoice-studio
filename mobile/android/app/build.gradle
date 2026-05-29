@@ -101,15 +101,26 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            // Reads from env vars set in CI (GitHub Actions secrets)
+            // Falls back to debug keystore for local development
+            def ksFile = System.getenv("ANDROID_KEYSTORE_PATH") ?: 'debug.keystore'
+            def ksPassword = System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: 'android'
+            def kAlias = System.getenv("ANDROID_KEY_ALIAS") ?: 'invoicestudio'
+            def kPassword = System.getenv("ANDROID_KEY_PASSWORD") ?: 'android'
+            storeFile file(ksFile)
+            storePassword ksPassword
+            keyAlias kAlias
+            keyPassword kPassword
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            // Signed with release keystore from CI secrets
+            signingConfig signingConfigs.release
             shrinkResources (findProperty('android.enableShrinkResourcesInReleaseBuilds')?.toBoolean() ?: false)
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
