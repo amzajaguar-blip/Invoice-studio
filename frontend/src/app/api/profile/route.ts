@@ -57,3 +57,28 @@ export async function PATCH(request: Request) {
 
   return NextResponse.json({ success: true });
 }
+
+/**
+ * DELETE /api/profile
+ * Permanently deletes the authenticated user's account from Supabase Auth.
+ * Cascades to org_members, keeping organizations and invoices intact for fiscal/law requirements.
+ */
+export async function DELETE(request: Request) {
+  const auth = await getAuthFromRequest(request);
+  if (!auth.authenticated) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const { user } = auth;
+
+  const admin = createAdminClient();
+
+  const { error } = await admin.auth.admin.deleteUser(user.id);
+  if (error) {
+    return NextResponse.json(
+      { error: process.env.NODE_ENV === "production" ? "Errore eliminazione account" : error.message },
+      { status: 500 }
+    );
+  }
+
+  return NextResponse.json({ success: true });
+}

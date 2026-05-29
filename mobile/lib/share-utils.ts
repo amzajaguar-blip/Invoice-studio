@@ -1,7 +1,7 @@
 import { Share, Platform } from 'react-native';
 import * as MailComposer from 'expo-mail-composer';
 import * as Clipboard from 'expo-clipboard';
-import * as FileSystem from 'expo-file-system/legacy';
+import * as FileSystem from 'expo-file-system';
 import { Invoice, Client } from '@/shared/types';
 
 export interface ShareResult {

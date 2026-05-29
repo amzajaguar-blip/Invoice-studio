@@ -43,9 +43,14 @@ export default function ScannerScreen() {
         base64: true,
         skipProcessing: false,
       });
-      setPhotoUri(photo.uri);
-      setPhotoBase64(photo.base64 ?? null);
-      setScanState("preview");
+      if (photo) {
+        setPhotoUri(photo.uri ?? null);
+        setPhotoBase64(photo.base64 ?? null);
+        setScanState("preview");
+      } else {
+        setError("Impossibile acquisire l'immagine.");
+        setScanState("idle");
+      }
     } catch {
       setError("Impossibile scattare la foto. Riprova.");
       setScanState("idle");

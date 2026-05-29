@@ -6,6 +6,7 @@ import {
   updateNotificationSettings,
   type NotificationSettings,
 } from "@/lib/notifications-service";
+import { apiFetch } from "@/lib/ai";
 
 export default function SettingsScreen() {
   const { user, signOut } = useAuth();
@@ -29,11 +30,49 @@ export default function SettingsScreen() {
     ]);
   };
 
+  const executeDeleteAccount = async () => {
+    try {
+      const { error } = await apiFetch("/api/profile", {
+        method: "DELETE",
+      });
+
+      if (error) {
+        Alert.alert("Errore", error || "Impossibile eliminare l'account in questo momento.");
+        return;
+      }
+
+      await signOut();
+      Alert.alert("Account eliminato", "Il tuo account è stato eliminato con successo.");
+    } catch (err) {
+      Alert.alert("Errore", "Si è verificato un errore di rete.");
+    }
+  };
+
   const handleDeleteAccount = () => {
     Alert.alert(
       "Elimina account",
-      "Per eliminare il tuo account, visita la pagina web:\n\ninvoicestudio.app/delete-account",
-      [{ text: "OK" }]
+      "Sei sicuro di voler eliminare permanentemente il tuo account? Tutti i tuoi dati, fatture e clienti verranno cancellati in modo irreversibile.",
+      [
+        { text: "Annulla", style: "cancel" },
+        {
+          text: "Procedi",
+          style: "destructive",
+          onPress: () => {
+            Alert.alert(
+              "Conferma finale",
+              "Questa è l'ultima conferma. Se procedi, il tuo account verrà eliminato definitivamente e verrai disconnesso.",
+              [
+                { text: "Annulla", style: "cancel" },
+                {
+                  text: "Sì, elimina",
+                  style: "destructive",
+                  onPress: executeDeleteAccount,
+                },
+              ]
+            );
+          },
+        },
+      ]
     );
   };
 

@@ -75,7 +75,16 @@ export function SettingsClient({ user, org, quota, role }: SettingsClientProps) 
     if (deleteConfirm !== "ELIMINA") return;
     setDeleting(true);
     try {
-      router.push("/delete-account");
+      const res = await fetch("/api/profile", {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const json = await res.json();
+        throw new Error(json.error || "Errore durante l'eliminazione dell'account");
+      }
+      router.push("/login?deleted=true");
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Errore durante l'eliminazione");
     } finally {
       setDeleting(false);
     }

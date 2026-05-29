@@ -95,6 +95,9 @@ export function useRewardedInvoice(): {
             limit: FREE_INVOICES_LIMIT,
             canCreate: true,
             isLoading: false,
+            dailyCreditsUsed: 0,
+            dailyMax: 10,
+            dailyResetIn: "",
           });
         }
         return;

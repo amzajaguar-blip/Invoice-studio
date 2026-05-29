@@ -1,5 +1,5 @@
 import { Invoice, Client } from '@/shared/types';
-import * as FileSystem from 'expo-file-system/legacy';
+import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 
 export interface PDFGenerationOptions {

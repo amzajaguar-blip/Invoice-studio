@@ -1,4 +1,4 @@
-import * as FileSystem from 'expo-file-system/legacy';
+import * as FileSystem from 'expo-file-system';
 import { Invoice, LineItem } from '@/shared/types';
 
 export interface ReceiptData {
