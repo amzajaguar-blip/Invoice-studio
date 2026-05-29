@@ -106,41 +106,7 @@ jobs:
           echo "ANDROID_KEY_PASSWORD=android"           >> $GITHUB_ENV
 
           # 3. Patch freshly-generated build.gradle to add release signingConfig
-          python3 - <<'PYEOF'
-import re
-
-with open('android/app/build.gradle', 'r') as f:
-    content = f.read()
-
-release_block = '''
-        release {
-            def ksPath = System.getenv("ANDROID_KEYSTORE_PATH") ?: "debug.keystore"
-            def ksPass = System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: "android"
-            def kAlias = System.getenv("ANDROID_KEY_ALIAS") ?: "invoicestudio"
-            def kPass  = System.getenv("ANDROID_KEY_PASSWORD") ?: "android"
-            storeFile file(ksPath)
-            storePassword ksPass
-            keyAlias kAlias
-            keyPassword kPass
-        }'''
-
-# Insert release block after closing brace of debug signingConfig
-content = re.sub(
-    r"(keyPassword 'android'\n        \})\n    \}\n    buildTypes",
-    r"\g<1>" + release_block + "\n    }\n    buildTypes",
-    content
-)
-
-# Switch release buildType to use release signingConfig
-content = content.replace(
-    "signingConfig signingConfigs.debug\n            shrinkResources",
-    "signingConfig signingConfigs.release\n            shrinkResources"
-)
-
-with open('android/app/build.gradle', 'w') as f:
-    f.write(content)
-print('build.gradle patched for release signing')
-PYEOF
+           python3 mobile/scripts/patch_build_gradle.py
 
       - name: Bundle AAB
         run: cd android && chmod +x gradlew && ./gradlew bundleRelease --no-daemon --stacktrace
