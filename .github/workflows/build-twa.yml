@@ -106,7 +106,7 @@ jobs:
           echo "ANDROID_KEY_PASSWORD=android"           >> $GITHUB_ENV
 
           # 3. Patch freshly-generated build.gradle to add release signingConfig
-           python3 mobile/scripts/patch_build_gradle.py
+           python3 scripts/patch_build_gradle.py
 
       - name: Bundle AAB
         run: cd android && chmod +x gradlew && ./gradlew bundleRelease --no-daemon --stacktrace
