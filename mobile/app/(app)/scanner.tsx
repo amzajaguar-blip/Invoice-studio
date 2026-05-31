@@ -13,7 +13,9 @@ import {
 } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
+import { useIsFocused } from "@react-navigation/native";
 import { apiFetch } from "@/lib/ai";
+import { COLORS, SIZES, SHADOWS } from "../../constants/theme";
 
 type ScanState = "idle" | "capturing" | "preview" | "analyzing" | "result";
 
@@ -27,15 +29,21 @@ interface OcrResult {
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
+// Network timeout for OCR API calls
+const ANALYZE_TIMEOUT_MS = 15000;
+
 // Scanning frame dimensions — 85% of screen width, 4:3 aspect
-const FRAME_W = SCREEN_WIDTH * 0.82;
-const FRAME_H = FRAME_W * 1.3;
-const CORNER = 28;       // corner arm length
-const CORNER_W = 3;      // corner stroke width
-const CORNER_R = 6;      // corner radius
+const FRAME_W = SCREEN_WIDTH * 0.85;
+const FRAME_H = FRAME_W * 1.33;
+const CORNER = 32;       // corner arm length
+const CORNER_W = 4;      // corner stroke width
+const CORNER_R = SIZES.radiusSm;      // corner radius
 
 export default function ScannerScreen() {
   const router = useRouter();
+  const isFocused = useIsFocused();
+  const isMounted = useRef(true);
+  
   const cameraRef = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
   const [scanState, setScanState] = useState<ScanState>("idle");
@@ -49,20 +57,28 @@ export default function ScannerScreen() {
   const scanAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
+  // Cleanup effect to avoid state updates on unmounted components
   useEffect(() => {
-    if (scanState === "idle") {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (scanState === "idle" && isFocused) {
       // Looping scan line
       const loop = Animated.loop(
         Animated.sequence([
           Animated.timing(scanAnim, {
             toValue: 1,
-            duration: 2200,
+            duration: 2500,
             easing: Easing.inOut(Easing.quad),
             useNativeDriver: true,
           }),
           Animated.timing(scanAnim, {
             toValue: 0,
-            duration: 2200,
+            duration: 2500,
             easing: Easing.inOut(Easing.quad),
             useNativeDriver: true,
           }),
@@ -71,15 +87,15 @@ export default function ScannerScreen() {
       loop.start();
       return () => loop.stop();
     }
-  }, [scanState, scanAnim]);
+  }, [scanState, scanAnim, isFocused]);
 
   useEffect(() => {
     if (scanState === "analyzing") {
       // Pulse animation during analysis
       const pulse = Animated.loop(
         Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 1.08, duration: 700, useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1.15, duration: 800, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
         ])
       );
       pulse.start();
@@ -93,42 +109,63 @@ export default function ScannerScreen() {
     setError(null);
     try {
       const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.85,
+        quality: 0.8,
         base64: true,
-        skipProcessing: false,
       });
-      if (photo) {
-        setPhotoUri(photo.uri ?? null);
-        setPhotoBase64(photo.base64 ?? null);
-        setScanState("preview");
-      } else {
-        setError("Impossibile acquisire l'immagine.");
+      if (isMounted.current) {
+        if (photo && photo.uri) {
+          setPhotoUri(photo.uri);
+          setPhotoBase64(photo.base64 ?? null);
+          setScanState("preview");
+        } else {
+          setError("Impossibile acquisire l'immagine.");
+          setScanState("idle");
+        }
+      }
+    } catch (e) {
+      if (isMounted.current) {
+        console.error("Camera capture error:", e);
+        setError("Errore durante lo scatto. Assicurati che la fotocamera sia pronta.");
         setScanState("idle");
       }
-    } catch {
-      setError("Impossibile scattare la foto. Riprova.");
-      setScanState("idle");
     }
   };
+
 
   const handleAnalyze = async () => {
     if (!photoBase64) return;
     setScanState("analyzing");
     setError(null);
 
-    const { data, error: apiError } = await apiFetch<OcrResult>("/api/ocr/receipt", {
-      method: "POST",
-      body: JSON.stringify({ imageBase64: photoBase64 }),
-    });
+    try {
+      type ApiFetchResult = Awaited<ReturnType<typeof apiFetch<OcrResult>>>;
+      const fetchPromise = apiFetch<OcrResult>("/api/ocr/receipt", {
+        method: "POST",
+        body: JSON.stringify({ imageBase64: photoBase64 }),
+      });
+      const timeoutPromise = new Promise<ApiFetchResult>((_, reject) =>
+        setTimeout(() => reject(new Error("Timeout: il server non risponde. Riprova tra poco.")), ANALYZE_TIMEOUT_MS)
+      );
+      const { data, error: apiError } = await Promise.race<ApiFetchResult>([
+        fetchPromise,
+        timeoutPromise,
+      ]);
 
-    if (apiError || !data) {
-      setError("Estrazione non riuscita. Prova con una foto più nitida.");
-      setScanState("preview");
-      return;
+      if (isMounted.current) {
+        if (apiError || !data) {
+          setError("Estrazione non riuscita. Prova con una foto più nitida.");
+          setScanState("preview");
+          return;
+        }
+        setOcrResult(data as OcrResult);
+        setScanState("result");
+      }
+    } catch (err) {
+      if (isMounted.current) {
+        setError(err instanceof Error ? err.message : "Errore di rete o di sistema. Riprova tra poco.");
+        setScanState("preview");
+      }
     }
-
-    setOcrResult(data as OcrResult);
-    setScanState("result");
   };
 
   const handleReset = () => {
@@ -140,6 +177,7 @@ export default function ScannerScreen() {
   };
 
   const handleConfirm = () => {
+    // Ritorna allo stack precedente (la transazione o la dashboard)
     router.back();
   };
 
@@ -148,7 +186,7 @@ export default function ScannerScreen() {
   if (!permission) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#6c63ff" />
+        <ActivityIndicator size="large" color={COLORS.accent} />
       </View>
     );
   }
@@ -165,7 +203,7 @@ export default function ScannerScreen() {
           </View>
           <Text style={styles.permTitle}>Accesso fotocamera</Text>
           <Text style={styles.permSubtitle}>
-            Consenti l'accesso per scansionare ricevute e documenti con l'AI.
+            Consenti l'accesso per scansionare ricevute e documenti con l'AI in stile Milo.
           </Text>
           <TouchableOpacity style={styles.primaryBtn} onPress={requestPermission}>
             <Text style={styles.primaryBtnTxt}>Consenti fotocamera</Text>
@@ -194,7 +232,7 @@ export default function ScannerScreen() {
           </View>
         </View>
 
-        <Text style={styles.resultHint}>Verifica i dati estratti e conferma</Text>
+        <Text style={styles.resultHint}>Verifica i dati estratti dall'AI</Text>
 
         <ScrollView style={styles.resultCard} contentContainerStyle={styles.resultContent} showsVerticalScrollIndicator={false}>
           <ResultRow label="Fornitore" value={ocrResult.vendor || "—"} />
@@ -205,18 +243,22 @@ export default function ScannerScreen() {
             label="Totale"
             value={
               ocrResult.total !== null
-                ? `${ocrResult.total.toFixed(2)} ${ocrResult.currency}`
+                ? `${ocrResult.total.toFixed(2)} ${ocrResult.currency || '€'}`
                 : "—"
             }
             highlight
           />
         </ScrollView>
 
-        {error && <Text style={styles.errorMsg}>{error}</Text>}
+        {error && (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorMsg}>{error}</Text>
+          </View>
+        )}
 
         <View style={styles.actionsRow}>
           <TouchableOpacity style={styles.secondaryBtn} onPress={handleReset}>
-            <Text style={styles.secondaryBtnTxt}>↩ Riprova</Text>
+            <Text style={styles.secondaryBtnTxt}>✕ Riprova</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.primaryBtn} onPress={handleConfirm}>
             <Text style={styles.primaryBtnTxt}>Conferma →</Text>
@@ -234,14 +276,14 @@ export default function ScannerScreen() {
 
   const scanLineY = scanAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, FRAME_H - 2],
+    outputRange: [0, FRAME_H - 3],
   });
 
   return (
     <View style={styles.container}>
       {/* Top bar */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn} disabled={isCapturing || isAnalyzing}>
           <Text style={styles.closeTxt}>✕</Text>
         </TouchableOpacity>
         {/* Torch — idle only */}
@@ -249,63 +291,61 @@ export default function ScannerScreen() {
           <TouchableOpacity
             style={[styles.torchBtn, torchOn && styles.torchBtnOn]}
             onPress={() => setTorchOn((v) => !v)}
+            disabled={isCapturing || isAnalyzing}
           >
-            <Text style={styles.torchIcon}>{torchOn ? "⚡" : "☀"}</Text>
+            <Text style={[styles.torchIcon, torchOn && { color: COLORS.accent }]}>⚡</Text>
           </TouchableOpacity>
         )}
       </View>
 
       {/* Title */}
       <Text style={styles.screenTitle}>
-        {isPreview ? "Controlla la foto" : isAnalyzing ? "Analisi in corso…" : "Scanner Ricevute"}
+        {isPreview ? "Controlla Scansione" : isAnalyzing ? "Analisi in corso…" : "Carica Ricevuta"}
       </Text>
       <Text style={styles.screenSub}>
         {isPreview
-          ? "La ricevuta è nitida e leggibile?"
+          ? "I dati sono leggibili in modo nitido?"
           : isAnalyzing
-          ? "L'AI sta estraendo i dati dalla ricevuta"
-          : "Inquadra la ricevuta nel riquadro"}
+          ? "Attendere, l'AI sta elaborando i dati."
+          : "Inquadra la ricevuta all'interno del riquadro."}
       </Text>
 
-      {/* Camera / preview area — full-flex */}
+      {/* Camera / preview area */}
       <View style={styles.cameraContainer}>
         {/* Darkened overlay outside frame */}
-        <View style={StyleSheet.absoluteFillObject}>
-          {/* Top mask */}
+        <View style={[StyleSheet.absoluteFillObject, { zIndex: 1 }]} pointerEvents="none">
           <View style={[styles.mask, { height: (500 - FRAME_H) / 2 }]} />
-          {/* Middle row */}
           <View style={{ flexDirection: "row", height: FRAME_H }}>
             <View style={[styles.mask, { width: (SCREEN_WIDTH - FRAME_W) / 2, flex: 0 }]} />
-            {/* Transparent center — camera shows through */}
             <View style={{ width: FRAME_W }} />
             <View style={[styles.mask, { width: (SCREEN_WIDTH - FRAME_W) / 2, flex: 0 }]} />
           </View>
-          {/* Bottom mask */}
           <View style={[styles.mask, { flex: 1 }]} />
         </View>
 
-        {/* Live camera or photo preview */}
+        {/* Live camera or photo preview. Unmount camera when not focused to save resources */}
         {photoUri && scanState !== "idle" ? (
-          <Image source={{ uri: photoUri }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+          <Image source={{ uri: photoUri }} style={[StyleSheet.absoluteFillObject, { zIndex: 0 }]} resizeMode="cover" />
         ) : (
-          <CameraView
-            ref={cameraRef}
-            style={StyleSheet.absoluteFillObject}
-            facing="back"
-            enableTorch={torchOn}
-            flash="off"
-          />
+          isFocused ? (
+            <CameraView
+              ref={cameraRef}
+              style={[StyleSheet.absoluteFillObject, { zIndex: 0 }]}
+              facing="back"
+              enableTorch={torchOn}
+              flash="off"
+            />
+          ) : (
+             <View style={[StyleSheet.absoluteFillObject, { backgroundColor: COLORS.background, zIndex: 0 }]} />
+          )
         )}
 
         {/* Scanning frame — centered */}
         <View style={styles.frameWrap} pointerEvents="none">
-          {/* Corner TL */}
+          {/* Corners */}
           <View style={[styles.corner, styles.cTL]} />
-          {/* Corner TR */}
           <View style={[styles.corner, styles.cTR]} />
-          {/* Corner BL */}
           <View style={[styles.corner, styles.cBL]} />
-          {/* Corner BR */}
           <View style={[styles.corner, styles.cBR]} />
 
           {/* Animated scan line (idle only) */}
@@ -318,7 +358,7 @@ export default function ScannerScreen() {
             />
           )}
 
-          {/* Center label */}
+          {/* Center hint label */}
           {scanState === "idle" && (
             <View style={styles.frameLabelBox}>
               <Text style={styles.frameLabelTxt}>Allinea la ricevuta qui</Text>
@@ -330,31 +370,37 @@ export default function ScannerScreen() {
         {isAnalyzing && (
           <View style={styles.analyzingOverlay}>
             <Animated.View style={[styles.analysisRing, { transform: [{ scale: pulseAnim }] }]}>
-              <ActivityIndicator size="large" color="#6c63ff" />
+              <ActivityIndicator size="large" color={COLORS.accent} />
             </Animated.View>
             <Text style={styles.analyzingTitle}>Lettura AI…</Text>
-            <Text style={styles.analyzingHint}>Estrazione dati dalla ricevuta</Text>
+            <Text style={styles.analyzingHint}>L'AI di Milo è a lavoro</Text>
           </View>
         )}
       </View>
 
       {/* Error */}
-      {error && <Text style={styles.errorMsg}>{error}</Text>}
+      {error && (
+        <View style={styles.errorBox}>
+          <Text style={styles.errorMsg}>{error}</Text>
+        </View>
+      )}
 
       {/* Bottom actions */}
       <View style={styles.actionsRow}>
         {isPreview ? (
           <>
-            <TouchableOpacity style={styles.secondaryBtn} onPress={handleReset}>
-              <Text style={styles.secondaryBtnTxt}>↩ Riprova</Text>
+            <TouchableOpacity style={styles.secondaryBtn} onPress={handleReset} disabled={isAnalyzing}>
+              <Text style={styles.secondaryBtnTxt}>↩ Riscattare</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.primaryBtn} onPress={handleAnalyze}>
-              <Text style={styles.primaryBtnTxt}>Analizza →</Text>
+            <TouchableOpacity style={styles.primaryBtn} onPress={handleAnalyze} disabled={isAnalyzing}>
+              <Text style={styles.primaryBtnTxt}>Usa Foto 📤</Text>
             </TouchableOpacity>
           </>
         ) : scanState === "idle" ? (
-          <TouchableOpacity style={styles.captureBtn} onPress={handleCapture}>
-            <View style={styles.captureBtnInner} />
+          <TouchableOpacity style={styles.captureBtnWrap} onPress={handleCapture} disabled={isCapturing} activeOpacity={0.8}>
+            <View style={styles.captureBtnRing}>
+              <View style={[styles.captureBtnInner, isCapturing && styles.captureBtnInnerActive]} />
+            </View>
           </TouchableOpacity>
         ) : (
           <View style={[styles.primaryBtn, styles.btnDisabled]}>
@@ -392,93 +438,98 @@ function ResultRow({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0a0b0f",
+    backgroundColor: COLORS.background,
     paddingHorizontal: 20,
     paddingTop: 56,
     paddingBottom: 28,
   },
   centered: {
     flex: 1,
-    backgroundColor: "#0a0b0f",
+    backgroundColor: COLORS.background,
     justifyContent: "center",
     alignItems: "center",
   },
 
-  // ── Header ────────────────────────────────────────────────────────────────
+  // ── Header
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 16,
+    zIndex: 10,
   },
   closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#1e2029",
+    width: 38,
+    height: 38,
+    borderRadius: SIZES.radiusRound,
+    backgroundColor: COLORS.surfaceSecondary,
     justifyContent: "center",
     alignItems: "center",
   },
-  closeTxt: { color: "#9ca3af", fontSize: 15, fontWeight: "600" },
+  closeTxt: { color: COLORS.textMuted, fontSize: 16, fontWeight: "600" },
 
-  // ── Torch ────────────────────────────────────────────────────────────────
+  // ── Torch
   torchBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#1e2029",
+    width: 38,
+    height: 38,
+    borderRadius: SIZES.radiusRound,
+    backgroundColor: COLORS.surfaceSecondary,
     justifyContent: "center",
     alignItems: "center",
   },
-  torchBtnOn: { backgroundColor: "rgba(108,99,255,0.4)", borderWidth: 1, borderColor: "#6c63ff" },
-  torchIcon: { fontSize: 16 },
+  torchBtnOn: { 
+    backgroundColor: COLORS.accentGlow, 
+    borderWidth: 1, 
+    borderColor: COLORS.accent 
+  },
+  torchIcon: { fontSize: 16, color: COLORS.textMuted },
 
-  // ── Titles ───────────────────────────────────────────────────────────────
+  // ── Titles
   screenTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "700",
-    color: "#f0f0f2",
+    color: COLORS.textPrimary,
     textAlign: "center",
     marginBottom: 6,
   },
   screenSub: {
-    fontSize: 13,
-    color: "#6b7280",
+    fontSize: 14,
+    color: COLORS.textSecondary,
     textAlign: "center",
     marginBottom: 20,
-    lineHeight: 19,
+    lineHeight: 20,
   },
 
-  // ── Camera container ─────────────────────────────────────────────────────
+  // ── Camera container
   cameraContainer: {
     flex: 1,
     overflow: "hidden",
-    borderRadius: 20,
-    backgroundColor: "#000",
-    marginBottom: 16,
+    borderRadius: SIZES.radiusXl,
+    backgroundColor: COLORS.background,
+    marginBottom: 20,
     position: "relative",
     justifyContent: "center",
     alignItems: "center",
   },
 
-  // Semi-transparent mask outside the scan frame
   mask: {
-    backgroundColor: "rgba(0,0,0,0.55)",
+    backgroundColor: "rgba(0,0,0,0.65)",
   },
 
-  // ── Scanning frame ────────────────────────────────────────────────────────
+  // ── Scanning frame
   frameWrap: {
     position: "absolute",
     width: FRAME_W,
     height: FRAME_H,
     justifyContent: "center",
     alignItems: "center",
+    zIndex: 2,
   },
   corner: {
     position: "absolute",
     width: CORNER,
     height: CORNER,
-    borderColor: "#6c63ff",
+    borderColor: COLORS.accent,
   },
   cTL: {
     top: 0,
@@ -509,216 +560,228 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: CORNER_R,
   },
 
-  // Animated scan line
   scanLine: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    height: 2,
-    backgroundColor: "#6c63ff",
-    shadowColor: "#6c63ff",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.9,
-    shadowRadius: 6,
-    elevation: 6,
+    height: 3,
+    backgroundColor: COLORS.accent,
+    ...SHADOWS.glow,
   },
 
-  // Center hint label
   frameLabelBox: {
     position: "absolute",
-    bottom: 12,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
+    bottom: -32,
+    backgroundColor: COLORS.surfaceOverlay,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: SIZES.radiusSm,
   },
   frameLabelTxt: {
-    color: "rgba(255,255,255,0.7)",
-    fontSize: 11,
-    fontWeight: "500",
+    color: COLORS.textPrimary,
+    fontSize: 12,
+    fontWeight: "600",
   },
 
-  // ── Analyzing overlay ─────────────────────────────────────────────────────
+  // ── Analyzing overlay
   analyzingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(10,11,15,0.82)",
+    backgroundColor: COLORS.surfaceOverlay,
     justifyContent: "center",
     alignItems: "center",
-    gap: 14,
+    gap: 16,
+    zIndex: 10,
   },
   analysisRing: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: "rgba(108,99,255,0.12)",
-    borderWidth: 1.5,
-    borderColor: "rgba(108,99,255,0.4)",
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: COLORS.accentSubtle,
+    borderWidth: 2,
+    borderColor: COLORS.accentGlow,
     justifyContent: "center",
     alignItems: "center",
   },
   analyzingTitle: {
-    color: "#f0f0f2",
-    fontSize: 16,
+    color: COLORS.textPrimary,
+    fontSize: 18,
     fontWeight: "700",
   },
   analyzingHint: {
-    color: "#6b7280",
-    fontSize: 13,
+    color: COLORS.textSecondary,
+    fontSize: 14,
   },
 
-  // ── Error message ─────────────────────────────────────────────────────────
+  // ── Errors
+  errorBox: {
+    backgroundColor: COLORS.errorBg,
+    borderColor: COLORS.errorBorder,
+    borderWidth: 1,
+    borderRadius: SIZES.radiusSm,
+    padding: 12,
+    marginBottom: 16,
+    marginHorizontal: 10,
+  },
   errorMsg: {
-    color: "#f59e0b",
-    fontSize: 13,
+    color: COLORS.error,
+    fontSize: 14,
     textAlign: "center",
-    marginBottom: 10,
-    paddingHorizontal: 8,
+    fontWeight: "500",
   },
 
-  // ── Action bar ────────────────────────────────────────────────────────────
+  // ── Action bar
   actionsRow: {
     flexDirection: "row",
-    gap: 12,
+    gap: 14,
     justifyContent: "center",
     alignItems: "center",
   },
-  captureBtn: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+  captureBtnWrap: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  captureBtnRing: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
     borderWidth: 3,
-    borderColor: "#6c63ff",
+    borderColor: COLORS.accent,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "transparent",
   },
   captureBtnInner: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: "#6c63ff",
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: COLORS.accent,
+  },
+  captureBtnInnerActive: {
+    opacity: 0.5,
+    transform: [{ scale: 0.9 }],
   },
   primaryBtn: {
     flex: 1,
-    backgroundColor: "#6c63ff",
-    borderRadius: 14,
-    paddingVertical: 15,
+    backgroundColor: COLORS.accent,
+    borderRadius: SIZES.radiusMd,
+    paddingVertical: 16,
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 50,
+    minHeight: 54,
   },
   primaryBtnTxt: {
-    color: "#fff",
-    fontSize: 15,
+    color: COLORS.textPrimary,
+    fontSize: 16,
     fontWeight: "700",
   },
   secondaryBtn: {
     flex: 1,
-    backgroundColor: "#1a1b23",
-    borderRadius: 14,
-    paddingVertical: 15,
+    backgroundColor: COLORS.background,
+    borderRadius: SIZES.radiusMd,
+    paddingVertical: 16,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#2a2b35",
+    borderColor: COLORS.surfaceSecondary,
   },
   secondaryBtnTxt: {
-    color: "#f0f0f2",
+    color: COLORS.textMuted,
     fontSize: 15,
     fontWeight: "600",
   },
-  btnDisabled: { opacity: 0.55 },
+  btnDisabled: { opacity: 0.5 },
 
-  // ── Permission screen ─────────────────────────────────────────────────────
+  // ── Permission screen
   permissionBox: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 12,
-    gap: 14,
+    paddingHorizontal: 16,
+    gap: 16,
   },
   permissionIconWrap: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "rgba(108,99,255,0.12)",
-    borderWidth: 1.5,
-    borderColor: "rgba(108,99,255,0.35)",
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: COLORS.accentGlow,
+    borderWidth: 2,
+    borderColor: COLORS.accent,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 8,
   },
-  permissionEmoji: { fontSize: 36 },
+  permissionEmoji: { fontSize: 40 },
   permTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "700",
-    color: "#f0f0f2",
+    color: COLORS.textPrimary,
     textAlign: "center",
   },
   permSubtitle: {
-    fontSize: 14,
-    color: "#6b7280",
+    fontSize: 15,
+    color: COLORS.textSecondary,
     textAlign: "center",
-    lineHeight: 21,
-    marginBottom: 8,
+    lineHeight: 22,
+    marginBottom: 12,
   },
-  cancelLink: { paddingVertical: 10 },
-  cancelLinkTxt: { color: "#6b7280", fontSize: 14 },
+  cancelLink: { paddingVertical: 12 },
+  cancelLinkTxt: { color: COLORS.textSecondary, fontSize: 15 },
 
-  // ── Result card ───────────────────────────────────────────────────────────
+  // ── Result card
   resultHint: {
-    fontSize: 13,
-    color: "#6b7280",
+    fontSize: 14,
+    color: COLORS.textSecondary,
     textAlign: "center",
     marginBottom: 16,
   },
   resultCard: {
     flex: 1,
-    backgroundColor: "#111318",
-    borderRadius: 20,
+    backgroundColor: COLORS.surfacePrimary,
+    borderRadius: SIZES.radiusLg,
     borderWidth: 1,
-    borderColor: "#1e2029",
-    marginBottom: 16,
+    borderColor: COLORS.surfaceSecondary,
+    marginBottom: 20,
+    ...SHADOWS.card,
   },
-  resultContent: { padding: 20, gap: 16 },
+  resultContent: { padding: 24, gap: 18 },
   resultRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
+    alignItems: "center",
     gap: 12,
   },
   resultLabel: {
-    fontSize: 13,
-    color: "#6b7280",
+    fontSize: 14,
+    color: COLORS.textSecondary,
     fontWeight: "600",
     flex: 0.4,
   },
   resultValue: {
-    fontSize: 14,
-    color: "#f0f0f2",
+    fontSize: 15,
+    color: COLORS.textPrimary,
     flex: 0.6,
     textAlign: "right",
     fontWeight: "500",
   },
   resultHighlight: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "700",
-    color: "#6c63ff",
+    color: COLORS.accent,
   },
-  divider: { height: 1, backgroundColor: "#1e2029" },
+  divider: { height: 1, backgroundColor: COLORS.surfaceSecondary },
 
-  // ── Success badge ────────────────────────────────────────────────────────
+  // ── Success badge
   successBadge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "rgba(16,185,129,0.1)",
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 20,
+    backgroundColor: COLORS.successBg,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: SIZES.radiusRound,
     borderWidth: 1,
-    borderColor: "rgba(16,185,129,0.25)",
+    borderColor: COLORS.successBorder,
   },
-  successDot: { color: "#10b981", fontSize: 13, fontWeight: "700" },
-  successLabel: { color: "#10b981", fontSize: 13, fontWeight: "600" },
+  successDot: { color: COLORS.success, fontSize: 14, fontWeight: "700" },
+  successLabel: { color: COLORS.success, fontSize: 14, fontWeight: "600" },
 });
