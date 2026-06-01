@@ -393,3 +393,95 @@ body {
   color: var(--text-primary);
 }
 
+/* ─── MILO SUPPLEMENTAL UTILITIES ────────────────────────────── */
+
+/* Staggered slide-in-right delays */
+.animate-slide-in-right {
+  animation: slide-in-right var(--duration-normal) var(--ease-out) both;
+}
+.animate-slide-in-right-delay-1 {
+  animation: slide-in-right var(--duration-normal) var(--ease-out) 80ms both;
+}
+.animate-slide-in-right-delay-2 {
+  animation: slide-in-right var(--duration-normal) var(--ease-out) 160ms both;
+}
+
+/* Scale-in with spring easing */
+.animate-scale-in-spring {
+  animation: scale-in var(--duration-fast) var(--ease-spring) both;
+}
+
+/* Secondary button */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: var(--surface-secondary);
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-primary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-smooth);
+}
+.btn-secondary:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--surface-tertiary);
+  transform: translateY(-1px);
+}
+.btn-secondary:active { transform: translateY(0) scale(0.98); }
+
+/* Ghost button */
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-smooth);
+}
+.btn-ghost:hover {
+  background: var(--surface-secondary);
+  color: var(--text-primary);
+}
+.btn-ghost:active { scale: 0.97; }
+
+/* Milo surface — inner card / section background */
+.milo-surface {
+  background: var(--surface-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+}
+
+/* Gradient border via pseudo-element */
+.gradient-border { position: relative; }
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box,
+                linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Accent glow ring on interactive elements */
+.glow-accent {
+  box-shadow: 0 0 0 0 var(--accent-glow);
+  animation: pulse-glow 2.5s ease-in-out infinite;
+}

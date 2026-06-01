@@ -1,12 +1,14 @@
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { AuthProvider } from "@/hooks/useAuth";
+import { ThemeProvider } from "@/hooks/ThemeContext";
 import { useEffect, useState } from "react";
 import { View, ActivityIndicator, Platform } from "react-native";
 import mobileAds from "react-native-google-mobile-ads";
 import Purchases from "react-native-purchases";
 import * as Notifications from "expo-notifications";
 import { initializePushNotifications } from "@/lib/notifications-service";
+import { COLORS } from "../constants/theme";
 
 function AdMobInitializer({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
@@ -26,8 +28,8 @@ function AdMobInitializer({ children }: { children: React.ReactNode }) {
 
   if (!ready) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#0a0b0f" }}>
-        <ActivityIndicator size="large" color="#6c63ff" />
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: COLORS.background }}>
+        <ActivityIndicator size="large" color={COLORS.accent} />
       </View>
     );
   }
@@ -64,18 +66,20 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <AuthProvider>
-      <StatusBar style="light" />
-      <NotificationDeepLinkHandler />
-      <AdMobInitializer>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: "#0a0b0f" },
-            animation: "fade",
-          }}
-        />
-      </AdMobInitializer>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <StatusBar style="auto" />
+        <NotificationDeepLinkHandler />
+        <AdMobInitializer>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: "transparent" },
+              animation: "fade",
+            }}
+          />
+        </AdMobInitializer>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

@@ -48,10 +48,10 @@ export default async function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-[#f0f0f2] font-[Georgia,serif]">
+          <h2 className="text-2xl font-bold text-[var(--text-primary)]">
             Dashboard
           </h2>
-          <p className="text-[#6b7280] text-sm mt-1">
+          <p className="text-[var(--text-muted)] text-sm mt-1">
             {new Date().toLocaleDateString("it-IT", {
               weekday: "long",
               day: "numeric",
@@ -63,7 +63,7 @@ export default async function DashboardPage() {
 
         <a
           href="/invoices"
-          className="bg-[#6c63ff] hover:bg-[#5b52e0] text-white font-medium px-5 py-2.5 rounded-xl text-sm transition-colors no-underline"
+          className="btn-primary px-5 py-2.5 text-sm no-underline"
         >
           ✦ Nuova Fattura
         </a>
@@ -75,39 +75,43 @@ export default async function DashboardPage() {
           label="Incassato"
           value={formatCurrency(totalRevenue)}
           sub={`${paidInvoices.length} fatture pagate`}
-          accent="#22c55e"
+          accent="paid"
           icon="💰"
           href="/invoices?status=paid"
+          id="kpi-revenue"
         />
         <KPICard
           label="In attesa"
           value={formatCurrency(totalOutstanding)}
           sub={`${pendingInvoices.length} fatture aperte`}
-          accent="#f59e0b"
+          accent="pending"
           icon="⏳"
           href="/invoices?status=sent"
+          id="kpi-outstanding"
         />
         <KPICard
           label="Scadute"
           value={String(overdueInvoices.length)}
           sub={overdueInvoices.length === 1 ? "1 fattura scaduta" : `${overdueInvoices.length} fatture scadute`}
-          accent="#ef4444"
+          accent="overdue"
           icon="⚠️"
           href="/invoices?status=overdue"
+          id="kpi-overdue"
         />
         <KPICard
           label="Clienti"
           value={String(clientCount || 0)}
           sub={clientCount === 1 ? "1 cliente" : `${clientCount || 0} clienti`}
-          accent="#6c63ff"
+          accent="default"
           icon="👥"
           href="/clients"
+          id="kpi-clients"
         />
       </div>
 
-      {/* Revenue Chart (placeholder for now) */}
-      <div className="bg-[#111318] border border-[#1e2029] rounded-xl p-6">
-        <h3 className="text-sm font-medium text-[#6b7280] uppercase tracking-wider mb-4">
+      {/* Revenue Chart */}
+      <div className="card-premium p-6">
+        <h3 className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider mb-4">
           Fatturato ultimi 7 mesi
         </h3>
         <RevenueChart invoices={invoiceList} />
@@ -115,36 +119,35 @@ export default async function DashboardPage() {
 
       {/* Welcome / Quick actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Show PromoCard when no invoices, otherwise standard welcome */}
         {invoiceList.length === 0 ? (
           <div className="md:col-span-2">
             <PromoCard visible={true} />
           </div>
         ) : (
-          <div className="bg-[#111318] border border-[#1e2029] rounded-xl p-5">
-            <h3 className="text-sm font-semibold text-[#f0f0f2] mb-2">
+          <div className="card-premium p-5">
+            <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-2">
               👋 Benvenuto{user.user_metadata?.full_name ? `, ${user.user_metadata.full_name}` : ""}
             </h3>
-            <p className="text-xs text-[#6b7280]">
+            <p className="text-xs text-[var(--text-muted)]">
               Hai {invoiceList.length} fatture. Continua così!
             </p>
           </div>
         )}
 
-        <div className="bg-[#111318] border border-[#1e2029] rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-[#f0f0f2] mb-2">
+        <div className="card-premium p-5">
+          <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-2">
             🚀 Azioni rapide
           </h3>
           <div className="flex gap-2">
             <a
               href="/invoices"
-              className="text-xs text-[#6c63ff] hover:text-[#8b5cf6] bg-[#6c63ff]/10 hover:bg-[#6c63ff]/20 px-3 py-1.5 rounded-lg transition-colors no-underline"
+              className="text-xs text-[var(--accent)] hover:text-[var(--accent-light)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] hover:bg-[color-mix(in_srgb,var(--accent)_18%,transparent)] px-3 py-1.5 rounded-lg transition-colors no-underline"
             >
               Vedi fatture
             </a>
             <a
               href="/clients"
-              className="text-xs text-[#6c63ff] hover:text-[#8b5cf6] bg-[#6c63ff]/10 hover:bg-[#6c63ff]/20 px-3 py-1.5 rounded-lg transition-colors no-underline"
+              className="text-xs text-[var(--accent)] hover:text-[var(--accent-light)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] hover:bg-[color-mix(in_srgb,var(--accent)_18%,transparent)] px-3 py-1.5 rounded-lg transition-colors no-underline"
             >
               Gestisci clienti
             </a>
@@ -201,7 +204,7 @@ function RevenueChart({ invoices }: { invoices: Invoice[] }) {
               y1={y}
               x2={width - padding.right}
               y2={y}
-              stroke="#1e2029"
+              stroke="var(--border-primary)"
               strokeWidth={1}
             />
           </g>
@@ -211,8 +214,8 @@ function RevenueChart({ invoices }: { invoices: Invoice[] }) {
       {/* Area */}
       <defs>
         <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#6c63ff" stopOpacity={0.3} />
-          <stop offset="100%" stopColor="#6c63ff" stopOpacity={0} />
+          <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.3} />
+          <stop offset="100%" stopColor="var(--accent)" stopOpacity={0} />
         </linearGradient>
       </defs>
       <polygon
@@ -224,7 +227,7 @@ function RevenueChart({ invoices }: { invoices: Invoice[] }) {
       <polyline
         points={points.join(" ")}
         fill="none"
-        stroke="#6c63ff"
+        stroke="var(--accent)"
         strokeWidth={2}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -240,8 +243,8 @@ function RevenueChart({ invoices }: { invoices: Invoice[] }) {
             cx={x}
             cy={y}
             r={v > 0 ? 4 : 3}
-            fill={v > 0 ? "#6c63ff" : "#1e2029"}
-            stroke={v > 0 ? "#0a0b0f" : "none"}
+            fill={v > 0 ? "var(--accent)" : "var(--surface-secondary)"}
+            stroke={v > 0 ? "var(--background)" : "none"}
             strokeWidth={2}
           />
         );
@@ -254,7 +257,7 @@ function RevenueChart({ invoices }: { invoices: Invoice[] }) {
           x={padding.left + (i / Math.max(data.length - 1, 1)) * chartW}
           y={height - 5}
           textAnchor="middle"
-          fill="#6b7280"
+          fill="var(--text-muted)"
           fontSize={10}
         >
           {m}

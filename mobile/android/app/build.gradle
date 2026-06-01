@@ -86,9 +86,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.Invoice_Studio.myapp'
+    namespace 'com.invoicestudio.app'
     defaultConfig {
-        applicationId 'com.Invoice_Studio.myapp'
+        applicationId 'com.invoicestudio.app'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 20

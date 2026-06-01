@@ -16,6 +16,11 @@ import { useRouter } from "expo-router";
 import { useIsFocused } from "@react-navigation/native";
 import { apiFetch } from "@/lib/ai";
 import { COLORS, SIZES, SHADOWS } from "../../constants/theme";
+import {
+  incrementScanCount,
+  SCAN_LIMIT,
+  scheduleRetentionNotifications,
+} from "../../lib/scanner-quota";
 
 type ScanState = "idle" | "capturing" | "preview" | "analyzing" | "result";
 
@@ -52,6 +57,7 @@ export default function ScannerScreen() {
   const [torchOn, setTorchOn] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ocrResult, setOcrResult] = useState<OcrResult | null>(null);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   // Animated scan line
   const scanAnim = useRef(new Animated.Value(0)).current;
@@ -157,8 +163,23 @@ export default function ScannerScreen() {
           setScanState("preview");
           return;
         }
+
+        // Enforce scan quota AFTER a successful extraction
+        const newCount = await incrementScanCount();
+
+        if (newCount > SCAN_LIMIT) {
+          // Hard block — paywall, discard result
+          setShowPaywall(true);
+          setScanState("preview");
+          return;
+        }
+
+        // Successful scan — show result
         setOcrResult(data as OcrResult);
         setScanState("result");
+
+        // Fire-and-forget retention notifications
+        scheduleRetentionNotifications();
       }
     } catch (err) {
       if (isMounted.current) {
@@ -177,7 +198,6 @@ export default function ScannerScreen() {
   };
 
   const handleConfirm = () => {
-    // Ritorna allo stack precedente (la transazione o la dashboard)
     router.back();
   };
 
@@ -281,6 +301,22 @@ export default function ScannerScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Paywall modal */}
+      {showPaywall && (
+        <View style={styles.paywallOverlay}>
+          <View style={styles.paywallContent}>
+            <Text style={styles.paywallTitle}>Limite di scansioni raggiunto</Text>
+            <Text style={styles.paywallMessage}>Hai usato le 3 scansioni gratuite del mese. Sblocca scansioni illimitate con il nostro abbonamento.</Text>
+            <TouchableOpacity style={styles.paywallButton} onPress={() => { setShowPaywall(false); router.push("/(app)/ProUpgrade" as any); }}>
+              <Text style={styles.paywallButtonText}>Vai a Pro</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.paywallClose} onPress={() => setShowPaywall(false)}>
+              <Text style={styles.paywallCloseText}>Chiudi</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
       {/* Top bar */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn} disabled={isCapturing || isAnalyzing}>
@@ -449,6 +485,29 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+
+  // ── Paywall
+  paywallOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.8)",
+    zIndex: 100,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  paywallContent: {
+    backgroundColor: COLORS.surfacePrimary,
+    padding: 24,
+    borderRadius: SIZES.radiusLg,
+    alignItems: "center",
+    gap: 16,
+  },
+  paywallTitle: { fontSize: 20, fontWeight: "700", color: COLORS.textPrimary },
+  paywallMessage: { textAlign: "center", color: COLORS.textSecondary },
+  paywallButton: { backgroundColor: COLORS.accent, padding: 16, borderRadius: SIZES.radiusMd, width: "100%", alignItems: "center" },
+  paywallButtonText: { color: "#fff", fontWeight: "700" },
+  paywallClose: { marginTop: 10 },
+  paywallCloseText: { color: COLORS.textMuted },
 
   // ── Header
   header: {
