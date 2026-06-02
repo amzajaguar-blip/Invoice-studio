@@ -1,6 +1,17 @@
-// ─── Invoice Status ───────────────────────────────────────────────────────────
+// ─── @/types compatibility layer ───
+// Re-exports from canonical types/models/ with backward-compatible aliases.
+// All new code should import from @/types/models directly.
+// This file exists only to support 10 legacy consumers during the transition.
 
-export type InvoiceStatus = "draft" | "sent" | "overdue" | "paid" | "cancelled";
+// ─── Re-export canonical models (snake_case aliases dropped — use models/) ───
+
+import type { Invoice as ModelInvoice, InvoiceStatus as ModelInvoiceStatus, LineItem as ModelLineItem } from "./models/invoice";
+import type { Client as ModelClient } from "./models/client";
+import type { Organization as ModelOrganization, PlanTier as ModelPlanTier } from "./models/organization";
+
+// ─── Invoice Status (unchanged) ───
+
+export type InvoiceStatus = ModelInvoiceStatus;
 
 export interface StatusMeta {
   label: string;
@@ -49,7 +60,7 @@ export const FALLBACK_META: StatusMeta = {
   dot: "#6b7280",
 };
 
-// ─── Currency ─────────────────────────────────────────────────────────────────
+// ─── Currency ───
 
 export type Currency = "EUR" | "USD" | "GBP" | "CHF";
 
@@ -62,38 +73,27 @@ export const CURRENCY_SYMBOL: Record<Currency, string> = {
   CHF: "Fr.",
 };
 
-// ─── Line Item ────────────────────────────────────────────────────────────────
+// ─── LineItem ───
 
-export interface LineItem {
-  id: string;
-  description: string;
-  quantity: number;
-  unitPrice: number;
-}
+export type LineItem = ModelLineItem;
 
-// ─── Invoice (matches Supabase DB columns — snake_case) ──────────────────────
+// ─── Invoice (backward-compatible — delegates to canonical model) ───
 
-export interface Invoice {
-  id: string;
+export type Invoice = ModelInvoice & {
+  // Legacy snake_case aliases for backward compat
   org_id?: string;
   client_id?: string;
-  number: string;
-  status: InvoiceStatus;
-  issue_date: string;
-  due_date: string;
-  subtotal: number;
-  tax_rate: number;
-  withholding_tax_rate: number;
-  total: number;
-  currency: Currency;
-  notes?: string | null;
+  issue_date?: string;
+  due_date?: string;
+  tax_rate?: number;
+  withholding_tax_rate?: number;
   payment_link?: string | null;
-  paid_at: string | null;
+  paid_at?: string | null;
   deleted_at?: string | null;
   created_at?: string;
   updated_at?: string;
 
-  // Joined relations (from Supabase queries)
+  // Joined relations
   clients?: {
     id: string;
     name: string;
@@ -120,7 +120,7 @@ export interface Invoice {
     created_at: string;
   }>;
 
-  // Legacy prototype aliases (for backward compat with InvoiceStudio.jsx)
+  // Legacy prototype aliases
   client?: string;
   amount?: number;
   issued?: string;
@@ -129,29 +129,20 @@ export interface Invoice {
   opened?: boolean;
   items?: LineItem[];
   vatRate?: number;
-}
+};
 
-// ─── Client ───────────────────────────────────────────────────────────────────
+// ─── Client (backward-compatible) ───
 
-export interface Client {
-  id: string;
+export type Client = ModelClient & {
   org_id?: string;
-  name: string;
-  email: string;
   vat_number?: string | null;
-  address?: string | null;
-  currency: string;
-  phone?: string | null;
-  notes?: string | null;
   created_at?: string;
   updated_at?: string;
-
-  // Legacy alias
   orgId?: string;
   vatNumber?: string;
-}
+};
 
-// ─── KPI ──────────────────────────────────────────────────────────────────────
+// ─── KPI ───
 
 export interface KPICardProps {
   label: string;
@@ -161,23 +152,17 @@ export interface KPICardProps {
   icon: string;
 }
 
-// ─── Organization ─────────────────────────────────────────────────────────────
+// ─── Organization (backward-compatible) ───
 
-export type PlanTier = "free" | "pro" | "agency" | "enterprise";
+export type PlanTier = ModelPlanTier;
 
-export interface Organization {
-  id: string;
-  name: string;
+export type Organization = ModelOrganization & {
   logo_url?: string | null;
   brand_color?: string | null;
   stripe_account_id?: string | null;
-  plan: PlanTier;
-  iban?: string | null;
   created_at?: string;
   updated_at?: string;
-
-  // Legacy aliases
   logoUrl?: string;
   brandColor?: string;
   stripeAccountId?: string;
-}
+};

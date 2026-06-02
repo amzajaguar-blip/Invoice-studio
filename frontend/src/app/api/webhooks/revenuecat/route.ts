@@ -54,13 +54,62 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Bad Request" }, { status: 400 });
     }
 
-    const { type, app_user_id: orgId, environment } = event;
+    const { type, app_user_id, environment } = event;
+    const rawOrgId = app_user_id;
+
+    // ─── SEC-001 FIX: Validate orgId before ANY operation ───
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!rawOrgId || !uuidRegex.test(rawOrgId)) {
+      console.error(
+        `[RevenueCat Webhook] Invalid orgId format — rejecting: "${rawOrgId}"`
+      );
+      await logPaymentAudit({
+        event_type: "revenuecat.invalid_orgid",
+        provider: "revenuecat",
+        org_id: String(rawOrgId).slice(0, 36),
+        environment:
+          environment === "PRODUCTION" ? "production" : "sandbox",
+        outcome: "failure",
+        error_code: "invalid_org_id_format",
+      });
+      return NextResponse.json(
+        { error: "Invalid organization ID" },
+        { status: 400 }
+      );
+    }
+
+    const orgId = rawOrgId as string;
+
     console.log(
       `📥 [RevenueCat Webhook] Evento ${type} ricevuto per Org: ${orgId} (${environment})`
     );
 
-    // Inizializza Admin Client per Bypass RLS
+    // 🛡️ SEC-001 FIX: Verify organization EXISTS before using admin client
     const adminClient = createAdminClient();
+    const { data: existingOrg, error: orgCheckError } = await adminClient
+      .from("organizations")
+      .select("id, plan")
+      .eq("id", orgId)
+      .single();
+
+    if (orgCheckError || !existingOrg) {
+      console.error(
+        `[RevenueCat Webhook] Organization not found — rejecting: "${orgId}"`
+      );
+      await logPaymentAudit({
+        event_type: "revenuecat.org_not_found",
+        provider: "revenuecat",
+        org_id: orgId,
+        environment:
+          environment === "PRODUCTION" ? "production" : "sandbox",
+        outcome: "failure",
+        error_code: "organization_not_found",
+      });
+      return NextResponse.json(
+        { error: "Organization not found" },
+        { status: 400 }
+      );
+    }
 
     // 💳 LOGICA DI BUSINESS: Mapping Eventi -> Piani
     let targetPlan: "free" | "pro" | null = null;

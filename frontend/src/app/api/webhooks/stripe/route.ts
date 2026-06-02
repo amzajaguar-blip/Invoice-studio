@@ -54,6 +54,20 @@ export async function POST(request: Request) {
 
         if (!invoiceId) break;
 
+        // ─── SEC-001 HARDENING: Validate UUID format before DB operations ───
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(invoiceId)) {
+          await logPaymentAudit({
+            event_type: "stripe.invalid_invoice_id",
+            provider: "stripe",
+            external_event_id: event.id,
+            environment: env,
+            outcome: "failure",
+            error_code: "invalid_invoice_id_format",
+          });
+          break;
+        }
+
         // Idempotency guard — check if already paid (Stripe may retry webhooks)
         const { data: existingInvoice } = await supabase
           .from("invoices")
