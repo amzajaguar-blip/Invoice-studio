@@ -52,6 +52,7 @@ export interface CreateTemplateInput {
   customFields?: InvoiceCustomField[];
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface UpdateTemplateInput extends Partial<CreateTemplateInput> {
   // All fields optional for update
 }

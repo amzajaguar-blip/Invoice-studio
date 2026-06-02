@@ -33,6 +33,7 @@ export function useDashboardState(repository: DashboardRepository, orgId: string
       if (message.includes("network") || message.includes("fetch")) {
         setState(offline<DashboardData>(undefined));
       } else {
+        // eslint-disable-next-line react-hooks/immutability
         setState(error(message, () => fetch()));
       }
     }

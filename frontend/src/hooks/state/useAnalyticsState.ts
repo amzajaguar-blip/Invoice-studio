@@ -34,6 +34,7 @@ export function useAnalyticsState(repository: AnalyticsRepository, orgId: string
       if (message.includes("network") || message.includes("fetch")) {
         setState(offline());
       } else {
+        // eslint-disable-next-line react-hooks/immutability
         setState(error(message, () => fetch()));
       }
     }

@@ -166,13 +166,14 @@ export function InvoicesView({ orgId }: InvoicesViewProps) {
       {selectedInvoice && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-10 bg-black/50" onClick={() => setSelectedInvoice(null)}>
           <div className="bg-background rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            {/* @ts-expect-error — InvoiceDetailPanel expects legacy type with joined relations */}
             <InvoiceDetailPanel
-              invoice={selectedInvoice as any}
+              invoice={selectedInvoice as unknown as React.ComponentProps<typeof InvoiceDetailPanel>["invoice"]}
               onClose={() => {
                 setSelectedInvoice(null);
                 retry();
               }}
+              reminded={false}
+              onRemind={() => {}}
             />
           </div>
         </div>

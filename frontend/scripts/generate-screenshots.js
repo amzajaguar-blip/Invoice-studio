@@ -1,5 +1,6 @@
 // Generate Play Store screenshot mockups (1080×1920)
 // These are placeholder mockups — replace with real screenshots before publishing.
+/* eslint-disable @typescript-eslint/no-require-imports */
 const sharp = require("sharp");
 const path = require("path");
 

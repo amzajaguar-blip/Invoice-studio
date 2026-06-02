@@ -42,6 +42,7 @@ export function useScannerState(repository: ScannerRepository, orgId: string) {
           lastSyncedAt: undefined,
         });
       } else {
+        // eslint-disable-next-line react-hooks/immutability
         setState(error(msg || "Impossibile inizializzare lo scanner", () => init()));
       }
     }
@@ -137,6 +138,7 @@ export function useScannerState(repository: ScannerRepository, orgId: string) {
           lastSyncedAt: undefined,
         });
       } else {
+        // eslint-disable-next-line react-hooks/immutability
         setState(error(msg, () => confirm()));
       }
     }

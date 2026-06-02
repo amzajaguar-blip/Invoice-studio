@@ -35,6 +35,7 @@ export function useSettingsState(
       if (message.includes("network")) {
         setState(offline());
       } else {
+        // eslint-disable-next-line react-hooks/immutability
         setState(error(message, () => fetch()));
       }
     }
