@@ -76,9 +76,10 @@ export async function POST(
 
   const paymentTokenId = tokenRecord.id;
 
-  // Stripe tax handling — Italian law: IVA + ritenuta d'acconto
+  // Stripe tax handling — Italian law: only IVA (NOT ritenuta d'acconto)
+  // Ritenuta d'acconto is a withholding tax on the freelancer's income,
+  // NOT a discount for the client. Client pays subtotal + IVA in full.
   const stripeTaxRate = invoice.tax_rate > 0 ? await getOrCreateStripeTaxRate(invoice.tax_rate) : null;
-  const stripeWithholdingRate = invoice.withholding_tax_rate > 0 ? await getOrCreateStripeTaxRate(-invoice.withholding_tax_rate) : null;
 
   // Create Stripe Checkout session
   const session = await stripe.checkout.sessions.create({
@@ -87,10 +88,7 @@ export async function POST(
     customer_email: invoice.clients?.email,
     line_items: lineItems.map((item: { price_data: { currency: string; product_data: { name: string }; unit_amount: number }; quantity: number }) => ({
       ...item,
-      tax_rates: [
-        ...(stripeTaxRate ? [stripeTaxRate] : []),
-        ...(stripeWithholdingRate ? [stripeWithholdingRate] : []),
-      ],
+      tax_rates: stripeTaxRate ? [stripeTaxRate] : [],
     })),
     metadata: {
       invoice_id: invoiceId,
@@ -157,10 +155,10 @@ async function getOrCreateStripeTaxRate(percentage: number): Promise<string | nu
     ? `IVA ${percentage}%`
     : `Ritenuta d'acconto ${Math.abs(percentage)}%`;
 
-  // Search for existing tax rate
+  // Search for existing tax rate — fetch all active, match by display_name
   const existing = await stripe.taxRates.list({
     active: true,
-    limit: 1,
+    limit: 100,
   });
 
   const match = existing.data.find((tr) => tr.display_name === displayName);

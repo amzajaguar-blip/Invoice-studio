@@ -51,14 +51,16 @@ export async function POST(
     return NextResponse.json({ error: "Fattura già pagata" }, { status: 400 });
   }
 
-  // Build line items
-  const lineItems = invoice.invoice_items.map((item: { description: string; quantity: number; unit_price: number; tax_rate: number }) => ({
+  // Build line items — IVA is included in unit_amount since tax_rates is deprecated in Stripe SDK
+  const ivaMultiplier = 1 + ((invoice.tax_rate ?? 22) / 100);
+  const lineItems = invoice.invoice_items.map((item: { description: string; quantity: number; unit_price: number }) => ({
     price_data: {
       currency: invoice.currency.toLowerCase(),
       product_data: {
         name: item.description || `Voce fattura ${invoice.number}`,
       },
-      unit_amount: Math.round(item.unit_price * 100),
+      // Include IVA in the price since Stripe SDK doesn't support tax_rates on sessions.create
+      unit_amount: Math.round(item.unit_price * ivaMultiplier * 100),
     },
     quantity: item.quantity,
   }));
@@ -79,7 +81,7 @@ export async function POST(
     },
     success_url: `${payUrl}?status=success`,
     cancel_url: `${payUrl}?status=cancelled`,
-    expires_at: Math.floor(Date.now() / 1000) + 86400, // 24 hours for fresh sessions
+    expires_at: Math.floor(Date.now() / 1000) + 86400,
   });
 
   if (!session.url) {
