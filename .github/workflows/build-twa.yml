@@ -172,6 +172,7 @@ jobs:
       - name: Generate debug keystore
         if: github.event_name == 'workflow_dispatch'
         run: |
+          mkdir -p twa
           keytool -genkey -v \
             -keystore twa/debug.keystore \
             -alias invoicestudio \
