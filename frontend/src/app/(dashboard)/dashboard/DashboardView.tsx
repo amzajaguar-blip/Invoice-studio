@@ -37,12 +37,20 @@ function DashboardContent({ data, userName, invoiceCount }: { data: DashboardDat
           </p>
         </div>
 
-        <a
-          href="/invoices"
-          className="btn-primary px-5 py-2.5 text-sm no-underline"
-        >
-          ✦ Nuova Fattura
-        </a>
+        <div className="flex gap-2">
+          <a
+            href="/scanner"
+            className="px-5 py-2.5 text-sm no-underline rounded-xl bg-[#6c63ff] hover:bg-[#5b52e0] text-white font-medium transition-colors flex items-center gap-2"
+          >
+            ⚡ Importa Documento (OCR)
+          </a>
+          <a
+            href="/invoices"
+            className="btn-primary px-5 py-2.5 text-sm no-underline"
+          >
+            ✦ Nuova Fattura
+          </a>
+        </div>
       </div>
 
       {/* KPI Cards */}
@@ -97,7 +105,13 @@ function DashboardContent({ data, userName, invoiceCount }: { data: DashboardDat
           <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-2">
             🚀 Azioni rapide
           </h3>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <a
+              href="/scanner"
+              className="text-xs no-underline text-white bg-[#6c63ff] hover:bg-[#5b52e0] px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+            >
+              ⚡ OCR
+            </a>
             <a
               href="/invoices"
               className="text-xs text-[var(--accent)] hover:text-[var(--accent-light)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] hover:bg-[color-mix(in_srgb,var(--accent)_18%,transparent)] px-3 py-1.5 rounded-lg transition-colors no-underline"

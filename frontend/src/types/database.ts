@@ -570,6 +570,99 @@ export interface Database {
         };
       };
 
+      // ─── OCR Intake Engine V21 ───
+
+      invoice_ocr_jobs: {
+        Row: {
+          id: string;
+          org_id: string;
+          file_url: string;
+          file_name: string | null;
+          status: "processing" | "completed" | "failed";
+          confidence: number | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          file_url: string;
+          file_name?: string | null;
+          status?: "processing" | "completed" | "failed";
+          confidence?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          org_id?: string;
+          file_url?: string;
+          file_name?: string | null;
+          status?: "processing" | "completed" | "failed";
+          confidence?: number | null;
+          updated_at?: string;
+        };
+      };
+
+      invoice_ocr_results: {
+        Row: {
+          id: string;
+          job_id: string;
+          supplier_name: string | null;
+          vat_number: string | null;
+          invoice_number: string | null;
+          invoice_date: string | null;
+          taxable_amount: number | null;
+          vat_amount: number | null;
+          total_amount: number | null;
+          currency: string | null;
+          raw_text: string | null;
+          confidence_supplier_name: number | null;
+          confidence_vat_number: number | null;
+          confidence_invoice_number: number | null;
+          confidence_invoice_date: number | null;
+          confidence_total_amount: number | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          job_id: string;
+          supplier_name?: string | null;
+          vat_number?: string | null;
+          invoice_number?: string | null;
+          invoice_date?: string | null;
+          taxable_amount?: number | null;
+          vat_amount?: number | null;
+          total_amount?: number | null;
+          currency?: string | null;
+          raw_text?: string | null;
+          confidence_supplier_name?: number | null;
+          confidence_vat_number?: number | null;
+          confidence_invoice_number?: number | null;
+          confidence_invoice_date?: number | null;
+          confidence_total_amount?: number | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          job_id?: string;
+          supplier_name?: string | null;
+          vat_number?: string | null;
+          invoice_number?: string | null;
+          invoice_date?: string | null;
+          taxable_amount?: number | null;
+          vat_amount?: number | null;
+          total_amount?: number | null;
+          currency?: string | null;
+          raw_text?: string | null;
+          confidence_supplier_name?: number | null;
+          confidence_vat_number?: number | null;
+          confidence_invoice_number?: number | null;
+          confidence_invoice_date?: number | null;
+          confidence_total_amount?: number | null;
+        };
+      };
+
       // ─── Future: tables for new domain models (not yet in DB) ───
 
       recovery_campaigns: {

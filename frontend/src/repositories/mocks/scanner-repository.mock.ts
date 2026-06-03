@@ -33,9 +33,11 @@ export function createScannerRepositoryMock(): ScannerRepository {
       };
     },
 
+    // P0-2: ocrConfidence is accepted but ignored in mock (no DB)
     async confirmAndCreateInvoice(
       _orgId: string,
       _data: ScannerExtractedData,
+      _ocrConfidence?: Record<string, number>,
     ): Promise<{ invoiceId: string }> {
       await new Promise((r) => setTimeout(r, 500));
       return { invoiceId: `inv-scan-${Date.now()}` };

@@ -13,9 +13,11 @@ export interface ScannerRepository {
     imageBase64: string,
   ): Promise<ScannerExtractedData>;
 
-  /** Confirm the extracted data and create a draft invoice from it. */
+  /** Confirm the extracted data and create a draft invoice from it.
+   *  @param ocrConfidence — optional per-field confidence scores for the OCR audit trail (P0-2) */
   confirmAndCreateInvoice(
     orgId: string,
     data: ScannerExtractedData,
+    ocrConfidence?: Record<string, number>,
   ): Promise<{ invoiceId: string }>;
 }
