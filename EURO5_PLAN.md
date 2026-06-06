@@ -1,0 +1,156 @@
+# The €5 Plan — Minimum Viable Commercial Product
+
+## Design Constraint
+Achievable in 2-4 weeks by 1 developer.
+Every feature must directly support: user signs up → user creates value → user pays.
+
+---
+
+## What's Included in €5/month
+
+### 1. OCR Scanner (Unlimited)
+- Upload image or PDF
+- OCR extracts: vendor, P.IVA, invoice number, date, amounts
+- Review + correct before save
+- Save as invoice
+
+### 2. Simple Invoice Creation (Manual)
+- Client dropdown (inline creation)
+- Line items (description, qty, price)
+- VAT %, due date
+- Save as draft
+
+### 3. PDF Export
+- Clean PDF with business info
+- Invoice number (auto-sequential)
+- Italian format (imponibile, IVA, totale)
+- Download button
+
+### 4. Email Sending
+- Send PDF to client via email
+- Simple subject + body
+- "Pagata" / "Da pagare" status
+
+### 5. Invoice List
+- View all invoices
+- Filter by status (all, draft, sent, paid)
+- Search by client name or number
+- No pagination (first 100)
+
+### 6. Basic Settings
+- Edit business name
+- Edit business P.IVA / VAT
+- Edit address (for PDF header)
+- Danger zone: delete account
+
+---
+
+## What's NOT Included
+
+| Feature | Why Excluded |
+|---------|-------------|
+| Payment links | Stripe integration requires more work; €5 users can collect via bank transfer |
+| Recurring invoices | Not core to OCR workflow |
+| Team members | Single user only |
+| Custom branding | Default template is fine |
+| Analytics | Dashboard is enough |
+| Clients page | Inline creation inside invoice form |
+| API | No developers at €5 price point |
+| Mobile app | Web is enough |
+| FatturaPA XML | B2C freelancers don't need SDI |
+
+---
+
+## Technical Requirements (2-4 Week Build)
+
+### Week 1: PDF Export
+- [ ] Create PDF template with `@react-pdf/renderer`
+- [ ] Include business info (name, VAT, address) from settings
+- [ ] Italian invoice layout: header, items table, totals (imponibile, IVA, totale)
+- [ ] Add "Download PDF" button to invoice detail panel
+- [ ] Add print-optimized CSS (`@media print`)
+
+### Week 1: Settings for Business Info
+- [ ] Add fields to settings: business name, P.IVA, address, CAP, city, provincia
+- [ ] Store in `organizations` table (columns exist: `vat_number`, `address`, `city`)
+- [ ] Display on PDF
+
+### Week 2: Stripe Checkout (Real)
+- [ ] Create Stripe Checkout session for €5/month
+- [ ] Create customer portal link
+- [ ] Webhook: `checkout.session.completed` → update plan to "pro"
+- [ ] Webhook: `customer.subscription.deleted` → downgrade to "free"
+- [ ] Replace placeholder links in settings
+- [ ] Show "Upgrade" when free limit reached (10 scans/month)
+
+### Week 2: Onboarding
+- [ ] After first login: modal "Completa il tuo profilo"
+- [ ] Ask: business name, VAT, address (3 fields)
+- [ ] Skip allowed but banner persists
+- [ ] On completion: "Ottimo! Ora scansiona la tua prima ricevuta"
+
+### Week 3: Password Reset
+- [ ] "Forgot password?" link on login
+- [ ] `/forgot-password` page → Supabase `resetPasswordForEmail()`
+- [ ] `/auth/reset-password` page → new password form
+
+### Week 3: Polish
+- [ ] Replace emoji icons with Lucide (sidebar, dashboard)
+- [ ] Remove "Coming Soon" tabs from settings
+- [ ] Fix notification toggles (add DB column + API)
+- [ ] Add search to invoice list
+
+### Week 4: Email + Testing
+- [ ] Configure SMTP (Resend/Postmark) for transactional emails
+- [ ] Custom "Invoice from {business}" sender name
+- [ ] Test end-to-end: signup → scan → create → download PDF → send email → upgrade
+
+---
+
+## Free vs €5 Differentiation
+
+| Feature | Free | €5/month |
+|---------|------|----------|
+| OCR scans | 10/month | Unlimited |
+| Manual invoices | Unlimited | Unlimited |
+| PDF export | Watermarked "InvoiceStudio Free" | Clean, no watermark |
+| Email sending | No | Yes |
+| Business info on PDF | No | Yes |
+| Support | None | Email |
+
+**The free plan is useful but limited. The €5 plan removes friction.**
+
+---
+
+## Why This Works for €5
+
+| Competitor | Their Price | Their Offer | Our Advantage |
+|------------|------------|-------------|---------------|
+| Expensify | €15/mo | Receipt scanning, no invoicing | We invoice + OCR for 1/3 price |
+| Simple Invoice | $7/mo | Invoicing, no OCR | We have OCR for less |
+| Invoice Ninja | $10/mo | Invoicing + portal, no OCR | We have OCR for half |
+| Zoho | €23/mo | Everything, complex | We are simple + OCR for 1/4 |
+
+**€5 is an impulse buy. €19 requires justification.**
+
+---
+
+## Revenue Math
+
+| Metric | Value |
+|--------|-------|
+| Price | €5/month |
+| Stripe fee | €0.35 + 1.5% = ~€0.43 |
+| Net revenue | ~€4.57/month per customer |
+| Churn estimate | 8%/month (freelancer SaaS average) |
+| LTV | €4.57 / 0.08 = ~€57 |
+| Target CAC | < €20 (organic + content) |
+| Break-even customers | 100 customers = €457 MRR |
+| Month 6 target | 200 customers = €914 MRR |
+
+**At 500 customers: €2,285 MRR. Enough to fund part-time developer.**
+
+---
+
+*Document generated by LEVIATAN strategic analysis*
+*Date: 2026-06-02*
