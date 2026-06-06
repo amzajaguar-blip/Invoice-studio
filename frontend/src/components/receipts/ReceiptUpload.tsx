@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { Camera, Check, Loader2, Upload, X } from "lucide-react";
 
 interface ReceiptUploadProps {
   onUpload?: (file: File, preview: string) => void;
@@ -76,7 +77,7 @@ export function ReceiptUpload({ onUpload, isProcessing = false, maxBytes = 10 * 
     <div className="w-full max-w-2xl mx-auto">
       <div className="bg-[#111318] border border-[#1e2029] rounded-xl p-6">
         <h2 className="text-lg font-bold text-[#f0f0f2] font-[Georgia,serif] mb-4">
-          📷 Carica Ricevuta
+          <Camera className="w-5 h-5 inline-block mr-1 align-text-bottom" /> Carica Ricevuta
         </h2>
 
         {!preview ? (
@@ -119,7 +120,7 @@ export function ReceiptUpload({ onUpload, isProcessing = false, maxBytes = 10 * 
                 className="w-full h-auto max-h-96 object-contain"
               />
               <div className="absolute top-2 right-2 bg-[#22c55e] text-white rounded-full p-1.5 text-xs">
-                ✓
+                <Check className="w-3.5 h-3.5" />
               </div>
             </div>
 
@@ -134,14 +135,14 @@ export function ReceiptUpload({ onUpload, isProcessing = false, maxBytes = 10 * 
                 disabled={isProcessing}
                 className="flex-1 py-2.5 rounded-xl bg-[#6c63ff] hover:bg-[#5b52e0] text-white font-medium text-sm border-none cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {isProcessing ? "⏳ Elaborazione..." : "📤 Carica e Analizza"}
+                {isProcessing ? <span className="flex items-center gap-1 justify-center"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Elaborazione...</span> : <span className="flex items-center gap-1 justify-center"><Upload className="w-3.5 h-3.5" /> Carica e Analizza</span>}
               </button>
               <button
                 onClick={handleClear}
                 disabled={isProcessing}
                 className="px-5 py-2.5 rounded-xl bg-[#0d0e13] border border-[#1e2029] text-[#9ca3af] hover:text-[#f0f0f2] text-sm cursor-pointer transition-colors disabled:opacity-60"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
           </div>

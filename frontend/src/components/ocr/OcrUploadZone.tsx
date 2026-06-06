@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Upload, FileText, X, AlertCircle, Loader2 } from "lucide-react";
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
@@ -43,7 +43,25 @@ export function OcrUploadZone({
   const [isPdf, setIsPdf] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
+  const [processingMessage, setProcessingMessage] = useState("Estrazione dati in corso...");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!isProcessing) return;
+    const messages = [
+      "Analisi immagine in corso...",
+      "Identificazione fornitore...",
+      "Ricerca importi e IVA...",
+      "Verifica affidabilità dati OCR...",
+    ];
+    let i = 0;
+    setProcessingMessage(messages[0]);
+    const interval = setInterval(() => {
+      i = (i + 1) % messages.length;
+      setProcessingMessage(messages[i]);
+    }, 1500);
+    return () => clearInterval(interval);
+  }, [isProcessing]);
 
   const displayError = error ?? localError;
 
@@ -212,7 +230,7 @@ export function OcrUploadZone({
                 {isProcessing ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Estrazione dati in corso&hellip;
+                    {processingMessage}
                   </>
                 ) : (
                   "Analizza"

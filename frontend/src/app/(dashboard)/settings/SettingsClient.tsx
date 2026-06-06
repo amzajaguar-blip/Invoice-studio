@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { UserQuota } from "@/types/rewards";
+import { User, Gem, Bell, AlertTriangle, Check, Smartphone } from "lucide-react";
 
 interface SettingsClientProps {
   user: { id: string; email: string; fullName: string };
@@ -12,10 +13,10 @@ interface SettingsClientProps {
 }
 
 const TABS = [
-  { id: "profilo", label: "👤 Profilo" },
-  { id: "piano", label: "💎 Piano" },
-  { id: "notifiche", label: "🔔 Notifiche" },
-  { id: "pericolo", label: "⚠️ Zona Pericolosa" },
+  { id: "profilo", label: "Profilo", icon: User },
+  { id: "piano", label: "Piano", icon: Gem },
+  { id: "notifiche", label: "Notifiche", icon: Bell },
+  { id: "pericolo", label: "Zona Pericolosa", icon: AlertTriangle },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -118,7 +119,7 @@ export function SettingsClient({ user, org, quota, role }: SettingsClientProps) 
               background: "transparent",
             }}
           >
-            {tab.label}
+            <tab.icon className="w-4 h-4 inline-block align-text-bottom mr-1" />{tab.label}
           </button>
         ))}
       </div>
@@ -187,7 +188,7 @@ export function SettingsClient({ user, org, quota, role }: SettingsClientProps) 
               className="w-full py-2.5 rounded-xl text-sm font-medium text-white cursor-pointer border-none transition-colors"
               style={{ background: profileSaved ? "#22c55e" : "#6c63ff" }}
             >
-              {profileSaved ? "✓ Salvato!" : savingProfile ? "Salvataggio..." : "Salva modifiche"}
+              {profileSaved ? <span className="flex items-center gap-1 justify-center"><Check className="w-4 h-4" /> Salvato!</span> : savingProfile ? "Salvataggio..." : "Salva modifiche"}
             </button>
           </div>
 
@@ -241,13 +242,6 @@ export function SettingsClient({ user, org, quota, role }: SettingsClientProps) 
                   )}
                 </div>
 
-                {/* Credits */}
-                {!quota.unlimited && (
-                  <div className="flex justify-between text-xs">
-                    <span className="text-[#6b7280]">Crediti extra (rewarded ads)</span>
-                    <span className="text-[#22c55e] font-medium">+{quota.rewardedCredits}</span>
-                  </div>
-                )}
               </div>
             )}
           </div>
@@ -257,7 +251,7 @@ export function SettingsClient({ user, org, quota, role }: SettingsClientProps) 
             <div className="bg-gradient-to-br from-[#6c63ff]/10 to-[#8b5cf6]/10 border border-[#6c63ff]/20 rounded-xl p-6 space-y-4">
               <div>
                 <h3 className="text-base font-bold text-[#f0f0f2]">
-                  ✦ Passa a InvoiceStudio Pro
+                  <Gem className="w-4 h-4 inline-block align-text-bottom mr-1" /> Passa a InvoiceStudio Pro
                 </h3>
                 <p className="text-sm text-[#9ca3af] mt-1">
                   Fatture illimitate, AI avanzata, analytics completi
@@ -265,13 +259,13 @@ export function SettingsClient({ user, org, quota, role }: SettingsClientProps) 
               </div>
               <ul className="space-y-2">
                 {[
-                  "✓ Fatture illimitate al mese",
-                  "✓ PDF personalizzati con logo",
-                  "✓ Firma digitale (E-Sign)",
-                  "✓ Analytics avanzati",
-                  "✓ Supporto prioritario",
+                  "Fatture illimitate al mese",
+                  "PDF personalizzati con logo",
+                  "Firma digitale (E-Sign)",
+                  "Analytics avanzati",
+                  "Supporto prioritario",
                 ].map((f) => (
-                  <li key={f} className="text-sm text-[#e5e7eb]">{f}</li>
+                  <li key={f} className="text-sm text-[#e5e7eb] flex items-center gap-2"><Check className="w-3.5 h-3.5 text-[#22c55e]" />{f}</li>
                 ))}
               </ul>
               <div className="flex items-center gap-3">
@@ -279,7 +273,7 @@ export function SettingsClient({ user, org, quota, role }: SettingsClientProps) 
                 <span className="text-sm text-[#6b7280]">/mese · Disdici quando vuoi</span>
               </div>
               <a
-                href="https://buy.stripe.com/your_link"
+                href="#"
                 className="block w-full py-3 text-center text-sm font-semibold text-white rounded-xl no-underline transition-colors"
                 style={{ background: "linear-gradient(135deg, #6c63ff 0%, #8b5cf6 100%)" }}
               >
@@ -297,7 +291,7 @@ export function SettingsClient({ user, org, quota, role }: SettingsClientProps) 
                 </p>
               </div>
               <a
-                href="https://billing.stripe.com/p/login/your_portal"
+                href="#"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm font-medium text-[#6c63ff] no-underline hover:text-[#8b5cf6] transition-colors"
@@ -358,18 +352,10 @@ export function SettingsClient({ user, org, quota, role }: SettingsClientProps) 
               className="w-full py-2.5 rounded-xl text-sm font-medium text-white cursor-pointer border-none transition-colors"
               style={{ background: notifSaved ? "#22c55e" : "#6c63ff" }}
             >
-              {notifSaved ? "✓ Preferenze salvate" : "Salva preferenze"}
+              {notifSaved ? <span className="flex items-center gap-1 justify-center"><Check className="w-4 h-4" /> Preferenze salvate</span> : "Salva preferenze"}
             </button>
           </div>
 
-          <div className="bg-[#111318] border border-[#1e2029] rounded-xl p-5">
-            <h3 className="text-sm font-semibold text-[#f0f0f2] mb-2">
-              📱 Push Notifications (App Mobile)
-            </h3>
-            <p className="text-sm text-[#6b7280]">
-              Le notifiche push si configurano nell&apos;app mobile InvoiceStudio su Android/iOS.
-            </p>
-          </div>
         </div>
       )}
 
@@ -379,7 +365,7 @@ export function SettingsClient({ user, org, quota, role }: SettingsClientProps) 
           <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-6 space-y-4">
             <div>
               <h3 className="text-sm font-semibold text-red-400 uppercase tracking-wider">
-                ⚠️ Zona Pericolosa
+                <AlertTriangle className="w-4 h-4 inline-block align-text-bottom mr-1" /> Zona Pericolosa
               </h3>
               <p className="text-xs text-[#6b7280] mt-1">
                 Le azioni in questa sezione sono irreversibili

@@ -1,8 +1,22 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import * as Linking from "expo-linking";
 
-// ─── Auth Context ─────────────────────────────────────────────────────────────
+function translateAuthError(message: string): string {
+  const map: Record<string, string> = {
+    "Invalid login credentials": "Email o password non corretti. Verifica e riprova.",
+    "Email not confirmed": "Email non ancora verificata. Controlla la tua casella di posta.",
+    "Invalid email or password": "Email o password non corretti. Verifica e riprova.",
+    "User not found": "Nessun account trovato con questa email. Verifica o registrati.",
+    "User already registered": "Email giÃ  registrata. Prova ad accedere.",
+    "Password should be at least 10 characters": "La password deve essere di almeno 10 caratteri.",
+    "Unable to validate email address": "Email non valida. Controlla e riprova.",
+  };
+  return map[message] ?? message;
+}
+
+// âââ Auth Context âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 interface AuthContextValue {
   session: Session | null;
@@ -11,6 +25,8 @@ interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   signUp: (email: string, password: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<{ error?: string }>;
+  resendConfirmation: (email: string) => Promise<{ error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextValue>({
@@ -20,9 +36,11 @@ const AuthContext = createContext<AuthContextValue>({
   signIn: async () => ({ error: "not initialized" }),
   signUp: async () => ({ error: "not initialized" }),
   signOut: async () => {},
+  resetPassword: async () => ({ error: "not initialized" }),
+  resendConfirmation: async () => ({ error: "not initialized" }),
 });
 
-// ─── Provider ─────────────────────────────────────────────────────────────────
+// âââ Provider âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -54,19 +72,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email,
       password,
     });
-    if (error) return { error: error.message };
+    if (error) return { error: translateAuthError(error.message) };
     return {};
   };
 
   const signUp = async (email: string, password: string) => {
+    const redirectUrl = Linking.createURL("/auth/callback");
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: "https://invoicestudio.app/auth/callback?next=/dashboard",
+        emailRedirectTo: redirectUrl,
       },
     });
-    if (error) return { error: error.message };
+    if (error) return { error: translateAuthError(error.message) };
     return {};
   };
 
@@ -74,16 +93,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
   };
 
+  const resetPassword = async (email: string) => {
+    const redirectUrl = Linking.createURL("/reset-password");
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: redirectUrl,
+    });
+    if (error) return { error: translateAuthError(error.message) };
+    return {};
+  };
+
+  const resendConfirmation = async (email: string) => {
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+    });
+    if (error) return { error: translateAuthError(error.message) };
+    return {};
+  };
+
   return (
     <AuthContext.Provider
-      value={{ session, user, loading, signIn, signUp, signOut }}
+      value={{
+        session,
+        user,
+        loading,
+        signIn,
+        signUp,
+        signOut,
+        resetPassword,
+        resendConfirmation,
+      }}
     >
       {children}
     </AuthContext.Provider>
   );
 }
-
-// ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useAuth() {
   return useContext(AuthContext);

@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { createScannerRepositorySupabase } from "@/repositories/supabase/scanner-repository.supabase";
 import { OcrUploadZone } from "@/components/ocr/OcrUploadZone";
 import { OcrReviewForm } from "@/components/ocr/OcrReviewForm";
-import { CheckCircle, FileText, Loader2 } from "lucide-react";
+import { CheckCircle, FileText, Loader2, Star } from "lucide-react";
 import type { ScannerExtractedData } from "@/types/states/scanner";
 
 // ─── OCR API response types (mirrors route.ts output) ───
@@ -88,6 +88,15 @@ export function ScannerView({ orgId }: ScannerViewProps) {
   const [fields, setFields] = useState<OcrApiFieldData | null>(null);
   const [confidence, setConfidence] = useState<OcrApiConfidence | null>(null);
   const [savedInvoiceId, setSavedInvoiceId] = useState<string | null>(null);
+  const [rating, setRating] = useState<number>(0);
+  const [hoveredRating, setHoveredRating] = useState<number>(0);
+
+  const handleRating = (stars: number) => {
+    setRating(stars);
+    if (stars >= 4) {
+      window.open("https://play.google.com/store/apps/details?id=com.Invoice_Studio.myapp", "_blank");
+    }
+  };
 
   // ─── Step 1: File ready → (convert PDF) → call OCR API ──────────────────
 
@@ -303,7 +312,7 @@ export function ScannerView({ orgId }: ScannerViewProps) {
 
       {/* Step: Success */}
       {step === "success" && (
-        <div className="w-full max-w-2xl mx-auto">
+        <div className="w-full max-w-2xl mx-auto space-y-6">
           <div className="bg-[#111318] border border-[#1e2029] rounded-xl p-8 text-center space-y-4">
             <div className="flex justify-center">
               <CheckCircle className="w-16 h-16 text-green-400" />
@@ -334,6 +343,46 @@ export function ScannerView({ orgId }: ScannerViewProps) {
                 Vai alle fatture
               </button>
             </div>
+          </div>
+
+          {/* Play Store Rating Panel */}
+          <div className="bg-[#111318] border border-[#1e2029] rounded-xl p-6 text-center space-y-4">
+            <h4 className="text-lg font-semibold text-[#f0f0f2]">
+              Ti piace Invoice Studio?
+            </h4>
+            <p className="text-[#9ca3af] text-sm max-w-md mx-auto">
+              Il tuo feedback ci aiuta a migliorare. Lasciaci una recensione sul Play Store!
+            </p>
+            <div className="flex justify-center gap-2 pt-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  onMouseEnter={() => setHoveredRating(star)}
+                  onMouseLeave={() => setHoveredRating(0)}
+                  onClick={() => handleRating(star)}
+                  className="bg-transparent border-none cursor-pointer p-1 transition-transform hover:scale-110"
+                  aria-label={`Valuta ${star} stelle`}
+                >
+                  <Star
+                    className={`w-8 h-8 ${
+                      star <= (hoveredRating || rating)
+                        ? "fill-yellow-400 text-yellow-400"
+                        : "text-[#4b5563]"
+                    }`}
+                  />
+                </button>
+              ))}
+            </div>
+            {rating > 0 && rating < 4 && (
+              <p className="text-sm text-yellow-400 mt-2">
+                Grazie per il tuo feedback! Lavoreremo per migliorare.
+              </p>
+            )}
+            {rating >= 4 && (
+              <p className="text-sm text-green-400 mt-2">
+                Grazie! Ti stiamo reindirizzando al Play Store...
+              </p>
+            )}
           </div>
         </div>
       )}

@@ -1,16 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const STORAGE_KEY = "invoicestudio_cookie_consent";
 const PRIVACY_URL = "/privacy";
 
 export function CookieBanner() {
-  const [visible, setVisible] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return !localStorage.getItem(STORAGE_KEY);
-  });
+  const [visible, setVisible] = useState(false);
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setVisible(!localStorage.getItem(STORAGE_KEY));
+    }
+  }, []);
   const accept = () => {
     localStorage.setItem(STORAGE_KEY, "true");
     setVisible(false);

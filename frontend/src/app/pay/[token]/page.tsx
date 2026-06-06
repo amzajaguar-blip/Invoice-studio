@@ -3,10 +3,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import crypto from "crypto";
 import { PayClient } from "./PayClient";
 import type { Metadata } from "next";
+import { CheckCircle, PartyPopper, Clock } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Paga la tua fattura — InvoiceStudio",
-  description: "Pagamento sicuro tramite Stripe",
+  description: "Pagamento fattura",
   robots: { index: false, follow: false },
 };
 
@@ -75,7 +76,7 @@ export default async function PayPage({
     return (
       <PayPageShell>
         <div className="text-center py-16">
-          <div className="text-5xl mb-6">✅</div>
+          <CheckCircle className="w-12 h-12 mx-auto mb-6 text-[#22c55e]" />
           <h1 className="text-2xl font-bold text-[#f0f0f2] font-[Georgia,serif] mb-3">
             Fattura già pagata
           </h1>
@@ -92,7 +93,7 @@ export default async function PayPage({
     return (
       <PayPageShell>
         <div className="text-center py-16">
-          <div className="text-5xl mb-6">⏰</div>
+          <Clock className="w-12 h-12 mx-auto mb-6 text-[#f59e0b]" />
           <h1 className="text-2xl font-bold text-[#f0f0f2] font-[Georgia,serif] mb-3">
             Link scaduto
           </h1>
@@ -120,7 +121,7 @@ export default async function PayPage({
     return (
       <PayPageShell>
         <div className="text-center py-16">
-          <div className="text-5xl mb-6">🎉</div>
+          <PartyPopper className="w-12 h-12 mx-auto mb-6 text-[#6c63ff]" />
           <h1 className="text-2xl font-bold text-[#f0f0f2] font-[Georgia,serif] mb-3">
             Pagamento completato!
           </h1>

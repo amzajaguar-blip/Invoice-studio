@@ -2,6 +2,7 @@
 
 "use client";
 
+import React from "react";
 import { createClient } from "@/lib/supabase/client";
 import { createDashboardRepositorySupabase } from "@/repositories/supabase/dashboard-repository.supabase";
 import { useDashboardState } from "@/hooks/state/useDashboardState";
@@ -10,6 +11,17 @@ import { KPICard } from "@/components/dashboard/KPICard";
 import { PromoCard } from "@/components/promotion/PromoCard";
 import { formatCurrency } from "@/lib/utils";
 import type { DashboardData } from "@/types/states/dashboard";
+import {
+  ScanLine,
+  FilePlus,
+  Hand,
+  Rocket,
+  CircleDollarSign,
+  FileText,
+  Clock,
+  AlertTriangle,
+  Users,
+} from "lucide-react";
 
 interface DashboardViewProps {
   orgId: string;
@@ -42,13 +54,13 @@ function DashboardContent({ data, userName, invoiceCount }: { data: DashboardDat
             href="/scanner"
             className="px-5 py-2.5 text-sm no-underline rounded-xl bg-[#6c63ff] hover:bg-[#5b52e0] text-white font-medium transition-colors flex items-center gap-2"
           >
-            ⚡ Importa Documento (OCR)
+            <ScanLine className="w-4 h-4" /> Importa Documento (OCR)
           </a>
           <a
             href="/invoices"
-            className="btn-primary px-5 py-2.5 text-sm no-underline"
+            className="btn-primary px-5 py-2.5 text-sm no-underline flex items-center gap-2"
           >
-            ✦ Nuova Fattura
+            <FilePlus className="w-4 h-4" /> Nuova Fattura
           </a>
         </div>
       </div>
@@ -93,7 +105,7 @@ function DashboardContent({ data, userName, invoiceCount }: { data: DashboardDat
         ) : (
           <div className="card-premium p-5">
             <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-2">
-              👋 Benvenuto{userName ? `, ${userName}` : ""}
+              <Hand className="w-4 h-4 inline-block align-text-bottom" /> Benvenuto{userName ? `, ${userName}` : ""}
             </h3>
             <p className="text-xs text-[var(--text-muted)]">
               Hai {invoiceCount} fatture. Continua così!
@@ -103,14 +115,14 @@ function DashboardContent({ data, userName, invoiceCount }: { data: DashboardDat
 
         <div className="card-premium p-5">
           <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-2">
-            🚀 Azioni rapide
+            <Rocket className="w-4 h-4 inline-block align-text-bottom" /> Azioni rapide
           </h3>
           <div className="flex flex-wrap gap-2">
             <a
               href="/scanner"
               className="text-xs no-underline text-white bg-[#6c63ff] hover:bg-[#5b52e0] px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
             >
-              ⚡ OCR
+              <ScanLine className="w-3 h-3" /> OCR
             </a>
             <a
               href="/invoices"
@@ -131,12 +143,12 @@ function DashboardContent({ data, userName, invoiceCount }: { data: DashboardDat
   );
 }
 
-const kpiIconMap: Record<string, string> = {
-  revenue: "💰",
-  invoices: "📄",
-  pending: "⏳",
-  recovery: "⚠️",
-  clients: "👥",
+const kpiIconMap: Record<string, React.ReactNode> = {
+  revenue: <CircleDollarSign className="w-5 h-5" />,
+  invoices: <FileText className="w-5 h-5" />,
+  pending: <Clock className="w-5 h-5" />,
+  recovery: <AlertTriangle className="w-5 h-5" />,
+  clients: <Users className="w-5 h-5" />,
 };
 
 const kpiHrefMap: Record<string, string> = {

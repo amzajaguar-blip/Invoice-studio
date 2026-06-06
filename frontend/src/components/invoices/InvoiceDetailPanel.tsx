@@ -5,6 +5,7 @@ import { StatusBadge } from "./StatusBadge";
 import { formatCurrency, formatItalianDate } from "@/lib/utils";
 import { ShareInvoice } from "@/components/promotion/ShareInvoice";
 import type { Invoice, InvoiceStatus } from "@/types";
+import { X, Copy, ExternalLink, FileDown, CreditCard, Loader2, Send, Bell, Check } from "lucide-react";
 
 interface InvoiceDetailPanelProps {
   invoice: Invoice & {
@@ -167,7 +168,7 @@ export function InvoiceDetailPanel({
           aria-label="Chiudi"
           className="absolute top-4 right-4 bg-[#1e2029] border-none rounded-lg text-[#9ca3af] w-8 h-8 cursor-pointer text-base flex items-center justify-center hover:bg-[#2a2d3a] transition-colors"
         >
-          ✕
+          <X className="w-4 h-4" />
         </button>
 
         <div className="p-6 pt-4">
@@ -333,7 +334,7 @@ export function InvoiceDetailPanel({
                   onClick={handleCopyLink}
                   className="flex-1 py-2 text-xs rounded-lg bg-[#111318] border border-[#1e2029] text-[#9ca3af] hover:text-[#f0f0f2] transition-colors cursor-pointer truncate"
                 >
-                  {linkCopied ? "✓ Copiato!" : "📋 Copia link"}
+                  {linkCopied ? <span className="flex items-center gap-1"><Check className="w-3 h-3" /> Copiato!</span> : <span className="flex items-center gap-1"><Copy className="w-3 h-3" /> Copia link</span>}
                 </button>
                 {stripeUrl && (
                   <a
@@ -342,7 +343,7 @@ export function InvoiceDetailPanel({
                     rel="noopener noreferrer"
                     className="flex-1 py-2 text-xs rounded-lg bg-[#6c63ff] text-white text-center hover:bg-[#5b52e0] transition-colors no-underline"
                   >
-                    🔗 Apri Stripe
+                    <span className="flex items-center gap-1 justify-center"><ExternalLink className="w-3 h-3" /> Apri Stripe</span>
                   </a>
                 )}
               </div>
@@ -364,37 +365,22 @@ export function InvoiceDetailPanel({
                 color: "#9ca3af",
               }}
             >
-              📄 Scarica PDF
+              <span className="flex items-center gap-1 justify-center"><FileDown className="w-3 h-3" /> Scarica PDF</span>
             </a>
 
-            {/* Generate / show Stripe payment link */}
+            {/* Payment link — coming soon */}
             {invoice.status !== "paid" && invoice.status !== "cancelled" && (
-              !paymentLink ? (
-                <button
-                  onClick={handleGeneratePaymentLink}
-                  disabled={generatingLink}
-                  className="w-full py-3 rounded-xl text-sm font-medium transition-colors cursor-pointer border-none"
-                  style={{
-                    background: generatingLink ? "rgba(108,99,255,0.3)" : "rgba(108,99,255,0.12)",
-                    border: "1px solid rgba(108,99,255,0.3)",
-                    color: generatingLink ? "#9ca3af" : "#6c63ff",
-                  }}
-                >
-                  {generatingLink ? "⏳ Generazione..." : "💳 Genera Link Pagamento Stripe"}
-                </button>
-              ) : (
-                <button
-                  onClick={handleCopyLink}
-                  className="w-full py-3 rounded-xl text-sm font-medium transition-colors cursor-pointer border-none"
-                  style={{
-                    background: "rgba(108,99,255,0.12)",
-                    border: "1px solid rgba(108,99,255,0.3)",
-                    color: linkCopied ? "#22c55e" : "#6c63ff",
-                  }}
-                >
-                  {linkCopied ? "✓ Link copiato!" : "📋 Copia link pagamento"}
-                </button>
-              )
+              <button
+                disabled
+                className="w-full py-3 rounded-xl text-sm font-medium border-none cursor-not-allowed"
+                style={{
+                  background: "#111318",
+                  border: "1px solid #1e2029",
+                  color: "#4b5563",
+                }}
+              >
+                <span className="flex items-center gap-1 justify-center"><CreditCard className="w-3.5 h-3.5" /> Pagamenti online in arrivo</span>
+              </button>
             )}
 
             {/* Send email (draft / sent / overdue) */}
@@ -416,10 +402,10 @@ export function InvoiceDetailPanel({
                 }}
               >
                 {emailSent
-                  ? "✓ Email inviata al cliente"
+                  ? <span className="flex items-center gap-1 justify-center"><Check className="w-3.5 h-3.5" /> Email inviata al cliente</span>
                   : sendingEmail
-                  ? "⏳ Invio in corso..."
-                  : "📤 Invia fattura via email"}
+                  ? <span className="flex items-center gap-1 justify-center"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Invio in corso...</span>
+                  : <span className="flex items-center gap-1 justify-center"><Send className="w-3.5 h-3.5" /> Invia fattura via email</span>}
               </button>
             )}
 
@@ -435,14 +421,14 @@ export function InvoiceDetailPanel({
                   color: reminded ? "#22c55e" : "#9ca3af",
                 }}
               >
-                {reminded ? "✓ Reminder inviato" : "🔔 Invia Reminder"}
+                {reminded ? <span className="flex items-center gap-1 justify-center"><Check className="w-3.5 h-3.5" /> Reminder inviato</span> : <span className="flex items-center gap-1 justify-center"><Bell className="w-3.5 h-3.5" /> Invia Reminder</span>}
               </button>
             )}
 
             {/* Paid badge */}
             {invoice.status === "paid" && (
               <div className="w-full py-3 bg-[rgba(34,197,94,0.08)] border border-[rgba(34,197,94,0.2)] text-[#22c55e] font-medium rounded-xl text-sm text-center">
-                ✓ Pagata il{" "}
+                <Check className="w-3.5 h-3.5 inline-block align-text-bottom mr-1" /> Pagata il{" "}
                 {invoice.paid_at
                   ? formatItalianDate(invoice.paid_at)
                   : invoice.paidAt

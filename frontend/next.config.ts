@@ -19,9 +19,7 @@ const CSP = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
-  turbopack: {
-    root: __dirname,
-  },
+  turbopack: {},
 
   async headers() {
     return [
@@ -59,6 +57,11 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react"],
   },
+
+
+  env: {
+    SENTRY_SUPPRESS_TURBOPACK_WARNING: "1",
+  },
 };
 
 import { withSentryConfig } from "@sentry/nextjs";
@@ -71,4 +74,8 @@ export default withSentryConfig(nextConfig, {
   tunnelRoute: "/monitoring",
   hideSourceMaps: true,
   disableLogger: true,
+  // Fix: App Router doesn't generate pages-manifest.json (Pages Router only).
+  // Disabling these prevents ENOENT crash when Sentry tries to instrument server functions.
+  autoInstrumentServerFunctions: false,
+  autoInstrumentMiddleware: false,
 });

@@ -3,14 +3,23 @@
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useState, useEffect } from "react";
-import { ReferralBanner } from "@/components/promotion/ReferralBanner";
+import {
+  LayoutDashboard,
+  FileText,
+  Users,
+  Settings,
+  ScanLine,
+  LogOut,
+  Menu,
+  Star,
+} from "lucide-react";
 
 const NAV_ITEMS = [
-  { label: "Dashboard", icon: "📊", path: "/dashboard" },
-  { label: "Fatture", icon: "📄", path: "/invoices" },
-  { label: "Clienti", icon: "👥", path: "/clients" },
-  { label: "Analytics", icon: "📈", path: "/analytics" },
-  { label: "Impostazioni", icon: "⚙️", path: "/settings" },
+  { label: "Scanner", icon: ScanLine, path: "/scanner" },
+  { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
+  { label: "Fatture", icon: FileText, path: "/invoices" },
+  { label: "Clienti", icon: Users, path: "/clients" },
+  { label: "Impostazioni", icon: Settings, path: "/settings" },
 ];
 
 export default function DashboardLayout({
@@ -23,13 +32,25 @@ export default function DashboardLayout({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
 
-  // Fetch user for referral banner (non-blocking)
+  // Fetch user + subscribe to auth state changes for multi-tab logout sync
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => {
       if (data?.user) setUserId(data.user.id);
     });
-  }, []);
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event) => {
+        if (event === "SIGNED_OUT") {
+          router.push("/login");
+        }
+      }
+    );
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [router]);
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -56,8 +77,8 @@ export default function DashboardLayout({
       >
         {/* Logo */}
         <div className="px-5 pb-7 pt-3">
-          <h1 className="text-[#f0f0f2] text-xl font-bold font-[Georgia,serif]">
-            ✦ InvoiceStudio
+          <h1 className="text-[#f0f0f2] text-xl font-bold font-[Georgia,serif] flex items-center gap-2">
+            <Star className="w-5 h-5 text-[#6c63ff]" /> InvoiceStudio
           </h1>
         </div>
 
@@ -78,7 +99,7 @@ export default function DashboardLayout({
                     : "text-[#6b7280] hover:text-[#e5e7eb] hover:bg-[#111318]"
                 }`}
               >
-                <span className="text-base">{item.icon}</span>
+                <item.icon className="w-4 h-4" />
                 {item.label}
               </button>
             );
@@ -91,7 +112,7 @@ export default function DashboardLayout({
             onClick={handleLogout}
             className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#6b7280] hover:text-[#ef4444] hover:bg-[#111318] rounded-lg transition-colors"
           >
-            <span>🚪</span> Esci
+            <LogOut className="w-4 h-4" /> Esci
           </button>
         </div>
       </aside>
@@ -105,18 +126,14 @@ export default function DashboardLayout({
             className="text-[#e5e7eb] p-1"
             aria-label="Apri menu"
           >
-            ☰
+            <Menu className="w-5 h-5" />
           </button>
-          <span className="text-[#f0f0f2] font-bold font-[Georgia,serif] text-lg">
-            InvoiceStudio
+          <span className="text-[#f0f0f2] font-bold font-[Georgia,serif] text-lg flex items-center gap-2">
+            <Star className="w-4 h-4 text-[#6c63ff]" /> InvoiceStudio
           </span>
         </header>
 
         <main id="main-content" className="flex-1 px-4 md:px-8 py-6">
-          {/* Referral Banner */}
-          <div className="mb-4">
-            <ReferralBanner userId={userId} />
-          </div>
           {children}
         </main>
       </div>

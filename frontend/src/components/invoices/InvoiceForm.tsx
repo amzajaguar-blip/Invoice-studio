@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { formatCurrency, generateTempId } from "@/lib/utils";
 import { useAISuggest } from "@/hooks/useAISuggest";
 import type { Currency } from "@/types";
+import { Sparkles, Loader2, X, FilePlus } from "lucide-react";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -373,7 +374,7 @@ export function InvoiceForm({ onClose, onSave, triggerRef }: { onClose: () => vo
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-[#f0f0f2] font-[Georgia,serif]">
-            ✦ Nuova Fattura
+            Nuova Fattura
           </h2>
           <div className="flex items-center gap-3">
             {autosaveIndicator && (
@@ -386,7 +387,7 @@ export function InvoiceForm({ onClose, onSave, triggerRef }: { onClose: () => vo
               aria-label="Chiudi"
               className="bg-[#1e2029] border-none rounded-lg text-[#9ca3af] w-8 h-8 cursor-pointer text-base flex items-center justify-center hover:bg-[#2a2d3a] transition-colors"
             >
-              ✕
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -470,7 +471,7 @@ export function InvoiceForm({ onClose, onSave, triggerRef }: { onClose: () => vo
                     title="Suggerisci descrizione con AI"
                     className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded text-xs text-[#6b7280] hover:text-[#6c63ff] disabled:opacity-50 disabled:cursor-not-allowed bg-transparent border-none cursor-pointer transition-colors"
                   >
-                    {aiSuggestingIndex === i ? "⏳" : "✨"}
+                    {aiSuggestingIndex === i ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
                   </button>
                 </div>
                 <input
@@ -497,7 +498,7 @@ export function InvoiceForm({ onClose, onSave, triggerRef }: { onClose: () => vo
                   disabled={items.length <= 1}
                   className="w-7 h-7 flex items-center justify-center rounded-lg bg-[#1e2029] border-none text-[#6b7280] hover:text-[#ef4444] hover:bg-[#2a1a1a] disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-xs cursor-pointer"
                 >
-                  ✕
+                  <X className="w-3.5 h-3.5" />
                 </button>
               </div>
             ))}
@@ -584,7 +585,7 @@ export function InvoiceForm({ onClose, onSave, triggerRef }: { onClose: () => vo
               title="Suggerisci note con AI"
               className="text-xs text-[#6c63ff] hover:text-[#8b5cf6] disabled:opacity-50 disabled:cursor-not-allowed bg-transparent border-none cursor-pointer transition-colors flex items-center gap-1"
             >
-              {aiSuggestingNotes ? "⏳ AI sta scrivendo..." : "✨ AI suggerisci"}
+              {aiSuggestingNotes ? <span className="flex items-center gap-1"><Loader2 className="w-3.5 h-3.5 animate-spin" /> AI sta scrivendo...</span> : <span className="flex items-center gap-1"><Sparkles className="w-3.5 h-3.5" /> AI suggerisci</span>}
             </button>
           </div>
           <textarea
@@ -644,7 +645,7 @@ export function InvoiceForm({ onClose, onSave, triggerRef }: { onClose: () => vo
             disabled={saving}
             className="px-5 py-2.5 rounded-xl text-sm font-medium text-white bg-[#6c63ff] hover:bg-[#5b52e0] disabled:opacity-50 disabled:cursor-not-allowed border-none cursor-pointer transition-colors"
           >
-            {saving ? "Salvataggio..." : "✦ Crea fattura"}
+            {saving ? "Salvataggio..." : "Crea fattura"}
           </button>
         </div>
       </div>

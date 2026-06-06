@@ -6,20 +6,52 @@ import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
+function translateSignupError(message: string): string {
+  const map: Record<string, string> = {
+    "User already registered":
+      "Esiste già un account con questa email. Prova ad accedere.",
+    "Password should be at least 10 characters":
+      "La password deve contenere almeno 10 caratteri.",
+    "Password should be at least 6 characters":
+      "La password deve contenere almeno 6 caratteri.",
+    "Unable to validate email address: invalid format":
+      "Formato email non valido. Verifica e riprova.",
+    "Unable to validate email address":
+      "Email non valida. Controlla e riprova.",
+    "Signup requires a valid password":
+      "Inserisci una password valida.",
+  };
+  return map[message] ?? message;
+}
+
 export default function SignupPage() {
   const router = useRouter();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
+    if (password.length < 10) {
+      setError("La password deve essere di almeno 10 caratteri.");
+      setLoading(false);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Le password non coincidono.");
+      setLoading(false);
+      return;
+    }
 
     const supabase = createClient();
     const { error: authError } = await supabase.auth.signUp({
@@ -27,12 +59,12 @@ export default function SignupPage() {
       password,
       options: {
         data: { full_name: name },
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/auth/callback?next=/scanner`,
       },
     });
 
     if (authError) {
-      setError(authError.message);
+      setError(translateSignupError(authError.message));
       setLoading(false);
       return;
     }
@@ -45,7 +77,7 @@ export default function SignupPage() {
     <div className="bg-[#0f1117] border border-[#1e2029] rounded-2xl p-8 shadow-2xl">
       <div className="text-center mb-8">
         <h1 className="text-2xl font-bold text-[#f0f0f2] font-[Georgia,serif]">
-          ✦ InvoiceStudio
+          InvoiceStudio
         </h1>
         <p className="text-[#6b7280] text-sm mt-2">Crea il tuo account gratuito</p>
       </div>
@@ -107,6 +139,44 @@ export default function SignupPage() {
           </div>
         </div>
 
+        <div>
+          <label htmlFor="confirmPassword" className="block text-sm font-medium text-[#e5e7eb] mb-1">
+            Conferma Password
+          </label>
+          <input
+            id="confirmPassword"
+            type={showPassword ? "text" : "password"}
+            required
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            placeholder="Ripeti la password"
+            className="w-full bg-[#111318] border border-[#1e2029] rounded-lg px-4 py-2.5 text-[#f0f0f2] placeholder-[#6b7280] focus:outline-none focus:border-[#6c63ff] focus:ring-1 focus:ring-[#6c63ff] transition-colors"
+          />
+        </div>
+
+        {/* Terms checkbox */}
+        <div className="flex items-start gap-2">
+          <input
+            id="terms"
+            type="checkbox"
+            required
+            checked={termsAccepted}
+            onChange={(e) => setTermsAccepted(e.target.checked)}
+            className="mt-1 w-4 h-4 accent-[#6c63ff] cursor-pointer"
+          />
+          <label htmlFor="terms" className="text-xs text-[#6b7280] leading-relaxed">
+            Accetto i{" "}
+            <Link href="/terms" target="_blank" className="text-[#6c63ff] hover:text-[#8b5cf6] underline">
+              Termini di Servizio
+            </Link>{" "}
+            e la{" "}
+            <Link href="/privacy" target="_blank" className="text-[#6c63ff] hover:text-[#8b5cf6] underline">
+              Privacy Policy
+            </Link>
+            .
+          </label>
+        </div>
+
         {error && (
           <div className="bg-[rgba(239,68,68,0.08)] border border-[rgba(239,68,68,0.2)] rounded-lg px-4 py-3 text-sm text-[#ef4444]">
             {error}
@@ -115,7 +185,7 @@ export default function SignupPage() {
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || !termsAccepted}
           className="w-full bg-[#6c63ff] hover:bg-[#5b52e0] disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-2.5 px-4 rounded-lg transition-colors"
         >
           {loading ? "Creazione account..." : "Crea account"}

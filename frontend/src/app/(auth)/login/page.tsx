@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
@@ -17,6 +17,8 @@ function translateAuthError(message: string): string {
       "Email o password non corretti. Verifica e riprova.",
     "User not found":
       "Nessun account trovato con questa email. Verifica o registrati.",
+    "confirmation_expired":
+      "Il link di conferma è scaduto o non valido. Richiedine uno nuovo.",
   };
   return map[message] ?? message;
 }
@@ -31,17 +33,35 @@ function LoginForm() {
     !rawRedirect.startsWith("//") &&
     !rawRedirect.includes(":")
       ? rawRedirect
-      : "/dashboard";
+      : "/scanner";
   const justSignedUp = searchParams.get("signup") === "success";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Derive initial error from query param (avoids setState-in-useEffect lint error)
+  const initialError = useMemo(() => {
+    const err = searchParams.get("error");
+    return err ? translateAuthError(err) : null;
+  }, [searchParams]);
+  const [error, setError] = useState<string | null>(initialError);
+  const [attempts, setAttempts] = useState(0);
+  const [cooldown, setCooldown] = useState(0);
+
+  // Cooldown timer for rate limiting
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => {
+      setCooldown((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (cooldown > 0) return;
+
     setLoading(true);
     setError(null);
 
@@ -52,19 +72,47 @@ function LoginForm() {
     });
 
     if (authError) {
-      setError(translateAuthError(authError.message));
+      const newAttempts = attempts + 1;
+      setAttempts(newAttempts);
+      if (newAttempts >= 3) {
+        setCooldown(60);
+        setAttempts(0);
+        setError("Troppi tentativi. Riprova tra 60 secondi.");
+      } else {
+        setError(translateAuthError(authError.message));
+      }
       setLoading(false);
       return;
     }
 
-    window.location.assign(redirect);
+    setAttempts(0);
+    router.push(redirect);
+    router.refresh();
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!email) {
+      setError("Inserisci la tua email per reinviare la conferma.");
+      return;
+    }
+    const supabase = createClient();
+    const { error: resendError } = await supabase.auth.resend({
+      type: "signup",
+      email,
+    });
+    if (resendError) {
+      setError("Errore nel reinvio. Riprova più tardi.");
+    } else {
+      setError(null);
+      setError("Email di conferma reinviata! Controlla la tua casella.");
+    }
   };
 
   return (
     <div className="bg-[#0f1117] border border-[#1e2029] rounded-2xl p-8 shadow-2xl">
       <div className="text-center mb-8">
         <h1 className="text-2xl font-bold text-[#f0f0f2] font-[Georgia,serif]">
-          ✦ InvoiceStudio
+          InvoiceStudio
         </h1>
         <p className="text-[#6b7280] text-sm mt-2">Accedi al tuo account</p>
       </div>
@@ -124,14 +172,40 @@ function LoginForm() {
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || cooldown > 0}
           className="w-full bg-[#6c63ff] hover:bg-[#5b52e0] disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-2.5 px-4 rounded-lg transition-colors"
         >
-          {loading ? "Accesso in corso..." : "Accedi"}
+          {cooldown > 0
+            ? `Riprova tra ${cooldown}s`
+            : loading
+            ? "Accesso in corso..."
+            : "Accedi"}
         </button>
+
+        <div className="flex items-center justify-between text-xs mt-3">
+          <Link
+            href="/forgot-password"
+            className="text-[#6c63ff] hover:text-[#8b5cf6] transition-colors"
+          >
+            Password dimenticata?
+          </Link>
+          <button
+            type="button"
+            onClick={handleResendConfirmation}
+            className="text-[#6b7280] hover:text-[#e5e7eb] transition-colors bg-transparent border-none cursor-pointer"
+          >
+            Reinvia email
+          </button>
+        </div>
       </form>
 
-      <p className="text-center text-sm text-[#6b7280] mt-6">
+      <p className="text-center text-sm text-[#6b7280] mt-4">
+        <Link href="/forgot-password" className="text-[#6c63ff] hover:text-[#8b5cf6] transition-colors">
+          Password dimenticata?
+        </Link>
+      </p>
+
+      <p className="text-center text-sm text-[#6b7280] mt-2">
         Non hai un account?{" "}
         <Link href="/signup" className="text-[#6c63ff] hover:text-[#8b5cf6] transition-colors">
           Registrati

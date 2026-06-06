@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 // Paths that do NOT require authentication
-const publicPaths = ["/", "/login", "/signup", "/auth/callback", "/auth/confirm", "/pay", "/privacy", "/terms", "/delete-account", "/api/webhooks", "/manifest.json", "/manifest.webmanifest", "/robots.txt", "/sitemap.xml"];
+const publicPaths = ["/", "/login", "/signup", "/forgot-password", "/reset-password", "/auth/callback", "/auth/confirm", "/pay", "/privacy", "/terms", "/delete-account", "/api/webhooks", "/manifest.json", "/manifest.webmanifest", "/robots.txt", "/sitemap.xml"];
 
 // Paths that redirect to /dashboard if user is already authenticated
 const authPaths = ["/login", "/signup"];
@@ -62,9 +62,9 @@ export async function middleware(request: NextRequest) {
     return redirectResponse;
   }
 
-  // Already authenticated user hitting /login or /signup → send to dashboard.
+  // Already authenticated user hitting /login or /signup → send to scanner.
   if (user && isAuthPath(pathname)) {
-    return redirectWithCookies(new URL("/dashboard", request.url));
+    return redirectWithCookies(new URL("/scanner", request.url));
   }
 
   // Public path → just return (with any refreshed cookies).

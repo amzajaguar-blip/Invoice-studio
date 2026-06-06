@@ -10,6 +10,7 @@ import { RewardedAdModal } from "@/components/rewards/RewardedAdModal";
 import { useQuota } from "@/hooks/useRewards";
 import { createClient } from "@/lib/supabase/client";
 import type { Invoice } from "@/types";
+import { FilePlus, Loader2, Download, Trash2, X } from "lucide-react";
 
 export function InvoicesClient({
   initialInvoices,
@@ -223,7 +224,7 @@ export function InvoicesClient({
           onClick={handleNewInvoice}
           className="bg-[#6c63ff] hover:bg-[#5b52e0] text-white font-medium px-5 py-2.5 rounded-xl text-sm transition-colors border-none cursor-pointer"
         >
-          ✦ Nuova Fattura
+          <FilePlus className="w-4 h-4" /> Nuova Fattura
         </button>
       </div>
 
@@ -238,20 +239,20 @@ export function InvoicesClient({
             disabled={bulkLoading}
             className="text-xs font-medium px-3 py-1.5 rounded-lg bg-[#6c63ff]/10 text-[#6c63ff] border border-[#6c63ff]/20 hover:bg-[#6c63ff]/20 transition-colors cursor-pointer"
           >
-            {bulkLoading ? "⏳" : "📥"} Esporta CSV
+            {bulkLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin inline-block" /> : <Download className="w-3.5 h-3.5 inline-block" />} Esporta CSV
           </button>
           <button
             onClick={handleBulkDelete}
             disabled={bulkLoading}
             className="text-xs font-medium px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors cursor-pointer"
           >
-            {bulkLoading ? "⏳" : "🗑"} Elimina
+            {bulkLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin inline-block" /> : <Trash2 className="w-3.5 h-3.5 inline-block" />} Elimina
           </button>
           <button
             onClick={() => setSelectedIds(new Set())}
             className="text-xs text-[#6b7280] hover:text-[#e5e7eb] cursor-pointer"
           >
-            ✕
+            <X className="w-3.5 h-3.5 inline-block" />
           </button>
         </div>
       )}

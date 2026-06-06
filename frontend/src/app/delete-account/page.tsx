@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { CheckCircle, AlertTriangle } from "lucide-react";
 
 /**
  * DeleteAccountPage — Google Play Store Data Safety required page.
@@ -70,12 +71,12 @@ export default function DeleteAccountPage() {
 
           {status === "sent" ? (
             <div className="p-4 bg-[#065f46]/20 border border-[#065f46] rounded-md text-sm text-[#a7f3d0]">
-              ✅ Email aperta. Invia la richiesta dal tuo client email. Ti
+              <CheckCircle className="w-4 h-4 inline-block align-text-bottom mr-1" /> Email aperta. Invia la richiesta dal tuo client email. Ti
               risponderemo entro 30 giorni.
             </div>
           ) : status === "error" ? (
             <div className="p-4 bg-[#7f1d1d]/20 border border-[#7f1d1d] rounded-md text-sm text-[#fecaca]">
-              ⚠️ Si è verificato un errore. Prova a scrivere direttamente a{" "}
+              <AlertTriangle className="w-4 h-4 inline-block align-text-bottom mr-1" /> Si è verificato un errore. Prova a scrivere direttamente a{" "}
               <span className="text-[#f0f0f2]">privacy@invoicestudio.it</span>.
             </div>
           ) : (

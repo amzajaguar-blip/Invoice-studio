@@ -1,5 +1,7 @@
 "use client";
 
+import React from "react";
+
 /**
  * KPICard — Premium Dashboard metric card
  * =========================================
@@ -16,7 +18,7 @@ interface KPICardProps {
   accent?: "default" | "paid" | "pending" | "overdue" | "draft";
   /** Raw CSS colour override (use sparingly — prefer accent semantic) */
   accentColor?: string;
-  icon: string;
+  icon: React.ReactNode;
   href?: string;
   id?: string;
 }

@@ -1,42 +1,48 @@
 import { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function LoginScreen() {
-  const { signIn, signUp } = useAuth();
+  const { signIn, resetPassword } = useAuth();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [resetMode, setResetMode] = useState(false);
 
-  const handleSubmit = async () => {
+  const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
       setError("Inserisci email e password");
       return;
     }
-    if (isSignUp && password !== confirmPassword) {
-      setError("Le password non coincidono");
+    setError(null);
+    setSuccess(null);
+    setLoading(true);
+    const result = await signIn(email.trim(), password);
+    setLoading(false);
+    if (result.error) setError(result.error);
+  };
+
+  const handleResetPassword = async () => {
+    if (!email.trim()) {
+      setError("Inserisci la tua email per ricevere il link di reset");
       return;
     }
     setError(null);
+    setSuccess(null);
     setLoading(true);
-
-    const result = isSignUp
-      ? await signUp(email.trim(), password)
-      : await signIn(email.trim(), password);
-
+    const result = await resetPassword(email.trim());
     setLoading(false);
     if (result.error) {
       setError(result.error);
-    } else if (isSignUp) {
-      setError("✅ Registrazione completata! Controlla la tua email per confermare.");
+    } else {
+      setSuccess("Email inviata! Controlla la tua casella di posta.");
+      setResetMode(false);
     }
-    // On successful sign-in, expo-router auto-redirects via (app) layout
   };
 
   return (
@@ -49,10 +55,9 @@ export default function LoginScreen() {
         <Text style={styles.logo}>✦</Text>
         <Text style={styles.title}>InvoiceStudio</Text>
         <Text style={styles.subtitle}>
-          {isSignUp ? "Crea il tuo account" : "Accedi al tuo account"}
+          {resetMode ? "Reimposta la password" : "Accedi al tuo account"}
         </Text>
 
-        {/* Form */}
         <View style={styles.form}>
           <TextInput
             style={styles.input}
@@ -63,52 +68,38 @@ export default function LoginScreen() {
             value={email}
             onChangeText={setEmail}
           />
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            placeholderTextColor="#6b7280"
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-          />
-          {isSignUp && (
+          {!resetMode && (
             <TextInput
               style={styles.input}
-              placeholder="Ripeti Password"
+              placeholder="Password"
               placeholderTextColor="#6b7280"
               secureTextEntry
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
+              value={password}
+              onChangeText={setPassword}
             />
           )}
 
-          {error && (
-            <Text
-              style={[
-                styles.error,
-                { color: error.startsWith("✅") ? "#22c55e" : "#ef4444" },
-              ]}
-            >
-              {error}
-            </Text>
-          )}
+          {error && <Text style={[styles.message, { color: "#ef4444" }]}>{error}</Text>}
+          {success && <Text style={[styles.message, { color: "#22c55e" }]}>{success}</Text>}
 
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleSubmit}
+            onPress={resetMode ? handleResetPassword : handleLogin}
             disabled={loading}
           >
-            <Text style={styles.buttonText}>
-              {loading ? "..." : isSignUp ? "Registrati" : "Accedi"}
-            </Text>
+            {loading ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Text style={styles.buttonText}>{resetMode ? "Invia email di reset" : "Accedi"}</Text>
+            )}
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => { setIsSignUp(!isSignUp); setError(null); }}>
-            <Text style={styles.toggle}>
-              {isSignUp
-                ? "Hai già un account? Accedi"
-                : "Non hai un account? Registrati"}
-            </Text>
+          <TouchableOpacity onPress={() => { setResetMode(!resetMode); setError(null); setSuccess(null); }}>
+            <Text style={styles.link}>{resetMode ? "Torna al login" : "Password dimenticata?"}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => router.push("/signup")}>
+            <Text style={styles.link}>Non hai un account? Registrati</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -161,7 +152,7 @@ const styles = StyleSheet.create({
     color: "#f0f0f2",
     fontSize: 15,
   },
-  error: {
+  message: {
     fontSize: 13,
     textAlign: "center",
     paddingHorizontal: 8,
@@ -180,10 +171,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-  toggle: {
+  link: {
     color: "#6c63ff",
     fontSize: 13,
     textAlign: "center",
-    marginTop: 8,
+    marginTop: 4,
   },
 });
