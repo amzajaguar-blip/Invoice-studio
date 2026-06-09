@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function LoginScreen() {
-  const { signIn, resetPassword } = useAuth();
+  const { signIn, resetPassword, signInWithGoogle } = useAuth();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
@@ -94,6 +94,22 @@ export default function LoginScreen() {
             )}
           </TouchableOpacity>
 
+          {!resetMode && (
+            <TouchableOpacity
+              style={[styles.googleButton, loading && styles.buttonDisabled]}
+              onPress={async () => {
+                setError(null);
+                setLoading(true);
+                const res = await signInWithGoogle();
+                setLoading(false);
+                if (res.error) setError(res.error);
+              }}
+              disabled={loading}
+            >
+              <Text style={styles.googleButtonText}>Accedi con Google</Text>
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity onPress={() => { setResetMode(!resetMode); setError(null); setSuccess(null); }}>
             <Text style={styles.link}>{resetMode ? "Torna al login" : "Password dimenticata?"}</Text>
           </TouchableOpacity>
@@ -168,6 +184,20 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  googleButton: {
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    marginTop: 4,
+  },
+  googleButtonText: {
+    color: "#0a0b0f",
     fontSize: 16,
     fontWeight: "600",
   },

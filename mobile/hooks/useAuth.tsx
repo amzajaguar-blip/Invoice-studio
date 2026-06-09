@@ -2,6 +2,9 @@ import { createContext, useContext, useEffect, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import * as Linking from "expo-linking";
+import * as WebBrowser from "expo-web-browser";
+
+WebBrowser.maybeCompleteAuthSession();
 
 function translateAuthError(message: string): string {
   const map: Record<string, string> = {
@@ -27,6 +30,7 @@ interface AuthContextValue {
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error?: string }>;
   resendConfirmation: (email: string) => Promise<{ error?: string }>;
+  signInWithGoogle: () => Promise<{ error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextValue>({
@@ -38,6 +42,7 @@ const AuthContext = createContext<AuthContextValue>({
   signOut: async () => {},
   resetPassword: async () => ({ error: "not initialized" }),
   resendConfirmation: async () => ({ error: "not initialized" }),
+  signInWithGoogle: async () => ({ error: "not initialized" }),
 });
 
 // âââ Provider âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
@@ -111,6 +116,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return {};
   };
 
+  const signInWithGoogle = async () => {
+    const redirectUrl = Linking.createURL("/");
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: redirectUrl,
+        skipBrowserRedirect: true,
+      },
+    });
+    if (error) return { error: translateAuthError(error.message) };
+    if (data?.url) {
+      const res = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+      if (res.type === "success" && res.url) {
+         // Supabase's Linking listener handles the URL parsing automatically
+         // because detectSessionInUrl is true by default now.
+      }
+    }
+    return {};
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -122,6 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signOut,
         resetPassword,
         resendConfirmation,
+        signInWithGoogle,
       }}
     >
       {children}

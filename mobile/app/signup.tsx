@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function SignupScreen() {
-  const { signUp, resendConfirmation } = useAuth();
+  const { signUp, resendConfirmation, signInWithGoogle } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -50,6 +50,19 @@ export default function SignupScreen() {
               <TouchableOpacity style={[s.button, loading && s.buttonDisabled]} onPress={handleSignup} disabled={loading}>
                 {loading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.buttonText}>Crea account gratuito</Text>}
               </TouchableOpacity>
+              <TouchableOpacity
+                style={[s.googleButton, loading && s.buttonDisabled]}
+                onPress={async () => {
+                  setError(null);
+                  setLoading(true);
+                  const res = await signInWithGoogle();
+                  setLoading(false);
+                  if (res.error) setError(res.error);
+                }}
+                disabled={loading}
+              >
+                <Text style={s.googleButtonText}>Registrati con Google</Text>
+              </TouchableOpacity>
             </>
           ) : (
             <>
@@ -84,5 +97,7 @@ const s = StyleSheet.create({
   button: { backgroundColor: "#6c63ff", borderRadius: 12, paddingVertical: 14, alignItems: "center" },
   buttonDisabled: { opacity: 0.5 },
   buttonText: { color: "#ffffff", fontSize: 16, fontWeight: "600" },
+  googleButton: { backgroundColor: "#ffffff", borderRadius: 12, paddingVertical: 14, alignItems: "center", borderWidth: 1, borderColor: "#e5e7eb", marginTop: 4 },
+  googleButtonText: { color: "#0a0b0f", fontSize: 16, fontWeight: "600" },
   link: { color: "#6c63ff", fontSize: 13, textAlign: "center", marginTop: 4 },
 });
