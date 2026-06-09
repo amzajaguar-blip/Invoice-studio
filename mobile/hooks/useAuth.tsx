@@ -126,13 +126,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
     });
     if (error) return { error: translateAuthError(error.message) };
-    if (data?.url) {
-      const res = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
-      if (res.type === "success" && res.url) {
-         // Supabase's Linking listener handles the URL parsing automatically
-         // because detectSessionInUrl is true by default now.
+    if (!data?.url) return { error: "Impossibile avviare il login con Google. Riprova." };
+
+    const res = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+
+    if (res.type === "cancel") {
+      return {};
+    }
+
+    if (res.type === "success") {
+      // Verify Supabase picked up the session from the deep link
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        return { error: "Login con Google non completato. Riprova." };
       }
     }
+
     return {};
   };
 

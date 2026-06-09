@@ -77,7 +77,8 @@
           "androidAppId": "ca-app-pub-4053625490298263~3067488369",
           "iosAppId": "ca-app-pub-4053625490298263~3067488369"
         }
-      ]
+      ],
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true
