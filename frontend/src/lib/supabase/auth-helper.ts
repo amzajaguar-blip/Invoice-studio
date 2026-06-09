@@ -21,6 +21,15 @@ interface AuthFailure {
 
 type AuthFromRequest = AuthResult | AuthFailure;
 
+/** Lightweight result for account deletion — doesn't require org membership. */
+interface AuthUserOnly {
+  supabase: SupabaseClient;
+  user: User;
+  authenticated: true;
+}
+
+type AuthForDeletion = AuthUserOnly | AuthFailure;
+
 // ─── Helper ──────────────────────────────────────────────────────────────────
 
 /**
@@ -100,6 +109,69 @@ export async function getAuthFromRequest(
     supabase,
     user,
     orgId: member.org_id,
+    authenticated: true,
+  };
+}
+
+/**
+ * Authenticate a request for account deletion.
+ * Only validates the session — does NOT require org_members membership.
+ * This avoids the bug where users without an org entry get 401 on DELETE.
+ */
+export async function getAuthForAccountDeletion(
+  request: Request
+): Promise<AuthForDeletion> {
+  const authHeader = request.headers.get("authorization");
+
+  let supabase: SupabaseClient;
+  let user: User | null = null;
+
+  if (authHeader?.match(/^Bearer\s+(.+)$/i)) {
+    const token = authHeader.match(/^Bearer\s+(.+)$/i)![1];
+    supabase = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: { headers: { Authorization: `Bearer ${token}` } },
+      }
+    );
+    const { data, error } = await supabase.auth.getUser(token);
+    if (error || !data.user) {
+      return { supabase: null, user: null, orgId: null, authenticated: false };
+    }
+    user = data.user;
+  } else {
+    const cookieStore = await cookies();
+    supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            try {
+              for (const { name, value, options } of cookiesToSet) {
+                cookieStore.set(name, value, options);
+              }
+            } catch {
+              // Called from a Server Component — supabase-js handles this
+            }
+          },
+        },
+      }
+    );
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user) {
+      return { supabase: null, user: null, orgId: null, authenticated: false };
+    }
+    user = data.user;
+  }
+
+  return {
+    supabase,
+    user,
     authenticated: true,
   };
 }

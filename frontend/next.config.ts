@@ -4,14 +4,14 @@ const isDev = process.env.NODE_ENV === "development";
 
 const CSP = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://js.stripe.com https://pagead2.googlesyndication.com https://tpc.googlesyndication.com https://www.googletagservices.com`,
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://js.stripe.com https://pagead2.googlesyndication.com https://tpc.googlesyndication.com https://www.googletagservices.com https://accounts.google.com`,
   "worker-src 'self'",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com",
   "img-src 'self' data: https: blob:",
   "font-src 'self' https://fonts.gstatic.com",
-  "connect-src 'self' https://*.supabase.co https://api.stripe.com https://api.resend.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net",
-  "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://pagead2.googlesyndication.com https://tpc.googlesyndication.com",
-  "form-action 'self' https://checkout.stripe.com",
+  "connect-src 'self' https://*.supabase.co https://api.stripe.com https://api.resend.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com",
+  "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://pagead2.googlesyndication.com https://tpc.googlesyndication.com https://accounts.google.com",
+  "form-action 'self' https://checkout.stripe.com https://accounts.google.com",
   "base-uri 'self'",
   "object-src 'none'",
   "upgrade-insecure-requests",
@@ -39,6 +39,22 @@ const nextConfig: NextConfig = {
       {
         source: "/pay/:token",
         headers: [
+          { key: "Cross-Origin-Embedder-Policy", value: "unsafe-none" },
+        ],
+      },
+      {
+        // OAuth callback routes need relaxed COOP/COEP so Google redirect works
+        source: "/auth/:path*",
+        headers: [
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
+          { key: "Cross-Origin-Embedder-Policy", value: "unsafe-none" },
+        ],
+      },
+      {
+        // Login/signup pages need relaxed COOP for Google OAuth redirect
+        source: "/(login|signup)",
+        headers: [
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
           { key: "Cross-Origin-Embedder-Policy", value: "unsafe-none" },
         ],
       },

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getAuthFromRequest } from "@/lib/supabase/auth-helper";
+import { getAuthFromRequest, getAuthForAccountDeletion } from "@/lib/supabase/auth-helper";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const bodySchema = z.object({
@@ -61,16 +61,25 @@ export async function PATCH(request: Request) {
 /**
  * DELETE /api/profile
  * Permanently deletes the authenticated user's account from Supabase Auth.
+ * Uses getAuthForAccountDeletion — does NOT require org_members entry,
+ * so Google-only users and users without org membership can still delete.
  * Cascades to org_members, keeping organizations and invoices intact for fiscal/law requirements.
  */
 export async function DELETE(request: Request) {
-  const auth = await getAuthFromRequest(request);
+  const auth = await getAuthForAccountDeletion(request);
   if (!auth.authenticated) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const { user } = auth;
+  const { supabase, user } = auth;
 
   const admin = createAdminClient();
+
+  // Sign out the user's sessions first (clean up tokens/cookies)
+  try {
+    await supabase.auth.signOut();
+  } catch {
+    // Non-fatal — continue with deletion
+  }
 
   const { error } = await admin.auth.admin.deleteUser(user.id);
   if (error) {
