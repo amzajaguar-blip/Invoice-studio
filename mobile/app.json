@@ -22,7 +22,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0a0b0f"
       },
-      "package": "com.invoicestudio.app",
+      "package": "com.Invoice_Studio.myapp",
       "versionCode": 27,
       "permissions": [
         "com.google.android.gms.permission.AD_ID",
