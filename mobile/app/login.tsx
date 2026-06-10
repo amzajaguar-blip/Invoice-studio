@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import { useRouter } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 
 /** Logo Google ufficiale — react-native-svg è nel package.json ed è
@@ -28,7 +27,6 @@ function GoogleIcon({ size = 20 }: { size?: number }) {
 
 export default function LoginScreen() {
   const { signIn, resetPassword, signInWithGoogle } = useAuth();
-  const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -213,20 +211,8 @@ export default function LoginScreen() {
                   {resetMode ? "Torna al login" : "Password dimenticata?"}
                 </Text>
               </TouchableOpacity>
-              {!resetMode && (
-                <TouchableOpacity onPress={() => router.push("/signup")}>
-                  <Text style={styles.link}>Registrati</Text>
-                </TouchableOpacity>
-              )}
             </View>
 
-            {!resetMode && (
-              <TouchableOpacity onPress={() => router.push("/signup")}>
-                <Text style={styles.signupLink}>
-                  Non hai un account? Registrati
-                </Text>
-              </TouchableOpacity>
-            )}
           </View>
         </View>
       </View>
