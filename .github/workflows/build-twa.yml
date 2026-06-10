@@ -1,6 +1,5 @@
-name: Build TWA (APK + AAB)
+name: Build InvoiceStudio AAB (v27)
 
-# Trigger manual force-push after V12 bug fixes
 on:
   push:
     branches: [main]
@@ -16,6 +15,7 @@ on:
           - staging
 
 jobs:
+  # ─── TypeScript check ────────────────────────────────────────────────────────
   verify:
     name: TypeScript + ESLint
     runs-on: ubuntu-latest
@@ -33,6 +33,7 @@ jobs:
       - run: npx tsc --noEmit
       - run: npx eslint src/
 
+  # ─── Build Next.js (deploy su Vercel separatamente) ─────────────────────────
   build-nextjs:
     name: Build Next.js
     runs-on: ubuntu-latest
@@ -55,14 +56,10 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npm run build
-      - name: Cache Next.js build
-        uses: actions/cache/save@v4
-        with:
-          path: frontend/.next
-          key: nextjs-${{ github.sha }}
 
+  # ─── Build Mobile AAB nativa (React Native / Expo) ──────────────────────────
   build-mobile-aab:
-    name: Build Mobile AAB (v24)
+    name: Build Mobile AAB v27
     runs-on: ubuntu-latest
     env:
       NODE_ENV: production
@@ -91,22 +88,19 @@ jobs:
 
       - run: npm ci
 
-      - name: Prebuild Android (generate android/)
+      - name: Prebuild Android (genera cartella android/)
         run: npx expo prebuild --platform android --no-install
 
-      - name: Decode keystore & patch build.gradle for release signing
+      - name: Decode keystore e patch build.gradle per release signing
         run: |
-          # 1. Decode upload keystore
           echo "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" | base64 -d > android/app/release.keystore
 
-          # 2. Export signing env vars for Gradle (available in subsequent steps)
           echo "ANDROID_KEYSTORE_PATH=release.keystore" >> $GITHUB_ENV
           echo "ANDROID_KEYSTORE_PASSWORD=android"      >> $GITHUB_ENV
           echo "ANDROID_KEY_ALIAS=invoicestudio"        >> $GITHUB_ENV
           echo "ANDROID_KEY_PASSWORD=android"           >> $GITHUB_ENV
 
-          # 3. Patch freshly-generated build.gradle to add release signingConfig
-           python3 scripts/patch_build_gradle.py
+          python3 scripts/patch_build_gradle.py
 
       - name: Bundle AAB
         run: cd android && chmod +x gradlew && ./gradlew bundleRelease --no-daemon --stacktrace
@@ -119,11 +113,11 @@ jobs:
           echo "=== Release output dir ==="
           ls -la android/app/build/outputs/bundle/release/ 2>/dev/null || echo "Dir not found"
 
-      - name: Upload Mobile AAB v24
+      - name: Upload Mobile AAB v27
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: InvoiceStudio-Mobile-AAB-v24
+          name: InvoiceStudio-Mobile-AAB-v27
           path: mobile/android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 90
@@ -132,137 +126,25 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: InvoiceStudio-Mapping-v24
+          name: InvoiceStudio-Mapping-v27
           path: mobile/android/app/build/outputs/mapping/release/mapping.txt
           retention-days: 90
 
-  build-twa:
-    name: Build TWA APK + AAB
-    runs-on: ubuntu-latest
-    needs: build-nextjs
-    env:
-      NEXT_PUBLIC_APP_URL: https://invoicestudio.app
-      ANDROID_HOME: /usr/local/lib/android/sdk
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Setup JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          packages: 'platforms;android-34 build-tools;34.0.0'
-
-      - name: Install bubblewrap
-        run: npm install -g @bubblewrap/cli
-
-      # ─── Generate debug keystore (replace with your own for production) ──────
-
-      - name: Generate debug keystore
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          mkdir -p twa
-          keytool -genkey -v \
-            -keystore twa/debug.keystore \
-            -alias invoicestudio \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -storepass android \
-            -keypass android \
-            -dname "CN=InvoiceStudio, OU=Dev, O=InvoiceStudio, L=Milan, ST=Italy, C=IT"
-
-      - name: Initialize TWA project
-        env:
-          JAVA_HOME: ${{ env.JAVA_HOME }}
-        run: |
-          mkdir -p twa
-          cd twa
-          if [ -d "app" ]; then
-            echo "TWA project already initialized, skipping bubblewrap init."
-            exit 0
-          fi
-          # yes n: auto-answer "n" to ALL interactive prompts (JDK already set up)
-          yes n | bubblewrap init \
-            --manifest "${{ env.NEXT_PUBLIC_APP_URL }}/manifest.json" \
-            --directory . \
-            --package-name com.invoicestudio.app \
-            --name "InvoiceStudio" \
-            --short-name "InvoiceStudio" \
-            --launcher-name "InvoiceStudio" \
-            --display "standalone" \
-            --theme-color "#0a0b0f" \
-            --background-color "#0a0b0f" \
-            --start-url "/dashboard" \
-            --fallback-url "${{ env.NEXT_PUBLIC_APP_URL }}/dashboard"
-
-      - name: Copy assetlinks.json
-        run: |
-          mkdir -p twa/app/src/main/assets
-          cp public/.well-known/assetlinks.json twa/app/src/main/assets/
-
-      - name: Update TWA manifest
-        run: |
-          cd twa
-          # Set the correct host for Digital Asset Links verification
-          sed -i 's|hostName = .*|hostName = "invoicestudio.app"|' app/src/main/java/com/invoicestudio/app/LauncherActivity.java 2>/dev/null || true
-
-      - name: Build APK (debug)
-        run: |
-          cd twa
-          chmod +x gradlew
-          ./gradlew assembleDebug
-
-      - name: Build AAB (release)
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          cd twa
-          chmod +x gradlew
-          ./gradlew bundleRelease || echo "AAB build skipped — needs release signing key"
-
-      # ─── Upload artifacts ───────────────────────────────────────────────────
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: InvoiceStudio-APK
-          path: frontend/twa/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 30
-
-      - name: Upload AAB
-        if: github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@v4
-        with:
-          name: InvoiceStudio-AAB
-          path: frontend/twa/app/build/outputs/bundle/release/*.aab
-          retention-days: 90
-
+  # ─── Summary ─────────────────────────────────────────────────────────────────
   summary:
     name: Summary
     runs-on: ubuntu-latest
-    needs: [verify, build-nextjs, build-twa, build-mobile-aab]
+    needs: [verify, build-nextjs, build-mobile-aab]
     if: always()
     steps:
       - name: Build status
         run: |
-          echo "## 🏗️ InvoiceStudio Build Status" >> $GITHUB_STEP_SUMMARY
+          echo "## 🏗️ InvoiceStudio Build Status — v27" >> $GITHUB_STEP_SUMMARY
           echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| TypeScript + ESLint | ${{ needs.verify.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Next.js build | ${{ needs.build-nextjs.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| TWA APK + AAB | ${{ needs.build-twa.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Mobile AAB (v24) | ${{ needs.build-mobile-aab.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Mobile AAB v27 (React Native) | ${{ needs.build-mobile-aab.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "📱 **APK download**: Go to Actions → Artifacts → InvoiceStudio-APK" >> $GITHUB_STEP_SUMMARY
-          echo "📦 **AAB download**: Go to Actions → Artifacts → InvoiceStudio-AAB (release only)" >> $GITHUB_STEP_SUMMARY
+          echo "📦 **AAB download**: Actions → Artifacts → **InvoiceStudio-Mobile-AAB-v27**" >> $GITHUB_STEP_SUMMARY
+          echo "📦 **Package**: com.invoicestudio.app | versionCode: 27" >> $GITHUB_STEP_SUMMARY

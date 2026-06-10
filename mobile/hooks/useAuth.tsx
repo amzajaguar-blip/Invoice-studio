@@ -117,7 +117,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInWithGoogle = async () => {
-    const redirectUrl = Linking.createURL("/");
+    // Su Android il deep link deve usare lo schema dell'app definito in app.json
+    // "scheme": "invoicestudio" → invoicestudio://
+    const redirectUrl = Linking.createURL("/auth/callback");
+
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -134,8 +137,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return {};
     }
 
-    if (res.type === "success") {
-      // Verify Supabase picked up the session from the deep link
+    if (res.type === "success" && res.url) {
+      // Estrae i parametri dall'URL di ritorno e li passa a Supabase
+      // Supabase usa frammenti (#access_token=...) oppure query params
+      const url = res.url;
+
+      // Prova prima con exchangeCodeForSession (PKCE flow)
+      const urlObj = new URL(url);
+      const code = urlObj.searchParams.get("code");
+      if (code) {
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+        if (exchangeError) return { error: translateAuthError(exchangeError.message) };
+        return {};
+      }
+
+      // Fallback: session già impostata tramite deep link (implicit flow)
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
         return { error: "Login con Google non completato. Riprova." };
