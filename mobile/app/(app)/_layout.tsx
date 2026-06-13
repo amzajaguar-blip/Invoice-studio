@@ -29,6 +29,7 @@ export default function AuthLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="invoices" options={{ presentation: "modal" }} />
+      <Stack.Screen name="invoices/new" options={{ presentation: "card", animation: "slide_from_right" }} />
       <Stack.Screen name="clients" options={{ presentation: "modal" }} />
       <Stack.Screen name="settings" options={{ presentation: "modal" }} />
       <Stack.Screen name="scanner" options={{ presentation: "modal", animation: "slide_from_bottom" }} />

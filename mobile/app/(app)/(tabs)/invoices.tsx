@@ -62,8 +62,8 @@ export default function InvoicesScreen() {
       setLimitModalVisible(true);
       return;
     }
-    // TODO: navigare alla schermata di creazione fattura
-  }, [quota.canCreate]);
+    router.push("/(app)/invoices/new");
+  }, [quota.canCreate, router]);
 
   const handleWatchAd = useCallback(() => {
     showAd();
@@ -135,7 +135,11 @@ export default function InvoicesScreen() {
         ListEmptyComponent={
           <View style={s.empty}>
             <Text style={{ fontSize: 48 }}>📄</Text>
-            <Text style={s.emptyT}>Nessuna fattura</Text>
+            <Text style={s.emptyT}>Nessuna fattura ancora</Text>
+            <Text style={s.emptyH}>Crea la tua prima fattura e inizia a farti pagare</Text>
+            <TouchableOpacity style={s.emptyBtn} onPress={handleNewInvoice}>
+              <Text style={s.emptyBtnText}>+ Crea fattura</Text>
+            </TouchableOpacity>
           </View>
         }
       />
@@ -200,4 +204,7 @@ const s = StyleSheet.create({
   total: { fontSize: 16, fontWeight: "700", color: "#6c63ff" },
   empty: { alignItems: "center", paddingTop: 60 },
   emptyT: { fontSize: 16, color: "#6b7280", fontWeight: "600", marginTop: 12 },
+  emptyH: { fontSize: 13, color: "#4b5563", marginTop: 4, textAlign: "center", paddingHorizontal: 20 },
+  emptyBtn: { marginTop: 20, backgroundColor: "#6c63ff", borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12 },
+  emptyBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
 });

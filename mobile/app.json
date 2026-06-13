@@ -23,7 +23,7 @@
         "backgroundColor": "#0a0b0f"
       },
       "package": "com.Invoice_Studio.myapp",
-      "versionCode": 28,
+      "versionCode": 29,
       "permissions": [
         "com.google.android.gms.permission.AD_ID",
         "com.android.vending.BILLING",

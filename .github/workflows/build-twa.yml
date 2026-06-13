@@ -113,11 +113,11 @@ jobs:
           echo "=== Release output dir ==="
           ls -la android/app/build/outputs/bundle/release/ 2>/dev/null || echo "Dir not found"
 
-      - name: Upload Mobile AAB v27
+      - name: Upload Mobile AAB v29
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: InvoiceStudio-Mobile-AAB-v27
+          name: InvoiceStudio-Mobile-AAB-v29
           path: mobile/android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 90
@@ -126,7 +126,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: InvoiceStudio-Mapping-v27
+          name: InvoiceStudio-Mapping-v29
           path: mobile/android/app/build/outputs/mapping/release/mapping.txt
           retention-days: 90
 
@@ -139,12 +139,12 @@ jobs:
     steps:
       - name: Build status
         run: |
-          echo "## 🏗️ InvoiceStudio Build Status — v27" >> $GITHUB_STEP_SUMMARY
+          echo "## 🏗️ InvoiceStudio Build Status — v29" >> $GITHUB_STEP_SUMMARY
           echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| TypeScript + ESLint | ${{ needs.verify.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Next.js build | ${{ needs.build-nextjs.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Mobile AAB v27 (React Native) | ${{ needs.build-mobile-aab.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Mobile AAB v29 (React Native) | ${{ needs.build-mobile-aab.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "📦 **AAB download**: Actions → Artifacts → **InvoiceStudio-Mobile-AAB-v27**" >> $GITHUB_STEP_SUMMARY
-          echo "📦 **Package**: com.invoicestudio.app | versionCode: 27" >> $GITHUB_STEP_SUMMARY
+          echo "📦 **AAB download**: Actions → Artifacts → **InvoiceStudio-Mobile-AAB-v29**" >> $GITHUB_STEP_SUMMARY
+          echo "📦 **Package**: com.Invoice_Studio.myapp | versionCode: 29" >> $GITHUB_STEP_SUMMARY

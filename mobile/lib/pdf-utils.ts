@@ -73,8 +73,8 @@ function generateInvoiceHTML(
     <tr>
       <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${item.description}</td>
       <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">${item.quantity}</td>
-      <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">$${item.rate.toFixed(2)}</td>
-      <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">$${item.amount.toFixed(2)}</td>
+      <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">€${item.rate.toFixed(2)}</td>
+      <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">€${item.amount.toFixed(2)}</td>
     </tr>
   `
     )
@@ -188,21 +188,21 @@ function generateInvoiceHTML(
       <div class="totals-table">
         <div class="total-row">
           <span class="total-label">Subtotal:</span>
-          <span class="total-value">$${invoice.subtotal.toFixed(2)}</span>
+          <span class="total-value">€${invoice.subtotal.toFixed(2)}</span>
         </div>
         <div class="total-row">
-          <span class="total-label">Tax (${invoice.taxRate}%):</span>
-          <span class="total-value">$${invoice.taxAmount.toFixed(2)}</span>
+          <span class="total-label">IVA (${invoice.taxRate}%):</span>
+          <span class="total-value">€${invoice.taxAmount.toFixed(2)}</span>
         </div>
         ${invoice.discountAmount > 0 ? `
         <div class="total-row">
-          <span class="total-label">Discount:</span>
-          <span class="total-value">-$${invoice.discountAmount.toFixed(2)}</span>
+          <span class="total-label">Sconto:</span>
+          <span class="total-value">-€${invoice.discountAmount.toFixed(2)}</span>
         </div>
         ` : ''}
         <div class="total-row final">
-          <span class="total-label">TOTAL:</span>
-          <span class="total-value">$${invoice.total.toFixed(2)}</span>
+          <span class="total-label">TOTALE:</span>
+          <span class="total-value">€${invoice.total.toFixed(2)}</span>
         </div>
       </div>
     </div>
