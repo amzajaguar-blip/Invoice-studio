@@ -15,30 +15,30 @@ export interface ShareResult {
  */
 export function formatInvoiceForEmail(invoice: Invoice, client?: Client): string {
   const lineItems = invoice.lineItems
-    .map(item => `${item.description}: ${item.quantity} x $${item.rate.toFixed(2)} = $${item.amount.toFixed(2)}`)
+    .map(item => `${item.description}: ${item.quantity} x €${item.rate.toFixed(2)} = €${item.amount.toFixed(2)}`)
     .join('\n');
 
   return `
-Invoice #${invoice.invoiceNumber}
-Date: ${new Date(invoice.issueDate).toLocaleDateString()}
-Due Date: ${new Date(invoice.dueDate).toLocaleDateString()}
+Fattura #${invoice.invoiceNumber}
+Data: ${new Date(invoice.issueDate).toLocaleDateString("it-IT")}
+Scadenza: ${new Date(invoice.dueDate).toLocaleDateString("it-IT")}
 
-Client: ${client?.name || 'N/A'}
+Cliente: ${client?.name || 'N/A'}
 ${client?.email ? `Email: ${client.email}` : ''}
-${client?.phone ? `Phone: ${client.phone}` : ''}
+${client?.phone ? `Telefono: ${client.phone}` : ''}
 
-Items:
+Voci:
 ${lineItems}
 
-Subtotal: $${invoice.subtotal.toFixed(2)}
-Tax (${invoice.taxRate}%): $${invoice.taxAmount.toFixed(2)}
-Discount: -$${invoice.discountAmount.toFixed(2)}
+Imponibile: €${invoice.subtotal.toFixed(2)}
+IVA (${invoice.taxRate}%): €${invoice.taxAmount.toFixed(2)}
+Sconto: -€${invoice.discountAmount.toFixed(2)}
 ---
-Total: $${invoice.total.toFixed(2)}
+Totale: €${invoice.total.toFixed(2)}
 
-${invoice.notes ? `Notes:\n${invoice.notes}` : ''}
+${invoice.notes ? `Note:\n${invoice.notes}` : ''}
 
-Payment Terms: ${invoice.paymentTerms || 'Net 30'}
+Condizioni di pagamento: ${invoice.paymentTerms || 'Netto 30'}
   `.trim();
 }
 

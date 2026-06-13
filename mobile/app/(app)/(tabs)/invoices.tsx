@@ -116,7 +116,11 @@ export default function InvoicesScreen() {
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6c63ff" />}
         renderItem={({ item }) => (
-          <View style={s.card}>
+          <TouchableOpacity
+            style={s.card}
+            onPress={() => router.push(`/(app)/${item.id}` as any)}
+            activeOpacity={0.8}
+          >
             <View style={s.row}>
               <Text style={s.num}>{item.number}</Text>
               <View style={[s.badge, { backgroundColor: `${STATUS_COLORS[item.status] || "#6b7280"}20` }]}>
@@ -130,7 +134,7 @@ export default function InvoicesScreen() {
               <Text style={s.date}>{new Date(item.created_at).toLocaleDateString("it-IT")}</Text>
               <Text style={s.total}>{fmt(item.total, item.currency)}</Text>
             </View>
-          </View>
+          </TouchableOpacity>
         )}
         ListEmptyComponent={
           <View style={s.empty}>
