@@ -53,19 +53,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let initial = true;
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      initial = false;
     });
 
     // Listen for auth changes
     const { data: subscription } = supabase.auth.onAuthStateChange(
       (_event, session) => {
+        // Ignora l'evento iniziale — getSession() ha già fatto il lavoro
+        if (initial) return;
         setSession(session);
         setUser(session?.user ?? null);
-        setLoading(false);
       }
     );
 
@@ -117,8 +121,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInWithGoogle = async () => {
-    // Su Android il deep link deve usare lo schema dell'app definito in app.json
-    // "scheme": "invoicestudio" → invoicestudio://
     const redirectUrl = Linking.createURL("/auth/callback");
 
     const { data, error } = await supabase.auth.signInWithOAuth({
@@ -133,29 +135,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const res = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
 
-    if (res.type === "cancel") {
-      return {};
-    }
+    if (res.type === "cancel") return {};
 
     if (res.type === "success" && res.url) {
-      // Estrae i parametri dall'URL di ritorno e li passa a Supabase
-      // Supabase usa frammenti (#access_token=...) oppure query params
-      const url = res.url;
-
-      // Prova prima con exchangeCodeForSession (PKCE flow)
-      const urlObj = new URL(url);
+      const urlObj = new URL(res.url);
       const code = urlObj.searchParams.get("code");
+
       if (code) {
         const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
         if (exchangeError) return { error: translateAuthError(exchangeError.message) };
         return {};
       }
 
-      // Fallback: session già impostata tramite deep link (implicit flow)
+      // fallback: controlla sessione già presente
       const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) {
-        return { error: "Login con Google non completato. Riprova." };
-      }
+      if (sessionData.session) return {};
+      return { error: "Login con Google non completato. Riprova." };
     }
 
     return {};

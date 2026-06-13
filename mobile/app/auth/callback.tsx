@@ -1,43 +1,27 @@
 import { useEffect } from "react";
 import { View, ActivityIndicator, Text, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
-import * as Linking from "expo-linking";
 import { supabase } from "@/lib/supabase";
 
-/**
- * Gestisce il redirect da Supabase Google OAuth.
- * URL ricevuto: invoicestudio://auth/callback?code=XXXX
- *
- * Expo Router atterra qui dopo che l'utente completa il login Google
- * nel browser. Legge il code PKCE dall'URL, lo scambia con una sessione
- * Supabase, poi manda alla dashboard.
- */
 export default function AuthCallbackScreen() {
   const router = useRouter();
 
   useEffect(() => {
-    const handleCallback = async () => {
-      try {
-        const url = await Linking.getInitialURL();
-        if (url) {
-          const parsed = new URL(url);
-          const code = parsed.searchParams.get("code");
-          if (code) {
-            await supabase.auth.exchangeCodeForSession(code);
-          }
-        }
+    // Il code PKCE viene scambiato in signInWithGoogle (useAuth.tsx).
+    // Qui controlliamo solo se la sessione è già presente.
+    const check = async () => {
+      // Retry per max 3 secondi — SecureStore può essere lento su dispositivi vecchi
+      for (let i = 0; i < 6; i++) {
+        await new Promise((r) => setTimeout(r, 500));
         const { data } = await supabase.auth.getSession();
         if (data.session) {
           router.replace("/(app)/(tabs)");
-        } else {
-          router.replace("/login");
+          return;
         }
-      } catch {
-        router.replace("/login");
       }
+      router.replace("/login");
     };
-
-    handleCallback();
+    check();
   }, [router]);
 
   return (
@@ -49,15 +33,6 @@ export default function AuthCallbackScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#0a0b0f",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 16,
-  },
-  text: {
-    color: "#9ca3af",
-    fontSize: 14,
-  },
+  container: { flex: 1, backgroundColor: "#0a0b0f", justifyContent: "center", alignItems: "center", gap: 16 },
+  text: { color: "#9ca3af", fontSize: 14 },
 });
