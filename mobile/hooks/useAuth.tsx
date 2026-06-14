@@ -121,7 +121,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInWithGoogle = async () => {
-    const redirectUrl = Linking.createURL("/auth/callback");
+    // Su Android il redirect URI deve essere sempre lo schema custom dell'app,
+    // non exp:// (usato da Expo Go/dev) che Google non accetta.
+    // Usiamo lo schema fisso definito in app.json: "scheme": "invoicestudio"
+    const redirectUrl = "invoicestudio://auth/callback";
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
