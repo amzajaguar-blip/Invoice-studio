@@ -130,11 +130,55 @@ jobs:
           path: mobile/android/app/build/outputs/mapping/release/mapping.txt
           retention-days: 90
 
+  # ─── Build APK Debug per test rapido (installa direttamente via Telegram) ───
+  build-apk-debug:
+    name: Build APK Debug (test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platforms;android-35 build-tools;35.0.0 ndk;26.1.10909125'
+
+      - run: npm ci
+
+      - name: Prebuild Android
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Build APK Debug
+        run: cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon
+
+      - name: Upload APK Debug
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: InvoiceStudio-APK-Debug
+          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+
   # ─── Summary ─────────────────────────────────────────────────────────────────
   summary:
     name: Summary
     runs-on: ubuntu-latest
-    needs: [verify, build-nextjs, build-mobile-aab]
+    needs: [verify, build-nextjs, build-mobile-aab, build-apk-debug]
     if: always()
     steps:
       - name: Build status
