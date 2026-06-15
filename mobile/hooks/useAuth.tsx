@@ -53,21 +53,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let initial = true;
-
-    // Get initial session
+    // Get initial session from SecureStore
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
-      initial = false;
     });
 
-    // Listen for auth changes
+    // Listen for auth changes — ignora solo INITIAL_SESSION
     const { data: subscription } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        // Ignora l'evento iniziale — getSession() ha già fatto il lavoro
-        if (initial) return;
+      (event, session) => {
+        if (event === "INITIAL_SESSION") return;
         setSession(session);
         setUser(session?.user ?? null);
       }
@@ -121,9 +117,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInWithGoogle = async () => {
-    // Su Android il redirect URI deve essere sempre lo schema custom dell'app,
-    // non exp:// (usato da Expo Go/dev) che Google non accetta.
-    // Usiamo lo schema fisso definito in app.json: "scheme": "invoicestudio"
     const redirectUrl = "invoicestudio://auth/callback";
 
     const { data, error } = await supabase.auth.signInWithOAuth({
@@ -136,9 +129,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) return { error: translateAuthError(error.message) };
     if (!data?.url) return { error: "Impossibile avviare il login con Google. Riprova." };
 
-    const res = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+    let res;
+    try {
+      res = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+    } catch {
+      return { error: "Impossibile aprire il browser. Verifica che sia installato un browser sul dispositivo." };
+    }
 
     if (res.type === "cancel") return {};
+
+    if (res.type === "dismiss") {
+      return { error: "Il browser si è chiuso prima di completare l'accesso. Riprova." };
+    }
 
     if (res.type === "success" && res.url) {
       const urlObj = new URL(res.url);
@@ -150,7 +152,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return {};
       }
 
-      // fallback: controlla sessione già presente
       const { data: sessionData } = await supabase.auth.getSession();
       if (sessionData.session) return {};
       return { error: "Login con Google non completato. Riprova." };
