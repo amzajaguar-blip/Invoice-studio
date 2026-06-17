@@ -1,12 +1,18 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   View, Text, StyleSheet, FlatList,
-  RefreshControl, ActivityIndicator, TouchableOpacity,
+  RefreshControl, TouchableOpacity,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { apiFetch } from "@/lib/ai";
 import { useRewardedInvoice } from "@/lib/useRewardedInvoice";
 import { useRouter } from "expo-router";
 import InvoiceLimitModal from "../InvoiceLimitModal";
+import { useInvoiceFilters } from "@/hooks/useInvoiceFilters";
+import { SkeletonCard } from "@/components/SkeletonCard";
+import { SearchBar } from "@/components/SearchBar";
+import { FilterBar } from "@/components/FilterBar";
+import { EmptyState } from "@/components/EmptyState";
 
 interface Invoice {
   id: string;
@@ -15,7 +21,7 @@ interface Invoice {
   total: number;
   currency: string;
   created_at: string;
-  clients?: { name: string; email: string };
+  clients?: { id?: string; name: string; email: string };
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -29,12 +35,14 @@ const STATUS_LABELS: Record<string, string> = {
 
 export default function InvoicesScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [limitModalVisible, setLimitModalVisible] = useState(false);
 
   const { quota, adLoaded, adLoading, adError, showAd, refreshQuota } = useRewardedInvoice();
+  const { filters, setFilters, filtered } = useInvoiceFilters(invoices);
 
   const load = useCallback(async () => {
     const { data } = await apiFetch<{ data: Invoice[] }>("/api/invoices?limit=50");
@@ -75,16 +83,57 @@ export default function InvoicesScreen() {
     router.push("/(app)/ProUpgrade");
   }, [router]);
 
-  if (loading) {
+  // ListEmptyComponent contestuale
+  const renderEmpty = () => {
+    if (filters.query) {
+      return (
+        <EmptyState
+          icon="🔍"
+          title="Nessun risultato"
+          hint={`Nessuna fattura trovata per "${filters.query}"`}
+        />
+      );
+    }
+    if (filters.status === "overdue") {
+      return (
+        <EmptyState
+          icon="✅"
+          title="Nessuna fattura scaduta"
+          hint="Ottimo lavoro! Tutti i pagamenti sono in ordine."
+        />
+      );
+    }
+    if (filters.status === "paid") {
+      return (
+        <EmptyState
+          icon="💰"
+          title="Ancora nessun incasso"
+          hint="Invia le tue fatture per iniziare a ricevere pagamenti."
+        />
+      );
+    }
+    if (filters.status === "draft") {
+      return (
+        <EmptyState
+          icon="📝"
+          title="Nessuna bozza"
+          hint="Le fatture salvate come bozza appariranno qui."
+        />
+      );
+    }
     return (
-      <View style={[s.container, s.center]}>
-        <ActivityIndicator size="large" color="#6c63ff" />
-      </View>
+      <EmptyState
+        icon="📄"
+        title="Nessuna fattura ancora"
+        hint="Crea la tua prima fattura e inizia a farti pagare"
+        cta="+ Crea fattura"
+        onCTA={handleNewInvoice}
+      />
     );
-  }
+  };
 
   return (
-    <View style={s.container}>
+    <View style={[s.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={s.header}>
         <View>
@@ -110,43 +159,72 @@ export default function InvoicesScreen() {
         <Text style={s.newBtnText}>+ Nuova Fattura</Text>
       </TouchableOpacity>
 
-      <FlatList
-        data={invoices}
-        keyExtractor={(i) => i.id}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6c63ff" />}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={s.card}
-            onPress={() => router.push(`/(app)/${item.id}` as any)}
-            activeOpacity={0.8}
-          >
-            <View style={s.row}>
-              <Text style={s.num}>{item.number}</Text>
-              <View style={[s.badge, { backgroundColor: `${STATUS_COLORS[item.status] || "#6b7280"}20` }]}>
-                <Text style={[s.badgeT, { color: STATUS_COLORS[item.status] || "#6b7280" }]}>
-                  {STATUS_LABELS[item.status] || item.status}
-                </Text>
+      {/* SearchBar */}
+      <View style={s.searchWrapper}>
+        <SearchBar
+          value={filters.query}
+          onChangeText={(text) => setFilters((p) => ({ ...p, query: text }))}
+          onClear={() => setFilters((p) => ({ ...p, query: "" }))}
+        />
+      </View>
+
+      {/* FilterBar */}
+      <View style={s.filterWrapper}>
+        <FilterBar
+          activeStatus={filters.status}
+          onStatusChange={(status) => setFilters((p) => ({ ...p, status }))}
+        />
+      </View>
+
+      {/* Lista o skeleton */}
+      {loading ? (
+        <View style={s.skeletonContainer}>
+          <SkeletonCard lines={2} height={88} />
+          <SkeletonCard lines={2} height={88} />
+          <SkeletonCard lines={2} height={88} />
+        </View>
+      ) : (
+        <FlatList
+          data={filtered}
+          keyExtractor={(i) => i.id}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          initialNumToRender={8}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#6c63ff"
+              colors={["#6c63ff"]}
+              progressBackgroundColor="#111318"
+            />
+          }
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={s.card}
+              onPress={() => router.push(`/(app)/${item.id}` as any)}
+              activeOpacity={0.8}
+            >
+              <View style={s.row}>
+                <Text style={s.num}>{item.number}</Text>
+                <View style={[s.badge, { backgroundColor: `${STATUS_COLORS[item.status] || "#6b7280"}20` }]}>
+                  <Text style={[s.badgeT, { color: STATUS_COLORS[item.status] || "#6b7280" }]}>
+                    {STATUS_LABELS[item.status] || item.status}
+                  </Text>
+                </View>
               </View>
-            </View>
-            <Text style={s.client}>{item.clients?.name || "—"}</Text>
-            <View style={s.row}>
-              <Text style={s.date}>{new Date(item.created_at).toLocaleDateString("it-IT")}</Text>
-              <Text style={s.total}>{fmt(item.total, item.currency)}</Text>
-            </View>
-          </TouchableOpacity>
-        )}
-        ListEmptyComponent={
-          <View style={s.empty}>
-            <Text style={{ fontSize: 48 }}>📄</Text>
-            <Text style={s.emptyT}>Nessuna fattura ancora</Text>
-            <Text style={s.emptyH}>Crea la tua prima fattura e inizia a farti pagare</Text>
-            <TouchableOpacity style={s.emptyBtn} onPress={handleNewInvoice}>
-              <Text style={s.emptyBtnText}>+ Crea fattura</Text>
+              <Text style={s.client}>{item.clients?.name || "—"}</Text>
+              <View style={s.row}>
+                <Text style={s.date}>{new Date(item.created_at).toLocaleDateString("it-IT")}</Text>
+                <Text style={s.total}>{fmt(item.total, item.currency)}</Text>
+              </View>
             </TouchableOpacity>
-          </View>
-        }
-      />
+          )}
+          ListEmptyComponent={renderEmpty}
+        />
+      )}
 
       {/* Modale limite raggiunto */}
       <InvoiceLimitModal
@@ -164,8 +242,7 @@ export default function InvoicesScreen() {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0a0b0f", paddingTop: 60 },
-  center: { justifyContent: "center", alignItems: "center" },
+  container: { flex: 1, backgroundColor: "#0a0b0f" },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -191,13 +268,25 @@ const s = StyleSheet.create({
   quotaTextWarn: { color: "#ef4444" },
   newBtn: {
     marginHorizontal: 20,
-    marginBottom: 16,
+    marginBottom: 12,
     backgroundColor: "#6c63ff",
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: "center",
   },
   newBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+  searchWrapper: {
+    paddingHorizontal: 20,
+    marginBottom: 10,
+  },
+  filterWrapper: {
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  skeletonContainer: {
+    paddingHorizontal: 20,
+    gap: 10,
+  },
   card: { backgroundColor: "#111318", borderRadius: 14, padding: 16, borderWidth: 1, borderColor: "#1e2029", marginBottom: 10 },
   row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   num: { fontSize: 15, fontWeight: "700", color: "#f0f0f2" },
@@ -206,9 +295,4 @@ const s = StyleSheet.create({
   client: { fontSize: 14, color: "#9ca3af", marginVertical: 6 },
   date: { fontSize: 12, color: "#6b7280" },
   total: { fontSize: 16, fontWeight: "700", color: "#6c63ff" },
-  empty: { alignItems: "center", paddingTop: 60 },
-  emptyT: { fontSize: 16, color: "#6b7280", fontWeight: "600", marginTop: 12 },
-  emptyH: { fontSize: 13, color: "#4b5563", marginTop: 4, textAlign: "center", paddingHorizontal: 20 },
-  emptyBtn: { marginTop: 20, backgroundColor: "#6c63ff", borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12 },
-  emptyBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
 });

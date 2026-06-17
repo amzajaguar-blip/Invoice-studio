@@ -1,16 +1,22 @@
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Switch, ScrollView } from "react-native";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   getNotificationSettings,
   updateNotificationSettings,
   type NotificationSettings,
 } from "@/lib/notifications-service";
 import { apiFetch } from "@/lib/ai";
+import { useLocale, AVAILABLE_LOCALES } from "@/lib/i18n";
+import { useToast } from "@/lib/toast";
 
 export default function SettingsScreen() {
   const { user, signOut } = useAuth();
+  const insets = useSafeAreaInsets();
   const [settings, setSettings] = useState<NotificationSettings | null>(null);
+  const { locale, setLocale } = useLocale();
+  const { showToast } = useToast();
 
   useEffect(() => {
     getNotificationSettings().then(setSettings);
@@ -77,7 +83,7 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: 20, paddingTop: 60 }}>
+    <ScrollView style={styles.container} contentContainerStyle={{ padding: 20, paddingTop: insets.top }}>
       <Text style={styles.title}>Impostazioni</Text>
       <Text style={styles.email}>{user?.email}</Text>
 
@@ -104,6 +110,33 @@ export default function SettingsScreen() {
           value={settings?.paymentAlerts ?? true}
           onToggle={() => toggle("paymentAlerts")}
         />
+      </View>
+
+      {/* Lingua */}
+      <Text style={styles.sectionTitle}>🌐 Lingua</Text>
+      <View style={styles.card}>
+        {AVAILABLE_LOCALES.map((loc, index) => (
+          <TouchableOpacity
+            key={loc.code}
+            style={[
+              styles.localeRow,
+              index < AVAILABLE_LOCALES.length - 1 && styles.localeRowBorder,
+            ]}
+            onPress={async () => {
+              await setLocale(loc.code);
+              showToast({ message: "Lingua aggiornata ✓", type: "success" });
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={`Seleziona lingua ${loc.name}`}
+          >
+            <Text style={styles.localeText}>
+              {loc.flag} {loc.name}
+            </Text>
+            {locale === loc.code && (
+              <Text style={styles.localeCheck}>✓</Text>
+            )}
+          </TouchableOpacity>
+        ))}
       </View>
 
       {/* Account */}
@@ -162,4 +195,17 @@ const styles = StyleSheet.create({
   buttonText: { fontSize: 15, fontWeight: "600", color: "#f0f0f2" },
   deleteButton: { backgroundColor: "rgba(220,38,38,0.1)", borderWidth: 1, borderColor: "rgba(220,38,38,0.2)" },
   deleteText: { color: "#dc2626" },
+  localeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+  },
+  localeRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#1e2029",
+  },
+  localeText: { fontSize: 15, color: "#f0f0f2" },
+  localeCheck: { fontSize: 15, color: "#6c63ff", fontWeight: "700" },
 });

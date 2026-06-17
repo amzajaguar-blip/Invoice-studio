@@ -5,11 +5,13 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import Purchases, { PurchasesPackage } from "react-native-purchases";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const PURCHASE_TIMEOUT_MS = 15_000;
 
 export default function ProUpgradeScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "yearly">("yearly");
   const [purchaseState, setPurchaseState] = useState<"idle" | "loading" | "restoring" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
@@ -101,7 +103,7 @@ export default function ProUpgradeScreen() {
   const selectedPkg = packages.find((p) => p.id === selectedPlan)!;
 
   return (
-    <View style={s.container}>
+    <View style={[s.container, { paddingTop: insets.top }]}>
       {/* Intestazione */}
       <View style={s.header}>
         <Text style={s.title}>Passa a Pro 🚀</Text>
@@ -232,7 +234,7 @@ const FeatureItem = ({ text }: { text: string }) => (
 );
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0a0b0f", padding: 24, paddingTop: 60 },
+  container: { flex: 1, backgroundColor: "#0a0b0f", padding: 24 },
   header: { marginBottom: 30, alignItems: "center" },
   title: { fontSize: 32, fontWeight: "bold", color: "#f0f0f2", fontFamily: "serif", marginBottom: 10 },
   subtitle: { fontSize: 16, color: "#9ca3af", textAlign: "center", lineHeight: 24 },

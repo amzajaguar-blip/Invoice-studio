@@ -2,6 +2,8 @@ import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/ThemeContext";
+import { ToastProvider } from "@/components/ToastProvider";
+import { LocaleProvider } from "@/components/LocaleProvider";
 import { useEffect, useState } from "react";
 import { View, ActivityIndicator, Platform } from "react-native";
 import mobileAds from "react-native-google-mobile-ads";
@@ -111,18 +113,22 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <StatusBar style="auto" />
-        <NotificationDeepLinkHandler />
-        <AuthDeepLinkHandler />
-        <AdMobInitializer>
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: "transparent" },
-              animation: "fade",
-            }}
-          />
-        </AdMobInitializer>
+        <ToastProvider>
+          <LocaleProvider>
+          <StatusBar style="auto" />
+          <NotificationDeepLinkHandler />
+          <AuthDeepLinkHandler />
+          <AdMobInitializer>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: "transparent" },
+                animation: "fade",
+              }}
+            />
+          </AdMobInitializer>
+          </LocaleProvider>
+        </ToastProvider>
       </AuthProvider>
     </ThemeProvider>
   );
