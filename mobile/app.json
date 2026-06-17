@@ -2,7 +2,7 @@
   "expo": {
     "name": "InvoiceStudio",
     "slug": "invoicestudio",
-    "version": "1.0.33",
+    "version": "1.0.34",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "invoicestudio",
@@ -23,7 +23,7 @@
         "backgroundColor": "#0a0b0f"
       },
       "package": "com.Invoice_Studio.myapp",
-      "versionCode": 33,
+      "versionCode": 34,
       "permissions": [
         "com.google.android.gms.permission.AD_ID",
         "com.android.vending.BILLING",
