@@ -1,6 +1,18 @@
+/**
+ * settings.tsx — Schermata Impostazioni
+ *
+ * Phase 2 V34 integration:
+ *  - Sezione "Piano": badge Premium Attivo o link Passa a Premium (Req 3.7)
+ *  - InAppContextualCard per context 'settings_review_ask' (Req 9.8)
+ *  - BannerAdWrapper in fondo alla schermata solo se !isPremium (Req 9.8, 4.1)
+ *  - Tip card onboarding per nuovi utenti (Req 17.4)
+ *
+ * Requirements: 3.7, 9.8, 17.4
+ */
+
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Switch, ScrollView } from "react-native";
 import { useAuth } from "@/hooks/useAuth";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   getNotificationSettings,
@@ -10,13 +22,31 @@ import {
 import { apiFetch } from "@/lib/ai";
 import { useLocale, AVAILABLE_LOCALES } from "@/lib/i18n";
 import { useToast } from "@/lib/toast";
+import { useRouter } from "expo-router";
+
+// V34 — plan, smart cards, banner
+import { usePlan } from "@/context/PlanContext";
+import { BannerAdWrapper } from "@/components/BannerAdWrapper";
+import InAppContextualCard from "@/components/InAppContextualCard";
+import { useSmartCards } from "@/hooks/useSmartCards";
 
 export default function SettingsScreen() {
   const { user, signOut } = useAuth();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const [settings, setSettings] = useState<NotificationSettings | null>(null);
   const { locale, setLocale } = useLocale();
   const { showToast } = useToast();
+
+  // V34 — piano corrente
+  const { isPremium, limits } = usePlan();
+
+  // V34 — contextual card 'settings_review_ask' (Req 9.8)
+  const { card: contextCard, dismiss: dismissCard } = useSmartCards("settings_review_ask");
+
+  // V34 — tip card onboarding: mostrata solo se l'utente è nuovo (Req 17.4)
+  // "Nuovo utente" = non ha ancora creato fatture (totalInvoices === 0)
+  const isNewUser = limits.invoices.used === 0 && !limits.isLoading;
 
   useEffect(() => {
     getNotificationSettings().then(setSettings);
@@ -82,10 +112,78 @@ export default function SettingsScreen() {
     );
   };
 
+  // V34 — contextual card CTA handler (settings_review_ask → open review)
+  const handleCardCTA = useCallback(() => {
+    // La CTA 'open_review' è gestita dalla card; per ora naviga a ProUpgrade
+    // se il context fosse 'show_upgrade', altrimenti è già nel design dismissible
+  }, []);
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: 20, paddingTop: insets.top }}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{ padding: 20, paddingTop: insets.top }}
+    >
       <Text style={styles.title}>Impostazioni</Text>
       <Text style={styles.email}>{user?.email}</Text>
+
+      {/* V34 — Tip card onboarding per nuovi utenti (Req 17.4) */}
+      {isNewUser && (
+        <View style={styles.onboardingTip}>
+          <Text style={styles.onboardingTipIcon}>💡</Text>
+          <View style={styles.onboardingTipText}>
+            <Text style={styles.onboardingTipTitle}>Configura il tuo profilo</Text>
+            <Text style={styles.onboardingTipBody}>
+              Personalizza InvoiceStudio per la tua attività.
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* V34 — Sezione Piano (Req 3.7) */}
+      <Text style={styles.sectionTitle}>💎 Piano</Text>
+      <View style={styles.card}>
+        {isPremium ? (
+          /* Piano Premium attivo: badge e supporto prioritario */
+          <View style={styles.premiumContainer}>
+            <View style={styles.premiumBadgeRow}>
+              <View style={styles.premiumBadge}>
+                <Text style={styles.premiumBadgeText}>✨ Premium Attivo</Text>
+              </View>
+            </View>
+            <View style={styles.premiumFeatureRow}>
+              <Text style={styles.premiumFeatureIcon}>🎯</Text>
+              <Text style={styles.premiumFeatureText}>Supporto Prioritario</Text>
+            </View>
+          </View>
+        ) : (
+          /* Piano gratuito: link Passa a Premium */
+          <TouchableOpacity
+            style={styles.upgradeRow}
+            onPress={() => router.push("/(app)/ProUpgrade" as never)}
+            accessibilityRole="button"
+            accessibilityLabel="Passa a Premium — Rimuovi tutti i limiti"
+          >
+            <View style={styles.upgradeTextBlock}>
+              <Text style={styles.upgradeTitle}>Passa a Premium →</Text>
+              <Text style={styles.upgradeSubtitle}>Rimuovi tutti i limiti</Text>
+            </View>
+            <View style={styles.upgradeBadge}>
+              <Text style={styles.upgradeBadgeText}>Free</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* V34 — InAppContextualCard per settings_review_ask (Req 9.8) */}
+      {contextCard !== null && (
+        <View style={styles.contextCardWrapper}>
+          <InAppContextualCard
+            card={contextCard}
+            onDismiss={dismissCard}
+            onCTA={handleCardCTA}
+          />
+        </View>
+      )}
 
       {/* Notifiche */}
       <Text style={styles.sectionTitle}>🔔 Notifiche</Text>
@@ -151,6 +249,11 @@ export default function SettingsScreen() {
       >
         <Text style={[styles.buttonText, styles.deleteText]}>Elimina account</Text>
       </TouchableOpacity>
+
+      {/* V34 — BannerAdWrapper in fondo, solo se !isPremium (Req 9.8, 4.1) */}
+      {!isPremium && (
+        <BannerAdWrapper screen="settings" style={styles.bannerAd} />
+      )}
     </ScrollView>
   );
 }
@@ -181,9 +284,29 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#0a0b0f" },
   title: { fontSize: 24, fontWeight: "bold", color: "#f0f0f2", fontFamily: "serif" },
   email: { fontSize: 14, color: "#9ca3af", marginTop: 4, marginBottom: 24 },
-  sectionTitle: { fontSize: 13, color: "#9ca3af", marginTop: 16, marginBottom: 8, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5 },
-  card: { backgroundColor: "#111318", borderRadius: 16, padding: 12, borderWidth: 1, borderColor: "#1e2029", marginBottom: 8 },
-  row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 10 },
+  sectionTitle: {
+    fontSize: 13,
+    color: "#9ca3af",
+    marginTop: 16,
+    marginBottom: 8,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  card: {
+    backgroundColor: "#111318",
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#1e2029",
+    marginBottom: 8,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 10,
+  },
   rowLabel: { fontSize: 14, color: "#f0f0f2" },
   button: {
     backgroundColor: "#1e2029",
@@ -193,7 +316,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   buttonText: { fontSize: 15, fontWeight: "600", color: "#f0f0f2" },
-  deleteButton: { backgroundColor: "rgba(220,38,38,0.1)", borderWidth: 1, borderColor: "rgba(220,38,38,0.2)" },
+  deleteButton: {
+    backgroundColor: "rgba(220,38,38,0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(220,38,38,0.2)",
+  },
   deleteText: { color: "#dc2626" },
   localeRow: {
     flexDirection: "row",
@@ -208,4 +335,118 @@ const styles = StyleSheet.create({
   },
   localeText: { fontSize: 15, color: "#f0f0f2" },
   localeCheck: { fontSize: 15, color: "#6c63ff", fontWeight: "700" },
+
+  // ─── V34 — Onboarding Tip (Req 17.4) ──────────────────────────────────────
+  onboardingTip: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#111318",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#1e2029",
+    borderLeftWidth: 3,
+    borderLeftColor: "#6c63ff",
+    padding: 14,
+    marginBottom: 16,
+    gap: 12,
+  },
+  onboardingTipIcon: {
+    fontSize: 22,
+    lineHeight: 28,
+  },
+  onboardingTipText: {
+    flex: 1,
+    gap: 2,
+  },
+  onboardingTipTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#f0f0f2",
+    lineHeight: 18,
+  },
+  onboardingTipBody: {
+    fontSize: 12,
+    color: "#9ca3af",
+    lineHeight: 16,
+  },
+
+  // ─── V34 — Piano Section (Req 3.7) ────────────────────────────────────────
+  premiumContainer: {
+    gap: 10,
+  },
+  premiumBadgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  premiumBadge: {
+    backgroundColor: "#6c63ff20",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: "#6c63ff50",
+  },
+  premiumBadgeText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#a78bfa",
+  },
+  premiumFeatureRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 4,
+  },
+  premiumFeatureIcon: {
+    fontSize: 18,
+  },
+  premiumFeatureText: {
+    fontSize: 14,
+    color: "#f0f0f2",
+    fontWeight: "500",
+  },
+
+  upgradeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 6,
+  },
+  upgradeTextBlock: {
+    gap: 2,
+    flex: 1,
+  },
+  upgradeTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#6c63ff",
+  },
+  upgradeSubtitle: {
+    fontSize: 12,
+    color: "#9ca3af",
+  },
+  upgradeBadge: {
+    backgroundColor: "#1e2029",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: "#2d2f3a",
+  },
+  upgradeBadgeText: {
+    fontSize: 11,
+    color: "#6b7280",
+    fontWeight: "600",
+  },
+
+  // ─── V34 — Contextual Card wrapper ────────────────────────────────────────
+  contextCardWrapper: {
+    marginBottom: 8,
+  },
+
+  // ─── V34 — Banner Ad ──────────────────────────────────────────────────────
+  bannerAd: {
+    marginTop: 8,
+    marginBottom: 4,
+  },
 });

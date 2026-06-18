@@ -1,27 +1,66 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
-  AccessibilityInfo,
+  AccessibilityInfo, Animated,
 } from "react-native";
 import { useRouter } from "expo-router";
 import Purchases, { PurchasesPackage } from "react-native-purchases";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const PURCHASE_TIMEOUT_MS = 15_000;
+/** Duration of the success animation before auto-navigating back. Max 500ms. */
+const SUCCESS_ANIM_DURATION_MS = 400;
+const SUCCESS_DISPLAY_MS = 500;
 
 export default function ProUpgradeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "yearly">("yearly");
-  const [purchaseState, setPurchaseState] = useState<"idle" | "loading" | "restoring" | "error">("idle");
+  const [purchaseState, setPurchaseState] = useState<"idle" | "loading" | "restoring" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [reduceMotion, setReduceMotion] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Req 18.4: success animation refs
+  const successScaleAnim = useRef(new Animated.Value(0.8)).current;
+  const successOpacityAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
     return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
   }, []);
+
+  // Req 18.4: Trigger success animation when purchaseState becomes 'success'
+  useEffect(() => {
+    if (purchaseState !== "success") return;
+
+    if (reduceMotion) {
+      // Skip animation, just display the success card briefly then navigate
+      const t = setTimeout(() => router.back(), SUCCESS_DISPLAY_MS);
+      return () => clearTimeout(t);
+    }
+
+    // Reset animation values
+    successScaleAnim.setValue(0.8);
+    successOpacityAnim.setValue(0);
+
+    Animated.parallel([
+      Animated.timing(successScaleAnim, {
+        toValue: 1,
+        duration: SUCCESS_ANIM_DURATION_MS,
+        useNativeDriver: true,
+      }),
+      Animated.timing(successOpacityAnim, {
+        toValue: 1,
+        duration: SUCCESS_ANIM_DURATION_MS,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      // After animation completes, brief pause then navigate
+      const t = setTimeout(() => router.back(), 200);
+      return () => clearTimeout(t);
+    });
+  }, [purchaseState, reduceMotion]);
 
   const packages = [
     { id: "monthly" as const, title: "Mensile", price: "€ 4,99", recurring: "€4,99/mese" },
@@ -59,8 +98,7 @@ export default function ProUpgradeScreen() {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       
       if (customerInfo.entitlements.active['pro']) {
-        setPurchaseState("idle");
-        router.back();
+        setPurchaseState("success");
       } else {
         setPurchaseState("error");
         setErrorMessage("Acquisto completato ma abbonamento non rilevato. Riavvia l'app.");
@@ -88,8 +126,7 @@ export default function ProUpgradeScreen() {
     try {
       const customerInfo = await Purchases.restorePurchases();
       if (customerInfo.entitlements.active['pro']) {
-        setPurchaseState("idle");
-        router.back();
+        setPurchaseState("success");
       } else {
         setPurchaseState("error");
         setErrorMessage("Nessun acquisto da ripristinare su questo account.");

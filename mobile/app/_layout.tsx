@@ -4,6 +4,8 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/ThemeContext";
 import { ToastProvider } from "@/components/ToastProvider";
 import { LocaleProvider } from "@/components/LocaleProvider";
+import { PlanProvider } from "@/context/PlanContext";
+import { EngagementProvider } from "@/context/EngagementContext";
 import { useEffect, useState } from "react";
 import { View, ActivityIndicator, Platform } from "react-native";
 import mobileAds from "react-native-google-mobile-ads";
@@ -113,22 +115,26 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <ToastProvider>
-          <LocaleProvider>
-          <StatusBar style="auto" />
-          <NotificationDeepLinkHandler />
-          <AuthDeepLinkHandler />
-          <AdMobInitializer>
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: "transparent" },
-                animation: "fade",
-              }}
-            />
-          </AdMobInitializer>
-          </LocaleProvider>
-        </ToastProvider>
+        <PlanProvider>
+          <EngagementProvider>
+            <ToastProvider>
+              <LocaleProvider>
+              <StatusBar style="auto" />
+              <NotificationDeepLinkHandler />
+              <AuthDeepLinkHandler />
+              <AdMobInitializer>
+                <Stack
+                  screenOptions={{
+                    headerShown: false,
+                    contentStyle: { backgroundColor: "transparent" },
+                    animation: "fade",
+                  }}
+                />
+              </AdMobInitializer>
+              </LocaleProvider>
+            </ToastProvider>
+          </EngagementProvider>
+        </PlanProvider>
       </AuthProvider>
     </ThemeProvider>
   );
