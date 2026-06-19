@@ -114,28 +114,28 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <PlanProvider>
-          <EngagementProvider>
-            <ToastProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <PlanProvider>
+            <EngagementProvider>
               <LocaleProvider>
-              <StatusBar style="auto" />
-              <NotificationDeepLinkHandler />
-              <AuthDeepLinkHandler />
-              <AdMobInitializer>
-                <Stack
-                  screenOptions={{
-                    headerShown: false,
-                    contentStyle: { backgroundColor: "transparent" },
-                    animation: "fade",
-                  }}
-                />
-              </AdMobInitializer>
+                <StatusBar style="auto" />
+                <NotificationDeepLinkHandler />
+                <AuthDeepLinkHandler />
+                <AdMobInitializer>
+                  <Stack
+                    screenOptions={{
+                      headerShown: false,
+                      contentStyle: { backgroundColor: "transparent" },
+                      animation: "fade",
+                    }}
+                  />
+                </AdMobInitializer>
               </LocaleProvider>
-            </ToastProvider>
-          </EngagementProvider>
-        </PlanProvider>
-      </AuthProvider>
+            </EngagementProvider>
+          </PlanProvider>
+        </AuthProvider>
+      </ToastProvider>
     </ThemeProvider>
   );
 }
