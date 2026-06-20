@@ -17,12 +17,12 @@
  */
 
 import { ReactNode } from "react";
-import { ThemeProvider } from "../hooks/ThemeContext";
-import { AuthProvider } from "../hooks/useAuth";
-import { PlanProvider } from "../context/PlanContext";
-import { EngagementProvider } from "../context/EngagementContext";
-import { ToastProvider } from "../components/ToastProvider";
-import { LocaleProvider } from "../components/LocaleProvider";
+import { ThemeProvider } from "@/hooks/ThemeContext";
+import { AuthProvider } from "@/hooks/useAuth";
+import { PlanProvider } from "@/context/PlanContext";
+import { EngagementProvider } from "@/context/EngagementContext";
+import { ToastProvider } from "@/components/ToastProvider";
+import { LocaleProvider } from "@/components/LocaleProvider";
 
 interface AppProvidersProps {
   children: ReactNode;
