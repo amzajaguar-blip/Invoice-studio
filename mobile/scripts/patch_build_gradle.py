@@ -46,6 +46,20 @@ content = content.replace(
     "signingConfig signingConfigs.release\n            shrinkResources"
 )
 
+# ── Force JS bundle to be embedded in debug builds ───────────────────────────
+# By default the React Native Gradle plugin treats "debug" as a debuggable
+# variant and skips createBundleDebugJsAndAssets, so the APK has no
+# index.android.bundle and shows a white screen when Metro is unavailable.
+if not re.search(r'(?m)^(?!\s*//).*debuggableVariants\s*=', content):
+    content = re.sub(
+        r'(autolinkLibrariesWithApp\(\)\n)(\})',
+        r'\1    // Standalone debug APK: embed the JS bundle instead of relying on Metro\n    debuggableVariants = []\n\2',
+        content
+    )
+    print('✅ build.gradle patched: debuggableVariants = [] (bundle JS in debug)')
+else:
+    print('ℹ️  debuggableVariants already set, skipping')
+
 with open(gradle_path, 'w') as f:
     f.write(content)
 

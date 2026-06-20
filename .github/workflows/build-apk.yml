@@ -39,6 +39,9 @@ jobs:
       - name: Expo prebuild (genera cartella android/)
         run: npx expo prebuild --platform android --no-install --clean
 
+      - name: Patch build.gradle to embed JS bundle in debug
+        run: python3 scripts/patch_build_gradle.py
+
       - name: Build APK Debug
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon --stacktrace
 
