@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { formatCurrency, generateTempId } from "@/lib/utils";
 import { useAISuggest } from "@/hooks/useAISuggest";
 import type { Currency } from "@/types";
-import { Sparkles, Loader2, X, FilePlus } from "lucide-react";
+import { Sparkles, Loader2, X } from "lucide-react";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 

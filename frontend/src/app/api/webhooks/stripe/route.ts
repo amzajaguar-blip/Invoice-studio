@@ -34,8 +34,8 @@ export async function POST(request: Request) {
       sig,
       process.env.STRIPE_WEBHOOK_SECRET!
     );
-  } catch (err) {
-    // Log failure — do NOT log `err` details as they may contain PII
+  } catch {
+    // Log failure — do NOT log error details as they may contain PII
     await logPaymentAudit({ event_type: "stripe.unknown", provider: "stripe", environment: "unknown", outcome: "failure", error_code: "invalid_signature" });
     console.error("Stripe webhook signature verification failed");
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
@@ -175,7 +175,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ received: true });
-  } catch (error) {
+  } catch {
     // Log failure code only — no raw error details to avoid PII leakage
     await logPaymentAudit({
       event_type: "stripe.handler_error",

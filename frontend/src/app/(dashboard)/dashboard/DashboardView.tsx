@@ -9,7 +9,6 @@ import { useDashboardState } from "@/hooks/state/useDashboardState";
 import { UiStateRenderer } from "@/components/ui-states";
 import { KPICard } from "@/components/dashboard/KPICard";
 import { PromoCard } from "@/components/promotion/PromoCard";
-import { formatCurrency } from "@/lib/utils";
 import type { DashboardData } from "@/types/states/dashboard";
 import {
   ScanLine,
@@ -248,7 +247,7 @@ function MiniRevenueChart({ months }: { months: { month: string; revenue: number
 export function DashboardView({ orgId, userName, invoiceCount }: DashboardViewProps) {
   const supabase = createClient();
   const repo = createDashboardRepositorySupabase(supabase, orgId);
-  const { state, refresh } = useDashboardState(repo, orgId);
+  const { state } = useDashboardState(repo, orgId);
 
   return (
     <UiStateRenderer state={state} loadingVariant="dashboard" emptyIcon="invoice">

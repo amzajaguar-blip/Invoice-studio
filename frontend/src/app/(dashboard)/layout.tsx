@@ -30,14 +30,10 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
 
-  // Fetch user + subscribe to auth state changes for multi-tab logout sync
+  // Subscribe to auth state changes for multi-tab logout sync
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      if (data?.user) setUserId(data.user.id);
-    });
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (event) => {

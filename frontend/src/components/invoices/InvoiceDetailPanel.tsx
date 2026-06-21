@@ -56,7 +56,6 @@ export function InvoiceDetailPanel({
   // ── Action states ────────────────────────────────────────────────────────
   const [paymentLink, setPaymentLink] = useState<string | null>(invoice.payment_link ?? null);
   const [stripeUrl, setStripeUrl] = useState<string | null>(null);
-  const [generatingLink, setGeneratingLink] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
@@ -71,28 +70,6 @@ export function InvoiceDetailPanel({
 
   const currency = (invoice.currency as "EUR" | "USD" | "GBP" | "CHF") || "EUR";
   const vatRate = invoice.tax_rate ?? invoice.vatRate ?? 22;
-
-  // ── Generate Stripe payment link ─────────────────────────────────────────
-  async function handleGeneratePaymentLink() {
-    setGeneratingLink(true);
-    setActionError(null);
-    try {
-      const res = await fetch(`/api/invoices/${invoice.id}/generate-payment-link`, {
-        method: "POST",
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        setActionError(json.error || "Errore nella generazione del link");
-      } else {
-        setPaymentLink(json.data.payUrl);
-        setStripeUrl(json.data.stripeUrl);
-      }
-    } catch {
-      setActionError("Errore di rete. Riprova.");
-    } finally {
-      setGeneratingLink(false);
-    }
-  }
 
   // ── Copy payment link ────────────────────────────────────────────────────
   async function handleCopyLink() {

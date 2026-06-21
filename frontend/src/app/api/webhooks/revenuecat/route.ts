@@ -180,7 +180,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ success: true, plan_applied: targetPlan });
-  } catch (error) {
+  } catch {
     await logPaymentAudit({
       event_type: "revenuecat.handler_error",
       provider: "revenuecat",

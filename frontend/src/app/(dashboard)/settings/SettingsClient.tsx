@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { UserQuota } from "@/types/rewards";
-import { User, Gem, Bell, AlertTriangle, Check, Smartphone } from "lucide-react";
+import { User, Gem, Bell, AlertTriangle, Check } from "lucide-react";
 
 interface SettingsClientProps {
   user: { id: string; email: string; fullName: string };
