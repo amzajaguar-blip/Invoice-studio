@@ -4,7 +4,10 @@ import { supabase } from "@/lib/supabase";
 import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 
-WebBrowser.maybeCompleteAuthSession();
+// NOTE: Do NOT call WebBrowser.maybeCompleteAuthSession() here at module scope.
+// Module-scope execution runs during Hermes bundle evaluation — before React mounts
+// and before any error boundary exists. A crash here produces a silent white screen.
+// The call is made inside AuthProvider's useEffect (component lifecycle) instead.
 
 function translateAuthError(message: string): string {
   const map: Record<string, string> = {
@@ -53,17 +56,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Complete auth session inside component lifecycle, not at module scope.
+    // This is safe here because React has already mounted and error boundaries exist.
+    try {
+      WebBrowser.maybeCompleteAuthSession();
+    } catch (err) {
+      console.error("[BOOT ERROR] maybeCompleteAuthSession failed (non-fatal)", err);
+    }
+
+    console.log("[BOOT] AuthProvider useEffect starting");
     // Get initial session from SecureStore
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        console.log("[BOOT] AuthProvider session loaded", session ? "authenticated" : "no session");
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("[BOOT ERROR] AuthProvider getSession failed", err);
+        setSession(null);
+        setUser(null);
+        setLoading(false);
+      });
 
     // Listen for auth changes — ignora solo INITIAL_SESSION
     const { data: subscription } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (event === "INITIAL_SESSION") return;
+        console.log("[BOOT] AuthProvider auth state changed", event);
         setSession(session);
         setUser(session?.user ?? null);
       }
