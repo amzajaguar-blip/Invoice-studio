@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import * as SecureStore from "expo-secure-store";
 import Constants from "expo-constants";
 
@@ -33,23 +33,53 @@ const ExpoSecureStoreAdapter = {
   },
 };
 
-// ─── Supabase client ─────────────────────────────────────────────────────────
+// ─── Lazy Supabase client ────────────────────────────────────────────────────
+//
+// CRITICAL: Do NOT create the client at module scope.
+// Module-scope execution runs during Hermes bundle evaluation — before React mounts
+// and before any error boundary exists. A crash here produces a silent white screen.
+//
+// Instead, we defer client creation until first access (lazy initialization).
+// The supabase client will be created on first use, inside the React component tree.
 
-const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl as string;
-const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey as string;
+let supabaseClient: SupabaseClient | null = null;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    "Supabase URL and Anon Key must be configured in app.json > expo.extra"
+function getSupabaseClient(): SupabaseClient {
+  if (supabaseClient) {
+    return supabaseClient;
+  }
+
+  const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl as string | undefined;
+  const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey as string | undefined;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error(
+      "[BOOT ERROR] Supabase URL/Anon Key missing from Constants.expoConfig.extra. " +
+        "Auth will not work. Check app.json > expo.extra and rebuild."
+    );
+  }
+
+  supabaseClient = createClient(
+    supabaseUrl || "https://missing-supabase-url.invalid",
+    supabaseAnonKey || "missing-anon-key",
+    {
+      auth: {
+        storage: ExpoSecureStoreAdapter,
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: false,
+      },
+    }
   );
+
+  return supabaseClient;
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    storage: ExpoSecureStoreAdapter,
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
+// Export a proxy that lazily creates the client on first access
+export const supabase: SupabaseClient = new Proxy({} as SupabaseClient, {
+  get(_target, prop) {
+    const client = getSupabaseClient();
+    return (client as any)[prop];
   },
 });
 
