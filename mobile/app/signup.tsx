@@ -8,13 +8,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function SignupScreen() {
-  const { signUp, resendConfirmation } = useAuth();
+  const { signUp } = useAuth();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
@@ -23,9 +22,6 @@ export default function SignupScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [resending, setResending] = useState(false);
-  const [resendMsg, setResendMsg] = useState<string | null>(null);
 
   const handleSignup = async () => {
     if (!email.trim() || !password.trim()) {
@@ -47,64 +43,10 @@ export default function SignupScreen() {
     if (result.error) {
       setError(result.error);
     } else {
-      setSuccess(true);
+      // Redirect to OTP verification screen instead of static success.
+      router.push(`/auth/verify-otp?email=${encodeURIComponent(email.trim())}&mode=signup`);
     }
   };
-
-  const handleResend = async () => {
-    setResending(true);
-    setResendMsg(null);
-    const result = await resendConfirmation(email.trim());
-    setResending(false);
-    if (result.error) {
-      setResendMsg(result.error);
-    } else {
-      setResendMsg("Email di conferma inviata di nuovo!");
-    }
-  };
-
-  if (success) {
-    return (
-      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-        <ScrollView contentContainerStyle={styles.outer}>
-          <View style={styles.card}>
-            <View style={styles.header}>
-              <Text style={styles.title}>InvoiceStudio</Text>
-              <Text style={styles.subtitle}>Account creato!</Text>
-            </View>
-            <View style={styles.successBox}>
-              <Text style={styles.successText}>
-                Ti abbiamo inviato un'email di conferma all'indirizzo:
-              </Text>
-              <Text style={styles.emailText}>{email}</Text>
-            </View>
-            <View style={styles.warningBox}>
-              <Text style={styles.warningText}>
-                ⚠️ Non vedi l'email? Controlla la cartella Spam/Posta indesiderata. L'email potrebbe arrivare entro qualche minuto.
-              </Text>
-            </View>
-            {resendMsg && (
-              <View style={[styles.successBox, resendMsg.includes("errore") || resendMsg.includes("Error") ? styles.errorBox : null]}>
-                <Text style={[styles.successText, resendMsg.includes("errore") || resendMsg.includes("Error") ? styles.errorText : null]}>
-                  {resendMsg}
-                </Text>
-              </View>
-            )}
-            <TouchableOpacity style={[styles.secondaryButton, resending && styles.disabled]} onPress={handleResend} disabled={resending}>
-              {resending ? (
-                <ActivityIndicator color="#6c63ff" size="small" />
-              ) : (
-                <Text style={styles.secondaryButtonText}>Non ricevuta? Invia di nuovo</Text>
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.button} onPress={() => router.replace("/login")}>
-              <Text style={styles.buttonText}>Torna al login</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    );
-  }
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
@@ -204,16 +146,9 @@ const styles = StyleSheet.create({
   eyeIcon: { fontSize: 18 },
   errorBox: { backgroundColor: "rgba(239,68,68,0.08)", borderWidth: 1, borderColor: "rgba(239,68,68,0.2)", borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12 },
   errorText: { color: "#ef4444", fontSize: 13 },
-  successBox: { backgroundColor: "rgba(34,197,94,0.08)", borderWidth: 1, borderColor: "rgba(34,197,94,0.2)", borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 16 },
-  successText: { color: "#22c55e", fontSize: 13, lineHeight: 18 },
   button: { backgroundColor: "#6c63ff", borderRadius: 10, paddingVertical: 13, alignItems: "center", marginTop: 8 },
-  secondaryButton: { backgroundColor: "transparent", borderWidth: 1, borderColor: "#6c63ff", borderRadius: 10, paddingVertical: 13, alignItems: "center" },
-  secondaryButtonText: { color: "#6c63ff", fontSize: 15, fontWeight: "600" },
   disabled: { opacity: 0.5 },
   buttonText: { color: "#ffffff", fontSize: 15, fontWeight: "600" },
-  warningBox: { backgroundColor: "rgba(234,179,8,0.08)", borderWidth: 1, borderColor: "rgba(234,179,8,0.2)", borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 12 },
-  warningText: { color: "#eab308", fontSize: 13, lineHeight: 18 },
-  emailText: { color: "#6c63ff", fontSize: 14, fontWeight: "600", marginTop: 4 },
   linksRow: { flexDirection: "row", justifyContent: "center" },
   link: { color: "#6c63ff", fontSize: 13 },
 });
