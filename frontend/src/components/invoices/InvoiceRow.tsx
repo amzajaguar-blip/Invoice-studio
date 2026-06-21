@@ -51,7 +51,7 @@ export function InvoiceRow({
           onSelect(invoice);
         }
       }}
-      aria-selected={selected}
+      aria-pressed={selected}
       aria-label={`Fattura ${invoice.number}`}
     >
       {/* Checkbox */}

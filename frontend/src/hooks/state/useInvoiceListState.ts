@@ -5,7 +5,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { InvoiceListUiState, InvoiceListFilter } from "@/types/states/invoice";
 import { loading, success, empty, error, offline } from "@/types/states/base";
-import type { Invoice } from "@/types/models";
 import type { InvoiceRepository } from "@/repositories/interfaces/invoice-repository";
 
 export function useInvoiceListState(repository: InvoiceRepository, orgId: string) {

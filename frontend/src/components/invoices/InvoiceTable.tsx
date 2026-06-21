@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { InvoiceRow } from "./InvoiceRow";
-import { StatusBadge } from "./StatusBadge";
 import type { Invoice, InvoiceStatus } from "@/types";
 
 interface InvoiceTableProps {

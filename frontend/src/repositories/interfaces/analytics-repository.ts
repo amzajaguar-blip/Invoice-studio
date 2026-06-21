@@ -1,7 +1,7 @@
 // ─── Analytics Repository interface ───
 // NO API implementation. Mock only.
 
-import type { MonthlyRevenue, RevenueTrend, CashflowForecast } from "@/types/models";
+import type { RevenueTrend, CashflowForecast } from "@/types/models";
 import type { ClientRevenue, RecoveryStats } from "@/types/states/analytics";
 
 export interface AnalyticsRepository {

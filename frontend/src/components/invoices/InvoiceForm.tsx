@@ -37,14 +37,6 @@ interface DraftData {
 
 const AUTOSAVE_KEY = "invoice-studio:draft:form";
 
-interface FormData {
-  clientId: string;
-  currency: Currency;
-  vatRate: number;
-  dueDate: string;
-  notes: string;
-}
-
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 export function InvoiceForm({ onClose, onSave, triggerRef }: { onClose: () => void; onSave?: () => void; triggerRef?: React.RefObject<HTMLElement | null> }) {
@@ -81,7 +73,7 @@ export function InvoiceForm({ onClose, onSave, triggerRef }: { onClose: () => vo
   const loadedFromStorageRef = useRef(false);
 
   // AI suggestions
-  const { suggest, loading: aiLoading } = useAISuggest();
+  const { suggest } = useAISuggest();
   const [aiSuggestingIndex, setAiSuggestingIndex] = useState<number | null>(null);
   const [aiSuggestingNotes, setAiSuggestingNotes] = useState(false);
 
@@ -115,10 +107,12 @@ export function InvoiceForm({ onClose, onSave, triggerRef }: { onClose: () => vo
   // ─── Return focus on close ─────────────────────────────────────────────────
 
   useEffect(() => {
+    // Capture current ref value to avoid stale access in cleanup.
+    const trigger = triggerRef?.current;
     return () => {
       // Delay to let the parent state update before focusing
       requestAnimationFrame(() => {
-        triggerRef?.current?.focus();
+        trigger?.focus();
       });
     };
   }, [triggerRef]);
