@@ -4,7 +4,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
 import type { InvoiceRepository, CreateInvoiceInput, UpdateInvoiceInput } from "@/repositories/interfaces/invoice-repository";
-import type { Invoice, InvoiceStatus } from "@/types/models";
+import type { InvoiceStatus } from "@/types/models";
 import { fromSupabaseInvoice } from "@/lib/mappers";
 
 export function createInvoiceRepositorySupabase(

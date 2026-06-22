@@ -1,7 +1,7 @@
 // ─── Analytics UiState ───
 
 import type { UiState } from "./base";
-import type { MonthlyRevenue, RevenueTrend, CashflowForecast } from "../models";
+import type { RevenueTrend, CashflowForecast } from "../models";
 
 export interface AnalyticsData {
   revenueTrend: RevenueTrend;
