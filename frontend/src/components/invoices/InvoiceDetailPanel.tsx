@@ -60,7 +60,6 @@ export function InvoiceDetailPanel({
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
 
   const items = invoice.invoice_items || [];
   const events = (invoice.invoice_events || []).sort(
@@ -294,9 +293,9 @@ export function InvoiceDetailPanel({
           )}
 
           {/* Error banner */}
-          {(actionError || emailError) && (
+          {emailError && (
             <div className="mb-4 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400">
-              {actionError || emailError}
+              {emailError}
             </div>
           )}
 

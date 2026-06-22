@@ -13,6 +13,13 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  // Allow underscore-prefixed unused vars (common in mock implementations)
+  {
+    files: ["src/repositories/mocks/**/*.ts"],
+    rules: {
+      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
+    },
+  },
   // Service worker: ServiceWorker globals (self, caches, clients, etc.)
   {
     files: ["public/sw.js"],

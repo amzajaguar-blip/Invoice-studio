@@ -6,7 +6,7 @@ import type { ClientRevenue, RecoveryStats } from "@/types/states/analytics";
 
 export function createAnalyticsRepositoryMock(): AnalyticsRepository {
   return {
-    async getRevenueTrend(orgId: string, _monthsBack?: number): Promise<RevenueTrend> {
+    async getRevenueTrend(_orgId: string, _monthsBack?: number): Promise<RevenueTrend> {
       await new Promise((r) => setTimeout(r, 500));
       return {
         months: [
@@ -21,7 +21,7 @@ export function createAnalyticsRepositoryMock(): AnalyticsRepository {
       };
     },
 
-    async getCashflowForecast(orgId: string, _monthsAhead?: number): Promise<CashflowForecast> {
+    async getCashflowForecast(_orgId: string, _monthsAhead?: number): Promise<CashflowForecast> {
       await new Promise((r) => setTimeout(r, 600));
       return {
         period: "2026-06",
@@ -38,7 +38,7 @@ export function createAnalyticsRepositoryMock(): AnalyticsRepository {
       };
     },
 
-    async getTopClients(orgId: string, _limit?: number): Promise<ClientRevenue[]> {
+    async getTopClients(_orgId: string, _limit?: number): Promise<ClientRevenue[]> {
       await new Promise((r) => setTimeout(r, 400));
       return [
         { clientId: "c1", clientName: "Studio Legale Rossi", totalRevenue: 8500, invoiceCount: 4, averagePaymentDays: 12 },
@@ -47,7 +47,7 @@ export function createAnalyticsRepositoryMock(): AnalyticsRepository {
       ];
     },
 
-    async getRecoveryStats(orgId: string): Promise<RecoveryStats> {
+    async getRecoveryStats(_orgId: string): Promise<RecoveryStats> {
       await new Promise((r) => setTimeout(r, 350));
       return {
         totalCampaigns: 8,
