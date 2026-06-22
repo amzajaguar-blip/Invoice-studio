@@ -55,7 +55,6 @@ export function OcrUploadZone({
       "Verifica affidabilità dati OCR...",
     ];
     let i = 0;
-    setProcessingMessage(messages[0]);
     const interval = setInterval(() => {
       i = (i + 1) % messages.length;
       setProcessingMessage(messages[i]);

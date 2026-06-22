@@ -152,7 +152,6 @@ export function InvoiceForm({ onClose, onSave, triggerRef }: { onClose: () => vo
     } catch {
       // corrupt storage — ignore
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ─── Autosave to localStorage every 5s when dirty ─────────────────────────
