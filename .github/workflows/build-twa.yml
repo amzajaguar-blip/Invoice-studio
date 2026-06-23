@@ -46,7 +46,6 @@ jobs:
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
       NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
       NEXT_PUBLIC_APP_URL: https://withmilo.app
-      TURBOPACK: 0
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
