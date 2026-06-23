@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   KeyboardAvoidingView,
@@ -10,7 +9,6 @@ import {
   ActivityIndicator,
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import { useRouter } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 
 /** Logo Google ufficiale — react-native-svg è nel package.json ed è
@@ -27,65 +25,17 @@ function GoogleIcon({ size = 20 }: { size?: number }) {
 }
 
 export default function LoginScreen() {
-  const { signIn, resetPassword, signInWithGoogle } = useAuth();
-  const router = useRouter();
+  const { signInWithGoogle } = useAuth();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [resetMode, setResetMode] = useState(false);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [attempts, setAttempts] = useState(0);
-  const [cooldown, setCooldown] = useState(0);
 
-  useEffect(() => {
-    if (cooldown <= 0) return;
-    const timer = setInterval(() => setCooldown((p) => p - 1), 1000);
-    return () => clearInterval(timer);
-  }, [cooldown]);
-
-  const handleLogin = async () => {
-    if (cooldown > 0) return;
-    if (!email.trim() || !password.trim()) {
-      setError("Inserisci email e password");
-      return;
-    }
+  const handleGoogleLogin = async () => {
     setError(null);
-    setSuccess(null);
     setLoading(true);
-    const result = await signIn(email.trim(), password);
+    const res = await signInWithGoogle();
     setLoading(false);
-    if (result.error) {
-      const newAttempts = attempts + 1;
-      setAttempts(newAttempts);
-      if (newAttempts >= 3) {
-        setCooldown(60);
-        setAttempts(0);
-        setError("Troppi tentativi. Riprova tra 60 secondi.");
-      } else {
-        setError(result.error);
-      }
-    }
-  };
-
-  const handleResetPassword = async () => {
-    if (!email.trim()) {
-      setError("Inserisci la tua email per ricevere il link di reset");
-      return;
-    }
-    setError(null);
-    setSuccess(null);
-    setLoading(true);
-    const result = await resetPassword(email.trim());
-    setLoading(false);
-    if (result.error) {
-      setError(result.error);
-    } else {
-      setSuccess("Email inviata! Controlla la tua casella di posta.");
-      setResetMode(false);
-    }
+    if (res.error) setError(res.error);
   };
 
   return (
@@ -98,132 +48,24 @@ export default function LoginScreen() {
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.title}>InvoiceStudio</Text>
-            <Text style={styles.subtitle}>
-              {resetMode ? "Reimposta la password" : "Accedi al tuo account"}
-            </Text>
+            <Text style={styles.subtitle}>Accedi con Google per continuare</Text>
           </View>
 
-          {!resetMode && (
-            <>
-              {/* Google button */}
-              <TouchableOpacity
-                style={[styles.googleButton, loading && styles.disabled]}
-                onPress={async () => {
-                  setError(null);
-                  setLoading(true);
-                  const res = await signInWithGoogle();
-                  setLoading(false);
-                  if (res.error) setError(res.error);
-                }}
-                disabled={loading || cooldown > 0}
-              >
-                <GoogleIcon size={20} />
-                <Text style={styles.googleButtonText}>Accedi con Google</Text>
-              </TouchableOpacity>
+          {/* Google button */}
+          <TouchableOpacity
+            style={[styles.googleButton, loading && styles.disabled]}
+            onPress={handleGoogleLogin}
+            disabled={loading}
+          >
+            <GoogleIcon size={20} />
+            <Text style={styles.googleButtonText}>Accedi con Google</Text>
+          </TouchableOpacity>
 
-              {/* Divider */}
-              <View style={styles.divider}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>O accedi con email</Text>
-                <View style={styles.dividerLine} />
-              </View>
-            </>
+          {error && (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
           )}
-
-          {/* Form */}
-          <View style={styles.form}>
-            <View>
-              <Text style={styles.label}>Email</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="nome@studio.it"
-                placeholderTextColor="#6b7280"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={email}
-                onChangeText={setEmail}
-              />
-            </View>
-
-            {!resetMode && (
-              <View>
-                <Text style={styles.label}>Password</Text>
-                <View style={styles.passwordRow}>
-                  <TextInput
-                    style={[styles.input, styles.passwordInput]}
-                    placeholder="••••••••"
-                    placeholderTextColor="#6b7280"
-                    secureTextEntry={!showPassword}
-                    value={password}
-                    onChangeText={setPassword}
-                  />
-                  <TouchableOpacity
-                    style={styles.eyeButton}
-                    onPress={() => setShowPassword((v) => !v)}
-                  >
-                    <Text style={styles.eyeIcon}>{showPassword ? "🙈" : "👁"}</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-
-            {error && (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            )}
-
-            {success && (
-              <View style={styles.successBox}>
-                <Text style={styles.successText}>{success}</Text>
-              </View>
-            )}
-
-            <TouchableOpacity
-              style={[
-                styles.button,
-                (loading || cooldown > 0) && styles.disabled,
-              ]}
-              onPress={resetMode ? handleResetPassword : handleLogin}
-              disabled={loading || cooldown > 0}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <Text style={styles.buttonText}>
-                  {cooldown > 0
-                    ? `Riprova tra ${cooldown}s`
-                    : resetMode
-                    ? "Invia email di reset"
-                    : "Accedi"}
-                </Text>
-              )}
-            </TouchableOpacity>
-
-            {/* Bottom links */}
-            <View style={styles.linksRow}>
-              <TouchableOpacity
-                onPress={() => {
-                  setResetMode(!resetMode);
-                  setError(null);
-                  setSuccess(null);
-                }}
-              >
-                <Text style={styles.link}>
-                  {resetMode ? "Torna al login" : "Password dimenticata?"}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {!resetMode && (
-              <TouchableOpacity onPress={() => router.push("/signup")}>
-                <Text style={styles.signupLink}>
-                  Non hai un account? <Text style={{ fontWeight: "600", color: "#6c63ff" }}>Registrati</Text>
-                </Text>
-              </TouchableOpacity>
-            )}
-
-          </View>
         </View>
       </View>
     </KeyboardAvoidingView>
@@ -261,6 +103,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#6b7280",
     marginTop: 8,
+    textAlign: "center",
   },
   googleButton: {
     flexDirection: "row",
@@ -278,57 +121,8 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "500",
   },
-  divider: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 24,
-    marginBottom: 16,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#1e2029",
-  },
-  dividerText: {
-    color: "#6b7280",
-    fontSize: 13,
-    paddingHorizontal: 12,
-  },
-  form: {
-    gap: 16,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: "500",
-    color: "#e5e7eb",
-    marginBottom: 6,
-  },
-  input: {
-    backgroundColor: "#111318",
-    borderWidth: 1,
-    borderColor: "#1e2029",
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    color: "#f0f0f2",
-    fontSize: 15,
-  },
-  passwordRow: {
-    position: "relative",
-  },
-  passwordInput: {
-    paddingRight: 44,
-  },
-  eyeButton: {
-    position: "absolute",
-    right: 10,
-    top: 0,
-    bottom: 0,
-    justifyContent: "center",
-    paddingHorizontal: 4,
-  },
-  eyeIcon: {
-    fontSize: 18,
+  disabled: {
+    opacity: 0.5,
   },
   errorBox: {
     backgroundColor: "rgba(239,68,68,0.08)",
@@ -337,49 +131,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
+    marginTop: 16,
   },
   errorText: {
     color: "#ef4444",
     fontSize: 13,
-  },
-  successBox: {
-    backgroundColor: "rgba(34,197,94,0.08)",
-    borderWidth: 1,
-    borderColor: "rgba(34,197,94,0.2)",
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  successText: {
-    color: "#22c55e",
-    fontSize: 13,
-  },
-  button: {
-    backgroundColor: "#6c63ff",
-    borderRadius: 10,
-    paddingVertical: 13,
-    alignItems: "center",
-  },
-  disabled: {
-    opacity: 0.5,
-  },
-  buttonText: {
-    color: "#ffffff",
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  linksRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  link: {
-    color: "#6c63ff",
-    fontSize: 12,
-  },
-  signupLink: {
-    color: "#6b7280",
-    fontSize: 13,
-    textAlign: "center",
-    marginTop: 8,
   },
 });

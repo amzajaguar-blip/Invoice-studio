@@ -28,7 +28,7 @@ import { applyBoost } from './rate-limit-engine';
  */
 export const BOOST_AD_UNIT_ID: string = __DEV__
   ? TestIds.REWARDED
-  : 'ca-app-pub-4053625490298263/BOOST_UNIT_ID';
+  : 'ca-app-pub-4053625490298263/3442892886';
 
 /** Limite giornaliero rewarded ad (Req 2.5) */
 const DAILY_ADS_MAX = 3;
