@@ -10,15 +10,7 @@ import * as WebBrowser from "expo-web-browser";
 // The call is made inside AuthProvider's useEffect (component lifecycle) instead.
 
 function translateAuthError(message: string): string {
-  const map: Record<string, string> = {
-    "Invalid login credentials": "Email o password non corretti. Verifica e riprova.",
-    "Email not confirmed": "Email non ancora verificata. Controlla la tua casella di posta.",
-    "Invalid email or password": "Email o password non corretti. Verifica e riprova.",
-    "User not found": "Nessun account trovato con questa email. Verifica o registrati.",
-    "User already registered": "Email giÃ  registrata. Prova ad accedere.",
-    "Password should be at least 10 characters": "La password deve essere di almeno 10 caratteri.",
-    "Unable to validate email address": "Email non valida. Controlla e riprova.",
-  };
+  const map: Record<string, string> = {};
   return map[message] ?? message;
 }
 
@@ -28,11 +20,7 @@ interface AuthContextValue {
   session: Session | null;
   user: User | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error?: string }>;
-  signUp: (email: string, password: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
-  resetPassword: (email: string) => Promise<{ error?: string }>;
-  resendConfirmation: (email: string) => Promise<{ error?: string }>;
   signInWithGoogle: () => Promise<{ error?: string }>;
 }
 
@@ -40,11 +28,7 @@ const AuthContext = createContext<AuthContextValue>({
   session: null,
   user: null,
   loading: true,
-  signIn: async () => ({ error: "not initialized" }),
-  signUp: async () => ({ error: "not initialized" }),
   signOut: async () => {},
-  resetPassword: async () => ({ error: "not initialized" }),
-  resendConfirmation: async () => ({ error: "not initialized" }),
   signInWithGoogle: async () => ({ error: "not initialized" }),
 });
 
@@ -93,52 +77,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.subscription.unsubscribe();
   }, []);
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) return { error: translateAuthError(error.message) };
-    return {};
-  };
-
-  const signUp = async (email: string, password: string) => {
-    const redirectUrl = Linking.createURL("/auth/callback");
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-      },
-    });
-    if (error) return { error: translateAuthError(error.message) };
-    return {};
-  };
-
   const signOut = async () => {
     await supabase.auth.signOut();
-  };
-
-  const resetPassword = async (email: string) => {
-    const redirectUrl = Linking.createURL("/reset-password");
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: redirectUrl,
-    });
-    if (error) return { error: translateAuthError(error.message) };
-    return {};
-  };
-
-  const resendConfirmation = async (email: string) => {
-    const redirectUrl = Linking.createURL("/auth/callback");
-    const { error } = await supabase.auth.resend({
-      type: "signup",
-      email,
-      options: {
-        emailRedirectTo: redirectUrl,
-      },
-    });
-    if (error) return { error: translateAuthError(error.message) };
-    return {};
   };
 
   const signInWithGoogle = async () => {
@@ -246,11 +186,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         session,
         user,
         loading,
-        signIn,
-        signUp,
         signOut,
-        resetPassword,
-        resendConfirmation,
         signInWithGoogle,
       }}
     >

@@ -129,19 +129,7 @@ function AuthDeepLinkHandler() {
         const parsed = new URL(event.url);
         const path = parsed.pathname || parsed.hostname;
 
-        if (path.includes("reset-password")) {
-          const code = parsed.searchParams.get("code");
-          const hash = parsed.hash?.replace(/^#/, "");
-          const hashParams = hash ? new URLSearchParams(hash) : null;
-          const accessToken = hashParams?.get("access_token");
-          const refreshToken = hashParams?.get("refresh_token");
-
-          if (code) {
-            router.push(`/reset-password?code=${code}` as any);
-          } else if (accessToken && refreshToken) {
-            router.push(`/reset-password?access_token=${accessToken}&refresh_token=${refreshToken}` as any);
-          }
-        } else if (path.includes("auth/callback")) {
+        if (path.includes("auth/callback")) {
           router.push("/auth/callback" as any);
         }
       } catch (err) {
