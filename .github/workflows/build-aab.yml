@@ -37,7 +37,7 @@ jobs:
       - name: Generate release keystore
         run: |
           keytool -genkey -v \
-            -keystore android/app/release.keystore \
+            -keystore release.keystore \
             -alias release \
             -keyalg RSA \
             -keysize 2048 \
@@ -45,6 +45,7 @@ jobs:
             -storepass "InvoiceStudio2026!" \
             -keypass "InvoiceStudio2026!" \
             -dname "CN=Invoice Studio, OU=Mobile, O=Invoice Studio, L=Rome, ST=Lazio, C=IT"
+          cp release.keystore android/app/release.keystore
 
       - name: Expo prebuild
         run: npx expo prebuild --platform android --no-install --clean
