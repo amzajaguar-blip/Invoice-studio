@@ -19,6 +19,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
+import { Ionicons } from "@expo/vector-icons";
 import { apiFetch } from "@/lib/ai";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { EmptyState } from "@/components/EmptyState";
@@ -27,6 +28,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { usePlan } from "@/context/PlanContext";
 import { useBusinessBoost } from "@/hooks/useBusinessBoost";
 import { trackEvent } from "@/lib/analytics-events";
+import { useLocale } from "@/lib/i18n";
 import BusinessBoostModal from "@/components/BusinessBoostModal";
 import BoostSuccessModal from "@/components/BoostSuccessModal";
 import InAppContextualCard from "@/components/InAppContextualCard";
@@ -53,13 +55,13 @@ const STATUS_COLORS: Record<string, string> = {
   invoiced: "#a855f7",
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  draft:    "Bozza",
-  sent:     "Inviato",
-  accepted: "Accettato",
-  rejected: "Rifiutato",
-  invoiced: "Fatturato",
-};
+const getStatusLabels = (t: any): Record<string, string> => ({
+  draft:    t("draft_quote"),
+  sent:     t("sent_quote"),
+  accepted: t("accepted"),
+  rejected: t("rejected"),
+  invoiced: t("invoiced"),
+});
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
@@ -71,6 +73,8 @@ export default function QuotesScreen() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const { t } = useLocale();
+  const STATUS_LABELS = getStatusLabels(t);
 
   // ─── V34: Engagement context (Req 9.4 pattern) ──────────────────────────
   const { recordAction } = useEngagementContext();
@@ -216,10 +220,10 @@ export default function QuotesScreen() {
    */
   const renderEmpty = () => (
     <EmptyState
-      icon="📝"
-      title="Prepara un preventivo prima di fatturare."
-      hint="Converti facilmente i preventivi in fatture."
-      cta="Crea preventivo"
+      icon="document-text-outline"
+      title={t("quotesDetail")}
+      hint={t("quote_not_found")}
+      cta={t("newQuote")}
       onCTA={handleNewQuote}
     />
   );
@@ -229,7 +233,7 @@ export default function QuotesScreen() {
       {/* Header */}
       <View style={s.header}>
         <View>
-          <Text style={s.title}>Preventivi</Text>
+          <Text style={s.title}>{t("quotes")}</Text>
           <Text style={s.sub}>
             {quotes.length} preventiv{quotes.length === 1 ? "o" : "i"}
           </Text>
@@ -242,9 +246,17 @@ export default function QuotesScreen() {
           accessibilityRole="button"
           accessibilityLabel="Quota preventivi"
         >
-          <Text style={[s.quotaText, !canCreate && s.quotaTextWarn]}>
-            {quoteLimits?.used ?? 0}/{quoteLimits?.base ?? 3} 📝
-          </Text>
+          <View style={s.quotaInner}>
+            <Ionicons
+              name="document-text-outline"
+              size={14}
+              color={canCreate ? "#9ca3af" : "#ef4444"}
+              style={s.quotaIcon}
+            />
+            <Text style={[s.quotaText, !canCreate && s.quotaTextWarn]}>
+              {quoteLimits?.used ?? 0}/{quoteLimits?.base ?? 3}
+            </Text>
+          </View>
         </TouchableOpacity>
       </View>
 
@@ -256,7 +268,7 @@ export default function QuotesScreen() {
         accessibilityRole="button"
         accessibilityLabel="Crea nuovo preventivo"
       >
-        <Text style={s.newBtnText}>+ Nuovo Preventivo</Text>
+        <Text style={s.newBtnText}>{t("newQuote")}</Text>
       </TouchableOpacity>
 
       {/* V34: InAppContextualCard per context 'quotes_convert_hint'
@@ -378,6 +390,8 @@ const s = StyleSheet.create({
     borderColor:     "#ef444466",
     backgroundColor: "#ef444411",
   },
+  quotaInner:    { flexDirection: "row", alignItems: "center", gap: 5 },
+  quotaIcon:     { marginRight: 2 },
   quotaText:     { fontSize: 13, color: "#9ca3af", fontWeight: "600" },
   quotaTextWarn: { color: "#ef4444" },
   newBtn: {

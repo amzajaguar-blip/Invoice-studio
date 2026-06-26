@@ -1,7 +1,8 @@
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 export interface EmptyStateProps {
-  icon: string;
+  icon: keyof typeof Ionicons.glyphMap;
   title: string;
   hint: string;
   cta?: string;
@@ -14,9 +15,7 @@ export function EmptyState({ icon, title, hint, cta, onCTA }: EmptyStateProps) {
       style={styles.container}
       accessibilityLabel={title}
     >
-      <Text style={styles.icon} accessibilityElementsHidden>
-        {icon}
-      </Text>
+      <Ionicons name={icon} size={56} color="#6c63ff" style={styles.icon} />
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.hint}>{hint}</Text>
       {cta && onCTA && (

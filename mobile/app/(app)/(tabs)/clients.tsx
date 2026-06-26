@@ -249,7 +249,7 @@ export default function ClientsScreen() {
         ListEmptyComponent={
           /* V34 — Smart Empty State (Req 17.1, 20.1) */
           <EmptyState
-            icon="👥"
+            icon="people-outline"
             title="Nessun cliente ancora."
             hint="Aggiungi il tuo primo cliente per iniziare a fatturare."
             cta="Crea primo cliente"

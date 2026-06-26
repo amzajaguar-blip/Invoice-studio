@@ -130,13 +130,12 @@ export default function BoostSuccessModal({
               transform: [{ scale: scaleAnim }],
             },
           ]}
-          accessibilityRole="region"
           accessibilityLabel="Riepilogo Business Boost attivato"
         >
           {/* ── Badge principale ─────────────────────────────────────── */}
           <View style={s.badgeRow}>
             <View style={s.badge}>
-              <Text style={s.badgeText}>Business Boost Attivato 🚀</Text>
+              <Text style={s.badgeText}>Business Boost Attivato</Text>
             </View>
           </View>
 

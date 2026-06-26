@@ -38,6 +38,8 @@ frontend/twa/
 *.log
 npm-debug.log*
 aab/
+aab_download/
+apk_download/
 
 # Google Cloud / Firebase service account keys — NEVER commit these
 json.google/

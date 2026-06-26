@@ -23,6 +23,7 @@ import { apiFetch } from "@/lib/ai";
 import { useLocale, AVAILABLE_LOCALES } from "@/lib/i18n";
 import { useToast } from "@/lib/toast";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 // V34 — plan, smart cards, banner
 import { usePlan } from "@/context/PlanContext";
@@ -35,7 +36,7 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [settings, setSettings] = useState<NotificationSettings | null>(null);
-  const { locale, setLocale } = useLocale();
+  const { locale, setLocale, t } = useLocale();
   const { showToast } = useToast();
 
   // V34 — piano corrente
@@ -123,36 +124,36 @@ export default function SettingsScreen() {
       style={styles.container}
       contentContainerStyle={{ padding: 20, paddingTop: insets.top }}
     >
-      <Text style={styles.title}>Impostazioni</Text>
+      <Text style={styles.title}>{t("settings_title")}</Text>
       <Text style={styles.email}>{user?.email}</Text>
 
       {/* V34 — Tip card onboarding per nuovi utenti (Req 17.4) */}
       {isNewUser && (
         <View style={styles.onboardingTip}>
-          <Text style={styles.onboardingTipIcon}>💡</Text>
+          <Ionicons name="bulb-outline" size={22} color="#6c63ff" style={styles.onboardingTipIcon} />
           <View style={styles.onboardingTipText}>
-            <Text style={styles.onboardingTipTitle}>Configura il tuo profilo</Text>
+            <Text style={styles.onboardingTipTitle}>{t("configure_profile")}</Text>
             <Text style={styles.onboardingTipBody}>
-              Personalizza InvoiceStudio per la tua attività.
+              {t("personalize_studio")}
             </Text>
           </View>
         </View>
       )}
 
       {/* V34 — Sezione Piano (Req 3.7) */}
-      <Text style={styles.sectionTitle}>💎 Piano</Text>
+      <Text style={styles.sectionTitle}>{t("plan")}</Text>
       <View style={styles.card}>
         {isPremium ? (
           /* Piano Premium attivo: badge e supporto prioritario */
           <View style={styles.premiumContainer}>
             <View style={styles.premiumBadgeRow}>
               <View style={styles.premiumBadge}>
-                <Text style={styles.premiumBadgeText}>✨ Premium Attivo</Text>
+                <Text style={styles.premiumBadgeText}>{t("premium_active")}</Text>
               </View>
             </View>
             <View style={styles.premiumFeatureRow}>
-              <Text style={styles.premiumFeatureIcon}>🎯</Text>
-              <Text style={styles.premiumFeatureText}>Supporto Prioritario</Text>
+              <Ionicons name="checkmark-circle-outline" size={18} color="#6c63ff" style={styles.premiumFeatureIcon} />
+              <Text style={styles.premiumFeatureText}>{t("priority_support")}</Text>
             </View>
           </View>
         ) : (
@@ -164,11 +165,11 @@ export default function SettingsScreen() {
             accessibilityLabel="Passa a Premium — Rimuovi tutti i limiti"
           >
             <View style={styles.upgradeTextBlock}>
-              <Text style={styles.upgradeTitle}>Passa a Premium →</Text>
-              <Text style={styles.upgradeSubtitle}>Rimuovi tutti i limiti</Text>
+              <Text style={styles.upgradeTitle}>{t("upgrade_premium")}</Text>
+              <Text style={styles.upgradeSubtitle}>{t("remove_limits")}</Text>
             </View>
             <View style={styles.upgradeBadge}>
-              <Text style={styles.upgradeBadgeText}>Free</Text>
+              <Text style={styles.upgradeBadgeText}>{t("free")}</Text>
             </View>
           </TouchableOpacity>
         )}
@@ -186,32 +187,32 @@ export default function SettingsScreen() {
       )}
 
       {/* Notifiche */}
-      <Text style={styles.sectionTitle}>🔔 Notifiche</Text>
+      <Text style={styles.sectionTitle}>{t("notifications")}</Text>
       <View style={styles.card}>
         <ToggleRow
-          label="Notifiche push"
+          label={t("push_notifications")}
           value={settings?.pushEnabled ?? true}
           onToggle={() => toggle("pushEnabled")}
         />
         <ToggleRow
-          label="Promemoria pagamenti (3/7/14 giorni)"
+          label={t("payment_reminders")}
           value={settings?.reminderAlerts ?? true}
           onToggle={() => toggle("reminderAlerts")}
         />
         <ToggleRow
-          label="Alert fatture scadute"
+          label={t("overdue_alerts")}
           value={settings?.overdueAlerts ?? true}
           onToggle={() => toggle("overdueAlerts")}
         />
         <ToggleRow
-          label="Alert pagamenti ricevuti"
+          label={t("payment_alerts")}
           value={settings?.paymentAlerts ?? true}
           onToggle={() => toggle("paymentAlerts")}
         />
       </View>
 
       {/* Lingua */}
-      <Text style={styles.sectionTitle}>🌐 Lingua</Text>
+      <Text style={styles.sectionTitle}>{t("language")}</Text>
       <View style={styles.card}>
         {AVAILABLE_LOCALES.map((loc, index) => (
           <TouchableOpacity
@@ -238,16 +239,16 @@ export default function SettingsScreen() {
       </View>
 
       {/* Account */}
-      <Text style={styles.sectionTitle}>👤 Account</Text>
+      <Text style={styles.sectionTitle}>{t("account")}</Text>
       <TouchableOpacity style={styles.button} onPress={handleSignOut}>
-        <Text style={styles.buttonText}>Esci</Text>
+        <Text style={styles.buttonText}>{t("logout")}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
         style={[styles.button, styles.deleteButton]}
         onPress={handleDeleteAccount}
       >
-        <Text style={[styles.buttonText, styles.deleteText]}>Elimina account</Text>
+        <Text style={[styles.buttonText, styles.deleteText]}>{t("deleteAccount")}</Text>
       </TouchableOpacity>
 
       {/* V34 — BannerAdWrapper in fondo, solo se !isPremium (Req 9.8, 4.1) */}
@@ -351,8 +352,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   onboardingTipIcon: {
-    fontSize: 22,
-    lineHeight: 28,
+    marginRight: 12,
   },
   onboardingTipText: {
     flex: 1,
@@ -398,7 +398,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   premiumFeatureIcon: {
-    fontSize: 18,
+    marginRight: 8,
   },
   premiumFeatureText: {
     fontSize: 14,

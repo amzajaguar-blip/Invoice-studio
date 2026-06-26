@@ -234,7 +234,7 @@ export default function InvoicesScreen() {
     if (filters.query) {
       return (
         <EmptyState
-          icon="🔍"
+          icon="search-outline"
           title="Nessun risultato"
           hint={`Nessuna fattura trovata per "${filters.query}"`}
         />
@@ -243,7 +243,7 @@ export default function InvoicesScreen() {
     if (filters.status === "overdue") {
       return (
         <EmptyState
-          icon="✅"
+          icon="checkmark-circle-outline"
           title="Nessuna fattura scaduta"
           hint="Ottimo lavoro! Tutti i pagamenti sono in ordine."
         />
@@ -252,7 +252,7 @@ export default function InvoicesScreen() {
     if (filters.status === "paid") {
       return (
         <EmptyState
-          icon="💰"
+          icon="cash-outline"
           title="Ancora nessun incasso"
           hint="Invia le tue fatture per iniziare a ricevere pagamenti."
         />
@@ -261,7 +261,7 @@ export default function InvoicesScreen() {
     if (filters.status === "draft") {
       return (
         <EmptyState
-          icon="📝"
+          icon="document-text-outline"
           title="Nessuna bozza"
           hint="Le fatture salvate come bozza appariranno qui."
         />
@@ -270,7 +270,7 @@ export default function InvoicesScreen() {
     // Smart Empty State V34 (Req 17.2)
     return (
       <EmptyState
-        icon="📄"
+        icon="document-text-outline"
         title="Crea la tua prima fattura professionale."
         hint="InvoiceStudio ti guida passo per passo."
         cta="Crea fattura"

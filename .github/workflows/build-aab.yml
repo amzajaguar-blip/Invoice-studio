@@ -1,4 +1,4 @@
-name: Build AAB Release v34
+name: Build AAB Release v35
 
 on:
   workflow_dispatch:
@@ -73,7 +73,7 @@ jobs:
       - name: Upload AAB Release
         uses: actions/upload-artifact@v4
         with:
-          name: InvoiceStudio-v34-AAB
+          name: InvoiceStudio-v35-AAB
           path: mobile/android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 14

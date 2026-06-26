@@ -23,24 +23,25 @@ import {
   ViewStyle,
   StyleProp,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import {
   CARD_ACCENT_COLORS,
   CARD_ACCENT_FALLBACK,
   type ContextualCard,
 } from '@/lib/in-app-messaging';
 
-// ─── Emoji per context ────────────────────────────────────────────────────────
+// ─── Icone per context ──────────────────────────────────────────────────────────
 
 /**
- * Icona emoji derivata dal context/titolo della card.
- * Usata come decorazione visiva sinistra.
+ * Icone Ionicons derivate dal context della card.
+ * Usate come decorazione visiva sinistra.
  */
-const CONTEXT_EMOJI: Record<ContextualCard['id'], string> = {
-  dashboard_limit_warning:  '⚠️',
-  invoices_boost_available: '🎬',
-  customers_upsell:         '🚀',
-  quotes_convert_hint:      '📝',
-  settings_review_ask:      '⭐',
+const CONTEXT_ICON: Record<ContextualCard['id'], keyof typeof Ionicons.glyphMap> = {
+  dashboard_limit_warning:  'warning-outline',
+  invoices_boost_available: 'play-circle-outline',
+  customers_upsell:         'rocket-outline',
+  quotes_convert_hint:      'document-text-outline',
+  settings_review_ask:      'star-outline',
 };
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -63,26 +64,25 @@ export default function InAppContextualCard({
   // Determina il colore accent per il bordo sinistro (Req 6.8, 6.9)
   const accentColor = CARD_ACCENT_COLORS[card.id] ?? CARD_ACCENT_FALLBACK;
 
-  const emoji = CONTEXT_EMOJI[card.id] ?? '💡';
+  const iconName = CONTEXT_ICON[card.id] ?? 'bulb-outline';
 
   return (
     <View
       style={[s.card, { borderLeftColor: accentColor }, style]}
-      accessibilityRole="region"
       accessibilityLabel={card.title}
     >
       {/* Bordo sinistro colorato — reso come sottocomponente separato
           per garantire l'altezza piena indipendente dal contenuto */}
       <View style={[s.accentBar, { backgroundColor: accentColor }]} />
 
-      {/* Emoji icona sinistra */}
-      <Text
-        style={s.emoji}
+      {/* Icona Ionicons sinistra */}
+      <Ionicons
+        name={iconName}
+        size={22}
+        color={accentColor}
+        style={s.icon}
         accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-      >
-        {emoji}
-      </Text>
+      />
 
       {/* Testo: titolo + body */}
       <View style={s.textBlock}>
@@ -154,12 +154,10 @@ const s = StyleSheet.create({
     borderBottomLeftRadius: 12,
   },
 
-  // Icona emoji sinistra
-  emoji: {
-    fontSize:    22,
+  // Icona Ionicons sinistra
+  icon: {
     marginLeft:  16,
     marginRight: 10,
-    lineHeight:  28,
   },
 
   // Blocco testo centrale
