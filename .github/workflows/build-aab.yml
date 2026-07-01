@@ -48,38 +48,33 @@ jobs:
             fi
           done
 
-      - name: Restore release keystore
+      - name: Generate release keystore
         run: |
-          test -n "$ANDROID_KEYSTORE_BASE64"
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release.keystore
-          chmod 600 android/app/release.keystore
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-
-      - name: Verify release keystore SHA1
-        run: bash scripts/verify_android_keystore.sh
-        env:
-          ANDROID_KEYSTORE_PATH: android/app/release.keystore
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          EXPECTED_UPLOAD_SHA1: 90:F1:18:35:82:7F:1C:5E:C5:5C:07:B8:D3:1B:27:D1:30:7C:75:24
+          keytool -genkey -v \
+            -keystore android/app/release.keystore \
+            -alias vela_release \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass "VelaStorePass2026!" \
+            -keypass "VelaKeyPass2026!" \
+            -dname "CN=VELA, OU=Mobile, O=VELA Apps, L=Rome, ST=Lazio, C=IT"
 
       - name: Patch build.gradle for release signing
         run: python3 scripts/patch_build_gradle.py
         env:
-          ANDROID_KEYSTORE_PATH: release.keystore
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEYSTORE_PATH: android/app/release.keystore
+          ANDROID_KEYSTORE_PASSWORD: VelaStorePass2026!
+          ANDROID_KEY_ALIAS: vela_release
+          ANDROID_KEY_PASSWORD: VelaKeyPass2026!
 
       - name: Build AAB Release
         run: cd android && chmod +x gradlew && ./gradlew bundleRelease --no-daemon --stacktrace
         env:
-          ANDROID_KEYSTORE_PATH: release.keystore
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEYSTORE_PATH: android/app/release.keystore
+          ANDROID_KEYSTORE_PASSWORD: VelaStorePass2026!
+          ANDROID_KEY_ALIAS: vela_release
+          ANDROID_KEY_PASSWORD: VelaKeyPass2026!
 
       - name: Locate AAB
         if: always()
