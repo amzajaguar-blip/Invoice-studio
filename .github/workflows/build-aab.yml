@@ -37,34 +37,49 @@ jobs:
       - name: Expo prebuild
         run: npx expo prebuild --platform android --no-install --clean
 
-      - name: Generate release keystore
+      - name: Patch repositories to avoid Sonatype snapshots timeout
         run: |
-          keytool -genkey -v \
-            -keystore release.keystore \
-            -alias release \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -storepass "InvoiceStudio2026!" \
-            -keypass "InvoiceStudio2026!" \
-            -dname "CN=Invoice Studio, OU=Mobile, O=Invoice Studio, L=Rome, ST=Lazio, C=IT"
-          cp release.keystore android/app/release.keystore
+          # Expo prebuild may add maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
+          # which is currently timing out (504). Force stable repositories first and drop the snapshot repo.
+          for f in android/build.gradle android/app/build.gradle; do
+            if [ -f "$f" ]; then
+              sed -i "/oss.sonatype.org\/content\/repositories\/snapshots/d" "$f"
+              echo "✅ Removed Sonatype snapshots repo from $f"
+            fi
+          done
+
+      - name: Restore release keystore
+        run: |
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release.keystore
+          chmod 600 android/app/release.keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+
+      - name: Verify release keystore SHA1
+        run: bash scripts/verify_android_keystore.sh
+        env:
+          ANDROID_KEYSTORE_PATH: android/app/release.keystore
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          EXPECTED_UPLOAD_SHA1: 90:F1:18:35:82:7F:1C:5E:C5:5C:07:B8:D3:1B:27:D1:30:7C:75:24
 
       - name: Patch build.gradle for release signing
         run: python3 scripts/patch_build_gradle.py
         env:
           ANDROID_KEYSTORE_PATH: release.keystore
-          ANDROID_KEYSTORE_PASSWORD: InvoiceStudio2026!
-          ANDROID_KEY_ALIAS: release
-          ANDROID_KEY_PASSWORD: InvoiceStudio2026!
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
       - name: Build AAB Release
         run: cd android && chmod +x gradlew && ./gradlew bundleRelease --no-daemon --stacktrace
         env:
           ANDROID_KEYSTORE_PATH: release.keystore
-          ANDROID_KEYSTORE_PASSWORD: InvoiceStudio2026!
-          ANDROID_KEY_ALIAS: release
-          ANDROID_KEY_PASSWORD: InvoiceStudio2026!
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
       - name: Locate AAB
         if: always()
