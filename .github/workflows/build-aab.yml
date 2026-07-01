@@ -39,34 +39,10 @@ jobs:
 
       - name: Patch repositories to avoid Sonatype snapshots timeout
         run: |
-          # Remove explicit Sonatype snapshot lines from all build files
           for f in android/build.gradle android/app/build.gradle android/settings.gradle; do
-            if [ -f "$f" ]; then
-              sed -i "/oss.sonatype.org\/content\/repositories\/snapshots/d" "$f"
-              echo "Removed Sonatype snapshots repo from $f"
-            fi
+            [ -f "$f" ] && sed -i "/oss.sonatype.org\/content\/repositories\/snapshots/d" "$f"
           done
-          # Rewrite allprojects repositories in android/build.gradle to only use stable repos
-          python3 -c "
-import re
-with open('android/build.gradle', 'r') as f:
-    content = f.read()
-content = re.sub(
-    r'allprojects\s*\{\s*repositories\s*\{[^}]*\}\s*\}',
-    '''allprojects {
-    repositories {
-        google()
-        mavenCentral()
-        maven { url = uri('https://www.jitpack.io') }
-    }
-}''',
-    content,
-    flags=re.DOTALL
-)
-with open('android/build.gradle', 'w') as f:
-    f.write(content)
-print('android/build.gradle repositories rewritten')
-"
+          python3 ../scripts/patch_repos.py android/build.gradle
 
       - name: Generate release keystore
         run: |
