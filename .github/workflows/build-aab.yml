@@ -39,14 +39,34 @@ jobs:
 
       - name: Patch repositories to avoid Sonatype snapshots timeout
         run: |
-          # Expo prebuild may add maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
-          # which is currently timing out (504). Force stable repositories first and drop the snapshot repo.
-          for f in android/build.gradle android/app/build.gradle; do
+          # Remove explicit Sonatype snapshot lines from all build files
+          for f in android/build.gradle android/app/build.gradle android/settings.gradle; do
             if [ -f "$f" ]; then
               sed -i "/oss.sonatype.org\/content\/repositories\/snapshots/d" "$f"
-              echo "✅ Removed Sonatype snapshots repo from $f"
+              echo "Removed Sonatype snapshots repo from $f"
             fi
           done
+          # Rewrite allprojects repositories in android/build.gradle to only use stable repos
+          python3 -c "
+import re
+with open('android/build.gradle', 'r') as f:
+    content = f.read()
+content = re.sub(
+    r'allprojects\s*\{\s*repositories\s*\{[^}]*\}\s*\}',
+    '''allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url = uri('https://www.jitpack.io') }
+    }
+}''',
+    content,
+    flags=re.DOTALL
+)
+with open('android/build.gradle', 'w') as f:
+    f.write(content)
+print('android/build.gradle repositories rewritten')
+"
 
       - name: Generate release keystore
         run: |
