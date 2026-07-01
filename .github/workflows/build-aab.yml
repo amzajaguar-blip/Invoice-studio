@@ -42,7 +42,23 @@ jobs:
           for f in android/build.gradle android/app/build.gradle android/settings.gradle; do
             [ -f "$f" ] && sed -i "/oss.sonatype.org\/content\/repositories\/snapshots/d" "$f"
           done
-          python3 ../scripts/patch_repos.py android/build.gradle
+          python3 scripts/patch_repos.py android/build.gradle android/settings.gradle
+
+      - name: Inject Gradle init script to block Sonatype snapshots
+        run: |
+          mkdir -p ~/.gradle/init.d
+          cat > ~/.gradle/init.d/remove-sonatype-snapshots.gradle <<'EOF'
+          allprojects {
+              afterEvaluate { project ->
+                  project.repositories.removeIf { repo ->
+                      repo instanceof MavenArtifactRepository && repo.url.toString().contains('oss.sonatype.org/content/repositories/snapshots')
+                  }
+                  project.buildscript.repositories.removeIf { repo ->
+                      repo instanceof MavenArtifactRepository && repo.url.toString().contains('oss.sonatype.org/content/repositories/snapshots')
+                  }
+              }
+          }
+          EOF
 
       - name: Generate release keystore
         run: |
