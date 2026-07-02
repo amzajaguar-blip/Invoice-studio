@@ -60,33 +60,25 @@ jobs:
           }
           EOF
 
-      - name: Generate release keystore
+      - name: Decode release keystore from secret
         run: |
-          keytool -genkey -v \
-            -keystore android/app/release.keystore \
-            -alias vela_release \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -storepass "VelaStorePass2026!" \
-            -keypass "VelaStorePass2026!" \
-            -dname "CN=VELA, OU=Mobile, O=VELA Apps, L=Rome, ST=Lazio, C=IT"
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/release.keystore
 
       - name: Patch build.gradle for release signing
         run: python3 scripts/patch_build_gradle.py
         env:
           ANDROID_KEYSTORE_PATH: release.keystore
-          ANDROID_KEYSTORE_PASSWORD: VelaStorePass2026!
-          ANDROID_KEY_ALIAS: vela_release
-          ANDROID_KEY_PASSWORD: VelaStorePass2026!
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
       - name: Build AAB Release
         run: cd android && chmod +x gradlew && ./gradlew bundleRelease --no-daemon --stacktrace
         env:
           ANDROID_KEYSTORE_PATH: release.keystore
-          ANDROID_KEYSTORE_PASSWORD: VelaStorePass2026!
-          ANDROID_KEY_ALIAS: vela_release
-          ANDROID_KEY_PASSWORD: VelaStorePass2026!
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
       - name: Locate AAB
         if: always()
