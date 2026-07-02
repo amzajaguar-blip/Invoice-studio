@@ -75,7 +75,7 @@ jobs:
       - name: Patch build.gradle for release signing
         run: python3 scripts/patch_build_gradle.py
         env:
-          ANDROID_KEYSTORE_PATH: android/app/release.keystore
+          ANDROID_KEYSTORE_PATH: release.keystore
           ANDROID_KEYSTORE_PASSWORD: VelaStorePass2026!
           ANDROID_KEY_ALIAS: vela_release
           ANDROID_KEY_PASSWORD: VelaKeyPass2026!
@@ -83,7 +83,7 @@ jobs:
       - name: Build AAB Release
         run: cd android && chmod +x gradlew && ./gradlew bundleRelease --no-daemon --stacktrace
         env:
-          ANDROID_KEYSTORE_PATH: android/app/release.keystore
+          ANDROID_KEYSTORE_PATH: release.keystore
           ANDROID_KEYSTORE_PASSWORD: VelaStorePass2026!
           ANDROID_KEY_ALIAS: vela_release
           ANDROID_KEY_PASSWORD: VelaKeyPass2026!
