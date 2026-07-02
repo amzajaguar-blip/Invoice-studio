@@ -69,7 +69,7 @@ jobs:
             -keysize 2048 \
             -validity 10000 \
             -storepass "VelaStorePass2026!" \
-            -keypass "VelaKeyPass2026!" \
+            -keypass "VelaStorePass2026!" \
             -dname "CN=VELA, OU=Mobile, O=VELA Apps, L=Rome, ST=Lazio, C=IT"
 
       - name: Patch build.gradle for release signing
@@ -78,7 +78,7 @@ jobs:
           ANDROID_KEYSTORE_PATH: release.keystore
           ANDROID_KEYSTORE_PASSWORD: VelaStorePass2026!
           ANDROID_KEY_ALIAS: vela_release
-          ANDROID_KEY_PASSWORD: VelaKeyPass2026!
+          ANDROID_KEY_PASSWORD: VelaStorePass2026!
 
       - name: Build AAB Release
         run: cd android && chmod +x gradlew && ./gradlew bundleRelease --no-daemon --stacktrace
@@ -86,7 +86,7 @@ jobs:
           ANDROID_KEYSTORE_PATH: release.keystore
           ANDROID_KEYSTORE_PASSWORD: VelaStorePass2026!
           ANDROID_KEY_ALIAS: vela_release
-          ANDROID_KEY_PASSWORD: VelaKeyPass2026!
+          ANDROID_KEY_PASSWORD: VelaStorePass2026!
 
       - name: Locate AAB
         if: always()
