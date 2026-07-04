@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "InvoiceStudio",
-    "slug": "invoicestudio",
-    "version": "1.0.34",
+    "name": "VELA — Invoice & Quotes",
+    "slug": "vela-invoice",
+    "version": "1.0.36",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "invoicestudio",
+    "scheme": "vela",
     "userInterfaceStyle": "dark",
     "newArchEnabled": false,
     "splash": {
@@ -15,15 +15,16 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.invoicestudio.mobile"
+      "bundleIdentifier": "com.vela.mobile",
+      "buildNumber": "36"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0a0b0f"
       },
-      "package": "com.Invoice_Studio.myapp",
-      "versionCode": 34,
+      "package": "com.vela.mobile",
+      "versionCode": 36,
       "permissions": [
         "com.google.android.gms.permission.AD_ID",
         "com.android.vending.BILLING",
@@ -34,8 +35,15 @@
       "intentFilters": [
         {
           "action": "VIEW",
-          "data": [{ "scheme": "invoicestudio" }],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "data": [
+            {
+              "scheme": "vela"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -45,13 +53,13 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Consenti a InvoiceStudio di usare la fotocamera per scansionare le ricevute."
+          "cameraPermission": "Consenti a VELA di usare la fotocamera per scansionare le ricevute."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Consenti a InvoiceStudio di accedere alle tue foto per allegare documenti."
+          "photosPermission": "Consenti a VELA di accedere alle tue foto per allegare documenti."
         }
       ],
       [
@@ -80,7 +88,9 @@
           "iosAppId": "ca-app-pub-4053625490298263~3067488369"
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-localization",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true
@@ -88,7 +98,7 @@
     "extra": {
       "supabaseUrl": "https://xiqebgohgwbbzynhisah.supabase.co",
       "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhpcWViZ29oZ3diYnp5bmhpc2FoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwODY4MjIsImV4cCI6MjA5NDY2MjgyMn0.xxWSzUd3zuuQeqMr0MVHCAll4nF3JkyEYND8S0uSy_A",
-      "apiUrl": "https://invoicestudio.app",
+      "apiUrl": "https://vela.app",
       "eas": {
         "projectId": "TBD"
       }

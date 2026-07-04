@@ -1,7 +1,9 @@
 import { Tabs } from "expo-router";
-import { Text } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useLocale } from "@/components/LocaleProvider";
 
 export default function TabLayout() {
+  const { t } = useLocale();
   return (
     <Tabs
       screenOptions={{
@@ -21,29 +23,51 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Dashboard",
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>📊</Text>,
+          title: t("nav.dashboard"),
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="stats-chart" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="invoices"
         options={{
-          title: "Fatture",
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>📄</Text>,
+          title: t("nav.invoices"),
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="document-text" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="quotes"
+        options={{
+          title: t("nav.quotes"),
+          headerShown: false,
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? 'document-text' : 'document-text-outline'}
+              size={size}
+              color={color}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="clients"
         options={{
-          title: "Clienti",
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>👥</Text>,
+          title: t("nav.clients"),
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="people" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: "Impostazioni",
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>⚙️</Text>,
+          title: t("nav.settings"),
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="settings" size={size} color={color} />
+          ),
         }}
       />
     </Tabs>
