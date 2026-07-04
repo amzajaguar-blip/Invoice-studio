@@ -94,38 +94,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) return { error: translateAuthError(error.message) };
     if (!data?.url) return { error: "Impossibile avviare il login con Google. Riprova." };
 
-    // Usa browser nativo + Linking listener invece di Chrome Custom Tab.
-    // Chrome Custom Tab su certi dispositivi non dispatcha custom scheme da 302 redirect.
-    // Il browser nativo lo gestisce correttamente tramite l'intent-filter dell'app.
-    return new Promise<{ error?: string }>((resolve) => {
+    // Usa WebBrowser.openAuthSessionAsync invece di Linking.openURL:
+    // gestisce correttamente il 302 finale su tutti i browser Android
+    // (Chrome Custom Tab, Samsung Internet, Xiaomi MIUI Browser, ecc.)
+    // e restituisce direttamente l'URL di callback, eliminando il loop
+    // "caricamento in corso…" che si verificava quando il custom scheme
+    // non veniva propagato dal browser all'app.
+    // Aggiunto anche un timeout di 60s per evitare attese infinite.
+    return new Promise<{ error?: string }>(async (resolve) => {
       let resolved = false;
 
-      const cleanup = () => {
-        if (sub) sub.remove();
+      const finish = (result: { error?: string }) => {
+        if (resolved) return;
+        resolved = true;
         clearTimeout(timer);
+        resolve(result);
       };
 
       const handleUrl = async (url: string) => {
-        if (resolved) return;
-        resolved = true;
-        cleanup();
-
         try {
           const urlObj = new URL(url);
 
           // PKCE flow: code come query param
           const code = urlObj.searchParams.get("code");
           if (code) {
-            const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+            const { error: exchangeError } =
+              await supabase.auth.exchangeCodeForSession(code);
             if (exchangeError) {
-              resolve({ error: translateAuthError(exchangeError.message) });
+              finish({ error: translateAuthError(exchangeError.message) });
             } else {
-              resolve({});
+              finish({});
             }
             return;
           }
 
-          // Implicit flow: token nel fragment (#access_token=...)
+          // Implicit flow: token nel fragment
           const hash = urlObj.hash?.replace(/^#/, "");
           if (hash) {
             const params = new URLSearchParams(hash);
@@ -137,46 +140,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 refresh_token: refreshToken,
               });
               if (sessionError) {
-                resolve({ error: translateAuthError(sessionError.message) });
+                finish({ error: translateAuthError(sessionError.message) });
               } else {
-                resolve({});
+                finish({});
               }
               return;
             }
           }
 
-          // Fallback: check se sessione già presente
+          // Fallback: il listener onAuthStateChange può aver già popolato
+          // la sessione anche se il URL non contiene code (cold start race)
           const { data: sessionData } = await supabase.auth.getSession();
           if (sessionData.session) {
-            resolve({});
+            finish({});
           } else {
-            resolve({ error: "Login con Google non completato. Riprova." });
+            finish({ error: "Login con Google non completato. Riprova." });
           }
         } catch {
-          resolve({ error: "Errore durante il login con Google. Riprova." });
+          finish({ error: "Errore durante il login con Google. Riprova." });
         }
       };
 
-      // Timeout: se l'utente non completa l'auth entro 5 minuti
+      // Timeout 60s — l'utente deve poter riprovare in tempi ragionevoli
       const timer = setTimeout(() => {
-        if (resolved) return;
-        resolved = true;
-        cleanup();
-        resolve({ error: "Timeout: il login non è stato completato." });
-      }, 300000);
+        finish({ error: "Timeout: il login non è stato completato." });
+      }, 60000);
 
-      // Listener per il deep link di ritorno
-      const sub = Linking.addEventListener("url", (event) => {
-        handleUrl(event.url);
-      });
+      try {
+        // openAuthSessionAsync chiude il browser automaticamente al redirect
+        // finale e restituisce {type: 'success', url: 'vela://auth/callback?code=...'}
+        const result = await WebBrowser.openAuthSessionAsync(
+          data.url,
+          redirectUrl
+        );
 
-      // Apri URL OAuth nel browser nativo
-      Linking.openURL(data.url).catch(() => {
-        if (resolved) return;
-        resolved = true;
-        cleanup();
-        resolve({ error: "Impossibile aprire il browser. Verifica che sia installato un browser sul dispositivo." });
-      });
+        if (result.type === "success" && result.url) {
+          await handleUrl(result.url);
+        } else if (result.type === "cancel" || result.type === "dismiss") {
+          finish({});
+        } else {
+          finish({});
+        }
+      } catch {
+        finish({
+          error:
+            "Impossibile aprire il browser per il login. Verifica che sia installato un browser sul dispositivo.",
+        });
+      }
     });
   };
 
