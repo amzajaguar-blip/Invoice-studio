@@ -5,7 +5,7 @@ declare const global: {
   };
 };
 
-import { Stack, useRouter } from "expo-router";
+import { Slot, Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/ThemeContext";
@@ -218,13 +218,11 @@ export default function RootLayout() {
                   <AuthDeepLinkHandler />
                   <AdMobInitializer>
                     <BootCheckpoint id="BOOT_010" label="AdMobInitializer" />
-                    <Stack
-                      screenOptions={{
-                        headerShown: false,
-                        contentStyle: { backgroundColor: "transparent" },
-                        animation: "fade",
-                      }}
-                    />
+                    {/* Stack è già configurato dentro i layout figli
+                        (auth)/_layout e (app)/_layout. Usare Slot puro qui
+                        evita la nidificazione causa del forceStoreRerender
+                        race "undefined is not a function at TabLayout". */}
+                    <Slot />
                   </AdMobInitializer>
                 </LocaleProvider>
               </EngagementProvider>
