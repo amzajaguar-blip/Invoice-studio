@@ -16,7 +16,7 @@ import { EngagementProvider } from "@/context/EngagementContext";
 import { StartupErrorBoundary } from "@/app/components/StartupErrorBoundary";
 import { useEffect, useState } from "react";
 import { View, ActivityIndicator, Platform } from "react-native";
-import mobileAds from "react-native-google-mobile-ads";
+import mobileAds, { AdsConsent, AdsConsentStatus } from "react-native-google-mobile-ads";
 import Purchases from "react-native-purchases";
 import * as Notifications from "expo-notifications";
 import * as Linking from "expo-linking";
@@ -48,38 +48,35 @@ function AdMobInitializer({ children }: { children: React.ReactNode }) {
     const unblockTimeout = setTimeout(() => {
       logBoot("AdMobInitializer unblocking UI after grace period");
       setReady(true);
-    }, 800);
+    }, 1500);
 
-    const initTimeout = setTimeout(() => {
-      logBootError("AdMobInitializer init timed out (5s)", null);
-    }, 5000);
+    const initializeAds = async () => {
+      try {
+        logBoot("Requesting AdsConsent info");
+        const consentInfo = await AdsConsent.requestInfoUpdate();
+        
+        if (
+          consentInfo.isConsentFormAvailable &&
+          consentInfo.status === AdsConsentStatus.REQUIRED
+        ) {
+          logBoot("Showing AdsConsent form");
+          await AdsConsent.showForm();
+        }
 
-    try {
-      mobileAds()
-        .initialize()
-        .then(() => {
-          clearTimeout(unblockTimeout);
-          clearTimeout(initTimeout);
-          logBoot("AdMob initialized successfully");
-          setReady(true);
-        })
-        .catch((err) => {
-          clearTimeout(unblockTimeout);
-          clearTimeout(initTimeout);
-          logBootError("AdMob init promise rejected (non-fatal)", err);
-          setReady(true);
-        });
-    } catch (err) {
-      clearTimeout(unblockTimeout);
-      clearTimeout(initTimeout);
-      logBootError("AdMob init synchronous throw (non-fatal)", err);
-      setReady(true);
-    }
-
-    return () => {
-      clearTimeout(unblockTimeout);
-      clearTimeout(initTimeout);
+        logBoot("Initializing mobileAds");
+        await mobileAds().initialize();
+        logBoot("AdMob initialized successfully");
+      } catch (err) {
+        logBootError("AdMob init error (non-fatal)", err);
+      } finally {
+        clearTimeout(unblockTimeout);
+        setReady(true);
+      }
     };
+
+    initializeAds();
+
+    return () => clearTimeout(unblockTimeout);
   }, []);
 
   if (!ready) {
@@ -123,15 +120,19 @@ function AuthDeepLinkHandler() {
   useEffect(() => {
     logBoot("AuthDeepLinkHandler init");
 
+    // SECURITY/RACE-FIX: il flusso Google OAuth viene già gestito interamente
+    // da WebBrowser.openAuthSessionAsync dentro useAuth.tsx (signInWithGoogle):
+    // lì il callback URL 'vela://auth/callback?code=...' viene letto, il code
+    // scambiato con exchangeCodeForSession(), e onAuthStateChange popola la
+    // sessione. NON deve esistere un secondo consumer che fa router.push su
+    // /auth/callback, perché ciò monta il callback handler in contemporanea
+    // al primo render di (tabs)/(TabLayout): il suo async handleCallback()
+    // chiama router.replace() in mezzo al forceStoreRerender di @react-navigation,
+    // e l'options object di Tabs.Screen arriva undefined a BottomTabNavigator
+    // ("undefined is not a function" al primo render del TabLayout).
     const handleUrl = (event: { url: string }) => {
       try {
-        logBoot("Auth deep link URL", event.url);
-        const parsed = new URL(event.url);
-        const path = parsed.pathname || parsed.hostname;
-
-        if (path.includes("auth/callback")) {
-          router.push("/auth/callback" as any);
-        }
+        logBoot("Auth deep link URL (ignored — handled by WebBrowser flow)", event.url);
       } catch (err) {
         logBootError("Auth deep link parse error (non-fatal)", err);
       }
@@ -139,8 +140,15 @@ function AuthDeepLinkHandler() {
 
     const sub = Linking.addEventListener("url", handleUrl);
 
+    // Non fare MAI push su /auth/callback in cold start: il login è già
+    // stato completato da WebBrowser e la sessione è già attiva in storage.
+    // Lasciamo che il listener onAuthStateChange di useAuth monti (tabs).
     Linking.getInitialURL().then((url) => {
-      if (url) handleUrl({ url });
+      if (url && url.includes("auth/callback")) {
+        logBoot("Cold-start callback URL — skipped, session already set by WebBrowser");
+      } else if (url) {
+        handleUrl({ url });
+      }
     }).catch((err) => logBootError("getInitialURL failed (non-fatal)", err));
 
     return () => sub.remove();
@@ -177,8 +185,13 @@ export default function RootLayout() {
     logBoot("BOOT_002 RootLayout useEffect running");
     if (Platform.OS === "android") {
       try {
-        Purchases.configure({ apiKey: "goog_jQbcLtPLxDFDpSxwHblTiWwaDhw" });
-        logBoot("BOOT_002a RevenueCat configured");
+        const apiKey = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY;
+        if (apiKey) {
+          Purchases.configure({ apiKey });
+          logBoot("BOOT_002a RevenueCat configured");
+        } else {
+          logBootError("RevenueCat init failed: Missing API key", null);
+        }
       } catch (err) {
         logBootError("RevenueCat init failed (non-fatal)", err);
       }
