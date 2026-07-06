@@ -5,7 +5,7 @@ export default function SignupScreen() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace("/login");
+    router.replace("/(auth)/login");
   }, [router]);
 
   return null;

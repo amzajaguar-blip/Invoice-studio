@@ -41,7 +41,7 @@ export default function AuthCallbackScreen() {
           return;
         }
       }
-      router.replace("/login");
+      router.replace("/(auth)/login");
     };
 
     handleCallback();
