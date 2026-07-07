@@ -422,6 +422,14 @@ BEGIN
   INSERT INTO public.org_members (org_id, user_id, role)
   VALUES (v_org_id, NEW.id, 'owner');
 
+  -- Create default user_plan (V34)
+  INSERT INTO public.user_plan (org_id, user_id, plan)
+  VALUES (v_org_id, NEW.id, 'free');
+
+  -- Create default user_engagement (V34)
+  INSERT INTO public.user_engagement (org_id, user_id)
+  VALUES (v_org_id, NEW.id);
+
   RETURN NEW;
 END;
 $$;
