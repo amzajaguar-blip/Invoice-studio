@@ -1,6 +1,7 @@
 export const en = {
   dashboard: "Dashboard",
   invoices: "Invoices",
+  quotes: "Quotes",
   clients: "Clients",
   settings: "Settings",
   newInvoice: "New Invoice",

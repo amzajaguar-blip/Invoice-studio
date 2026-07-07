@@ -2,6 +2,7 @@ export const it = {
   // Navigation
   dashboard: "Dashboard",
   invoices: "Fatture",
+  quotes: "Preventivi",
   clients: "Clienti",
   settings: "Impostazioni",
   // Actions

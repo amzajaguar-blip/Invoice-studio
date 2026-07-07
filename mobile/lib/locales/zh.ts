@@ -1,6 +1,7 @@
 export const zh = {
   dashboard: "仪表盘",
   invoices: "发票",
+  quotes: "报价单",
   clients: "客户",
   settings: "设置",
   newInvoice: "新建发票",

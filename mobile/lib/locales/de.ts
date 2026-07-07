@@ -1,6 +1,7 @@
 export const de = {
   dashboard: "Übersicht",
   invoices: "Rechnungen",
+  quotes: "Angebote",
   clients: "Kunden",
   settings: "Einstellungen",
   newInvoice: "Neue Rechnung",

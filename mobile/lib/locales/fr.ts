@@ -1,6 +1,7 @@
 export const fr = {
   dashboard: "Tableau de bord",
   invoices: "Factures",
+  quotes: "Devis",
   clients: "Clients",
   settings: "Paramètres",
   newInvoice: "Nouvelle facture",

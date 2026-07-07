@@ -1,6 +1,7 @@
 export const es = {
   dashboard: "Panel",
   invoices: "Facturas",
+  quotes: "Presupuestos",
   clients: "Clientes",
   settings: "Ajustes",
   newInvoice: "Nueva Factura",

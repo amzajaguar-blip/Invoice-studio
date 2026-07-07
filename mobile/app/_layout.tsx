@@ -201,18 +201,18 @@ export default function RootLayout() {
   return (
     <StartupErrorBoundary>
       <BootCheckpoint id="BOOT_003" label="StartupErrorBoundary" />
-      <ThemeProvider>
-        <BootCheckpoint id="BOOT_004" label="ThemeProvider" />
-        <AuthProvider>
-          <BootCheckpoint id="BOOT_005" label="AuthProvider" />
-          <ToastProvider>
-            <BootCheckpoint id="BOOT_006" label="ToastProvider" />
-            <PlanProvider>
-              <BootCheckpoint id="BOOT_007" label="PlanProvider" />
-              <EngagementProvider>
-                <BootCheckpoint id="BOOT_008" label="EngagementProvider" />
-                <LocaleProvider>
-                  <BootCheckpoint id="BOOT_009" label="LocaleProvider" />
+      <LocaleProvider>
+        <BootCheckpoint id="BOOT_009" label="LocaleProvider" />
+        <ThemeProvider>
+          <BootCheckpoint id="BOOT_004" label="ThemeProvider" />
+          <AuthProvider>
+            <BootCheckpoint id="BOOT_005" label="AuthProvider" />
+            <ToastProvider>
+              <BootCheckpoint id="BOOT_006" label="ToastProvider" />
+              <PlanProvider>
+                <BootCheckpoint id="BOOT_007" label="PlanProvider" />
+                <EngagementProvider>
+                  <BootCheckpoint id="BOOT_008" label="EngagementProvider" />
                   <StatusBar style="auto" />
                   <NotificationDeepLinkHandler />
                   <AuthDeepLinkHandler />
@@ -224,12 +224,12 @@ export default function RootLayout() {
                         race "undefined is not a function at TabLayout". */}
                     <Slot />
                   </AdMobInitializer>
-                </LocaleProvider>
-              </EngagementProvider>
-            </PlanProvider>
-          </ToastProvider>
-        </AuthProvider>
-      </ThemeProvider>
+                </EngagementProvider>
+              </PlanProvider>
+            </ToastProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </LocaleProvider>
     </StartupErrorBoundary>
   );
 }

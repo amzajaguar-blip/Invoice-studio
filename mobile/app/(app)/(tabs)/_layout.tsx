@@ -23,7 +23,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: t("nav.dashboard"),
+          title: t("dashboard"),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="stats-chart" size={size} color={color} />
           ),
@@ -32,7 +32,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="invoices"
         options={{
-          title: t("nav.invoices"),
+          title: t("invoices"),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="document-text" size={size} color={color} />
           ),
@@ -55,7 +55,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="clients"
         options={{
-          title: t("nav.clients"),
+          title: t("clients"),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="people" size={size} color={color} />
           ),
@@ -64,7 +64,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: t("nav.settings"),
+          title: t("settings"),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="settings" size={size} color={color} />
           ),

@@ -1,6 +1,7 @@
 export const pt = {
   dashboard: "Painel",
   invoices: "Faturas",
+  quotes: "Orçamentos",
   clients: "Clientes",
   settings: "Configurações",
   newInvoice: "Nova Fatura",

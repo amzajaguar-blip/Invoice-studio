@@ -64,6 +64,15 @@
 -keep interface androidx.** { *; }
 -dontwarn androidx.**
 
+# ── AsyncStorage (React Native Community) ──────────────────────
+-keep class com.reactnativecommunity.asyncstorage.** { *; }
+-dontwarn com.reactnativecommunity.asyncstorage.**
+
+# ── React Native New Architecture / Codegen ────────────────────
+-keep class com.facebook.react.turbomodule.** { *; }
+-keep class com.facebook.react.fabric.** { *; }
+-keep class com.facebook.react.bridge.** { *; }
+
 # ── General ───────────────────────────────────────────────────────────────────
 -keepattributes Exceptions,InnerClasses,Signature,Deprecated,SourceFile,LineNumberTable,*Annotation*,EnclosingMethod
 -keepclassmembers class *  { @com.facebook.react.uimanager.annotations.ReactProp <methods>; }
