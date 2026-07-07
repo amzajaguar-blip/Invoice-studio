@@ -35,9 +35,36 @@ export interface EngagementContextValue {
   isLoading: boolean;
 }
 
-// ─── Context ──────────────────────────────────────────────────────────────────
+// ─── Safe Default (never null — prevents "undefined is not a function") ──────
 
-const EngagementContext = createContext<EngagementContextValue | null>(null);
+const SAFE_DEFAULT: EngagementContextValue = {
+  engagement: {
+    totalInvoices:  0,
+    totalCustomers: 0,
+    totalQuotes:    0,
+    currentStreak:  0,
+    longestStreak:  0,
+    lastActiveDate: null,
+    milestones: {
+      first_invoice:  false,
+      invoices_10:    false,
+      invoices_25:    false,
+      invoices_50:    false,
+      invoices_100:   false,
+      invoices_500:   false,
+      invoices_1000:  false,
+      clients_100:    false,
+      review_ask:     false,
+    },
+    isPremium: false,
+  },
+  pendingMilestone: null,
+  dismissMilestone: () => {},
+  recordAction: async () => {},
+  isLoading: true,
+};
+
+const EngagementContext = createContext<EngagementContextValue>(SAFE_DEFAULT);
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
@@ -102,9 +129,5 @@ export function EngagementProvider({ children }: { children: React.ReactNode }) 
  * // Se pendingMilestone !== null → mostrare MilestoneCelebration
  */
 export function useEngagementContext(): EngagementContextValue {
-  const ctx = useContext(EngagementContext);
-  if (!ctx) {
-    throw new Error('useEngagementContext must be used inside <EngagementProvider>');
-  }
-  return ctx;
+  return useContext(EngagementContext);
 }

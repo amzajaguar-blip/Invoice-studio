@@ -20,7 +20,8 @@ import {
   type NotificationSettings,
 } from "@/lib/notifications-service";
 import { apiFetch } from "@/lib/ai";
-import { useLocale, AVAILABLE_LOCALES } from "@/lib/i18n";
+import { useLocale } from "@/components/LocaleProvider";
+import { AVAILABLE_LOCALES } from "@/lib/i18n";
 import { useToast } from "@/lib/toast";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -36,7 +37,11 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [settings, setSettings] = useState<NotificationSettings | null>(null);
-  const { locale, setLocale, t } = useLocale();
+  const localeCtx = useLocale();
+  const locale = localeCtx?.locale ?? 'it';
+  const setLocale = localeCtx?.setLocale ?? (async () => {});
+  // Safe t(): never undefined, never throws — always returns at least the key
+  const t = typeof localeCtx?.t === 'function' ? localeCtx.t : ((key: string) => key);
   const { showToast } = useToast();
 
   // V34 — piano corrente
@@ -47,7 +52,7 @@ export default function SettingsScreen() {
 
   // V34 — tip card onboarding: mostrata solo se l'utente è nuovo (Req 17.4)
   // "Nuovo utente" = non ha ancora creato fatture (totalInvoices === 0)
-  const isNewUser = limits.invoices.used === 0 && !limits.isLoading;
+  const isNewUser = (limits?.invoices?.used ?? 0) === 0 && !limits?.isLoading;
 
   useEffect(() => {
     getNotificationSettings().then(setSettings);

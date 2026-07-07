@@ -28,9 +28,28 @@ export interface PlanContextValue {
   checkCanCreate: (resource: ResourceType) => CheckLimitResult;
 }
 
-// ─── Context ──────────────────────────────────────────────────────────────────
+// ─── Safe Default (never null — prevents "undefined is not a function") ──────
 
-const PlanContext = createContext<PlanContextValue | null>(null);
+const SAFE_DEFAULT_LIMITS: PlanLimits = {
+  invoices:  { base: 5, boost: 0, used: 0, canCreate: false },
+  customers: { base: 3, boost: 0, used: 0, canCreate: false },
+  quotes:    { base: 3, boost: 0, used: 0, canCreate: false },
+  plan:          'free',
+  boostActive:   false,
+  boostExpiresAt: null,
+  dailyAdsWatched: 0,
+  dailyAdsMax:   3,
+  isLoading:     true,
+};
+
+const SAFE_DEFAULT: PlanContextValue = {
+  limits:         SAFE_DEFAULT_LIMITS,
+  isPremium:      false,
+  refreshLimits:  async () => {},
+  checkCanCreate: () => ({ allowed: false, remaining: 0, reason: 'limit_reached' as const }),
+};
+
+const PlanContext = createContext<PlanContextValue>(SAFE_DEFAULT);
 
 // ─── Costanti ─────────────────────────────────────────────────────────────────
 
@@ -243,9 +262,5 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
  * if (!result.allowed) openBoostModal();
  */
 export function usePlan(): PlanContextValue {
-  const ctx = useContext(PlanContext);
-  if (!ctx) {
-    throw new Error('usePlan must be used inside <PlanProvider>');
-  }
-  return ctx;
+  return useContext(PlanContext);
 }

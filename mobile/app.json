@@ -2,7 +2,7 @@
   "expo": {
     "name": "VELA — Invoice & Quotes",
     "slug": "vela-invoice",
-    "version": "1.0.36",
+    "version": "1.0.37",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "vela",
@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.vela.mobile",
-      "buildNumber": "36"
+      "buildNumber": "37"
     },
     "android": {
       "adaptiveIcon": {
@@ -24,7 +24,7 @@
         "backgroundColor": "#0a0b0f"
       },
       "package": "com.vela.mobile",
-      "versionCode": 36,
+      "versionCode": 37,
       "permissions": [
         "com.google.android.gms.permission.AD_ID",
         "com.android.vending.BILLING",
@@ -97,6 +97,7 @@
       "supabaseUrl": "https://xiqebgohgwbbzynhisah.supabase.co",
       "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhpcWViZ29oZ3diYnp5bmhpc2FoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwODY4MjIsImV4cCI6MjA5NDY2MjgyMn0.xxWSzUd3zuuQeqMr0MVHCAll4nF3JkyEYND8S0uSy_A",
       "apiUrl": "https://vela.app",
+      "revenueCatApiKey": "goog_jQbcLtPLxDFDpSxwHblTiWwaDhw",
       "eas": {
         "projectId": "TBD"
       }

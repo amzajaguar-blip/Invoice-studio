@@ -16,6 +16,7 @@ import { EngagementProvider } from "@/context/EngagementContext";
 import { StartupErrorBoundary } from "@/app/components/StartupErrorBoundary";
 import { useEffect, useState } from "react";
 import { View, ActivityIndicator, Platform } from "react-native";
+import Constants from "expo-constants";
 import mobileAds, { AdsConsent, AdsConsentStatus } from "react-native-google-mobile-ads";
 import Purchases from "react-native-purchases";
 import * as Notifications from "expo-notifications";
@@ -185,7 +186,11 @@ export default function RootLayout() {
     logBoot("BOOT_002 RootLayout useEffect running");
     if (Platform.OS === "android") {
       try {
-        const apiKey = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY;
+        // Read from app.json extra (works in production builds) with fallback
+        // to process.env (works in dev mode with .env file).
+        const apiKey =
+          (Constants.expoConfig?.extra?.revenueCatApiKey as string) ||
+          process.env.EXPO_PUBLIC_REVENUECAT_API_KEY;
         if (apiKey) {
           Purchases.configure({ apiKey });
           logBoot("BOOT_002a RevenueCat configured");

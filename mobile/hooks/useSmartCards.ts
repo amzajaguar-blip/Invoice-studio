@@ -117,11 +117,19 @@ export function useSmartCards(
   //
   // Dipendenze: limits e engagement — si riesegue ad ogni loro cambio
   useEffect(() => {
-    // Non valutare se i limiti sono ancora in caricamento
-    if (limits.isLoading) return;
+    // Guard: skip if limits are still loading or if data is not yet available
+    if (!limits || limits.isLoading) return;
+    if (!engagement) return;
 
     // Step 1 — risoluzione sincrona
-    const resolved = resolveContextualCard(context, limits, engagement, hasDraftQuote);
+    let resolved: ContextualCard | null = null;
+    try {
+      resolved = resolveContextualCard(context, limits, engagement, hasDraftQuote);
+    } catch (err) {
+      console.warn('[useSmartCards] resolveContextualCard error:', err);
+      if (mountedRef.current) setCard(null);
+      return;
+    }
 
     if (!resolved) {
       if (mountedRef.current) {
