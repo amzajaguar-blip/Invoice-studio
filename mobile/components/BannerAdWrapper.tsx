@@ -69,7 +69,7 @@ const ALLOWED_SCREENS = [
  */
 const BANNER_AD_UNIT_ID: string = __DEV__
   ? TestIds.ADAPTIVE_BANNER
-  : 'ca-app-pub-4053625490298263/BANNER_UNIT_ID';
+  : 'ca-app-pub-8156953772676654/3180431755';
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 
