@@ -4,6 +4,7 @@ import {
   AccessibilityInfo, Animated,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import Purchases, { PurchasesPackage } from "react-native-purchases";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -11,6 +12,11 @@ const PURCHASE_TIMEOUT_MS = 15_000;
 /** Duration of the success animation before auto-navigating back. Max 500ms. */
 const SUCCESS_ANIM_DURATION_MS = 400;
 const SUCCESS_DISPLAY_MS = 500;
+
+const PRODUCT_IDS = {
+  monthly: 'vela-premium-monthly',
+  yearly: 'vela-premium-yearly',
+} as const;
 
 export default function ProUpgradeScreen() {
   const router = useRouter();
@@ -63,8 +69,8 @@ export default function ProUpgradeScreen() {
   }, [purchaseState, reduceMotion]);
 
   const packages = [
-    { id: "monthly" as const, title: "Mensile", price: "€ 4,99", recurring: "€4,99/mese" },
-    { id: "yearly" as const, title: "Annuale", price: "€ 49,99", recurring: "€4,16/mese", tag: "PIÙ CONVENIENTE" },
+    { id: "monthly" as const, title: "Mensile", price: "€ 4,99", recurring: "€4,99/mese", productId: PRODUCT_IDS.monthly },
+    { id: "yearly" as const, title: "Annuale", price: "€ 39,99", recurring: "€3,33/mese", tag: "PIÙ CONVENIENTE", productId: PRODUCT_IDS.yearly },
   ];
 
   const handleSubscribe = async () => {
@@ -83,11 +89,10 @@ export default function ProUpgradeScreen() {
         throw new Error("Impossibile caricare i prezzi. Riprova più tardi.");
       }
       
-      // Mappiamo i nostri ID (mensile / annuale) all'offerta
+      // Mappiamo il piano selezionato all'ID prodotto RevenueCat/Google Play
+      const targetId = PRODUCT_IDS[selectedPlan];
       const pkg = offerings.current.availablePackages.find(
-        (p: PurchasesPackage) => p.product.identifier === selectedPlan || 
-           (selectedPlan === "monthly" && p.product.identifier === "mensile") || 
-           (selectedPlan === "yearly" && p.product.identifier === "annuale")
+        (p: PurchasesPackage) => p.product.identifier === targetId
       );
 
       if (!pkg) {
@@ -97,7 +102,7 @@ export default function ProUpgradeScreen() {
       const { customerInfo } = await Purchases.purchasePackage(pkg);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       
-      if (customerInfo.entitlements.active['pro']) {
+      if (customerInfo.entitlements.active['pro'] || customerInfo.entitlements.active['com.Invoice_Studio.myapp Pro']) {
         setPurchaseState("success");
       } else {
         setPurchaseState("error");
@@ -125,7 +130,7 @@ export default function ProUpgradeScreen() {
     setErrorMessage("");
     try {
       const customerInfo = await Purchases.restorePurchases();
-      if (customerInfo.entitlements.active['pro']) {
+      if (customerInfo.entitlements.active['pro'] || customerInfo.entitlements.active['com.Invoice_Studio.myapp Pro']) {
         setPurchaseState("success");
       } else {
         setPurchaseState("error");
@@ -143,7 +148,7 @@ export default function ProUpgradeScreen() {
     <View style={[s.container, { paddingTop: insets.top }]}>
       {/* Intestazione */}
       <View style={s.header}>
-        <Text style={s.title}>Passa a Pro 🚀</Text>
+        <Text style={s.title}>Passa a Pro</Text>
         <Text style={s.subtitle}>
           Fatture illimitate, invio email/PDF, ritenuta d&apos;acconto automatica.
         </Text>
@@ -191,7 +196,7 @@ export default function ProUpgradeScreen() {
 
       {/* Trust signals */}
       <View style={s.reassuranceRow}>
-        <Text style={s.reassuranceText}>🔒 Pagamento sicuro via Google Play</Text>
+        <Text style={s.reassuranceText}>Pagamento sicuro via Google Play</Text>
         <Text style={s.reassuranceText}>Annulla quando vuoi</Text>
       </View>
 
@@ -265,7 +270,7 @@ export default function ProUpgradeScreen() {
 
 const FeatureItem = ({ text }: { text: string }) => (
   <View style={s.featureRow}>
-    <Text style={s.check} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">✓</Text>
+    <Ionicons name="checkmark" size={18} color="#a78bfa" style={s.check} />
     <Text style={s.featureText}>{text}</Text>
   </View>
 );
@@ -278,7 +283,7 @@ const s = StyleSheet.create({
 
   featuresBox: { backgroundColor: "#111318", borderRadius: 16, padding: 20, marginBottom: 30, borderWidth: 1, borderColor: "#1e2029" },
   featureRow: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
-  check: { color: "#a78bfa", fontSize: 18, fontWeight: "bold", marginRight: 10 },
+  check: { marginRight: 10 },
   featureText: { color: "#f0f0f2", fontSize: 15 },
 
   plansContainer: { marginBottom: 16 },
