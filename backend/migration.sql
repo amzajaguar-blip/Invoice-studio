@@ -239,15 +239,21 @@ CREATE TABLE IF NOT EXISTS public.invoice_events (
 
 ALTER TABLE public.invoice_events ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "events_tenant_select" ON public.invoice_events
-  FOR SELECT USING (
-    EXISTS (SELECT 1 FROM public.invoices WHERE id = invoice_events.invoice_id AND org_id = current_org_id())
-  );
+DO $$ BEGIN
+  CREATE POLICY "events_tenant_select" ON public.invoice_events
+    FOR SELECT USING (
+      EXISTS (SELECT 1 FROM public.invoices WHERE id = invoice_events.invoice_id AND org_id = current_org_id())
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY "events_tenant_insert" ON public.invoice_events
-  FOR INSERT WITH CHECK (
-    EXISTS (SELECT 1 FROM public.invoices WHERE id = invoice_events.invoice_id AND org_id = current_org_id())
-  );
+DO $$ BEGIN
+  CREATE POLICY "events_tenant_insert" ON public.invoice_events
+    FOR INSERT WITH CHECK (
+      EXISTS (SELECT 1 FROM public.invoices WHERE id = invoice_events.invoice_id AND org_id = current_org_id())
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- ─── email_templates ──────────────────────────────────────────────────────────
 
@@ -263,11 +269,17 @@ CREATE TABLE IF NOT EXISTS public.email_templates (
 
 ALTER TABLE public.email_templates ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "templates_tenant_select" ON public.email_templates
-  FOR SELECT USING (org_id = current_org_id());
+DO $$ BEGIN
+  CREATE POLICY "templates_tenant_select" ON public.email_templates
+    FOR SELECT USING (org_id = current_org_id());
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY "templates_tenant_all" ON public.email_templates
-  FOR ALL USING (org_id = current_org_id());
+DO $$ BEGIN
+  CREATE POLICY "templates_tenant_all" ON public.email_templates
+    FOR ALL USING (org_id = current_org_id());
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- ─── reminders ────────────────────────────────────────────────────────────────
 
@@ -283,15 +295,21 @@ CREATE TABLE IF NOT EXISTS public.reminders (
 
 ALTER TABLE public.reminders ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "reminders_tenant_select" ON public.reminders
-  FOR SELECT USING (
-    EXISTS (SELECT 1 FROM public.invoices WHERE id = reminders.invoice_id AND org_id = current_org_id())
-  );
+DO $$ BEGIN
+  CREATE POLICY "reminders_tenant_select" ON public.reminders
+    FOR SELECT USING (
+      EXISTS (SELECT 1 FROM public.invoices WHERE id = reminders.invoice_id AND org_id = current_org_id())
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY "reminders_tenant_all" ON public.reminders
-  FOR ALL USING (
-    EXISTS (SELECT 1 FROM public.invoices WHERE id = reminders.invoice_id AND org_id = current_org_id())
-  );
+DO $$ BEGIN
+  CREATE POLICY "reminders_tenant_all" ON public.reminders
+    FOR ALL USING (
+      EXISTS (SELECT 1 FROM public.invoices WHERE id = reminders.invoice_id AND org_id = current_org_id())
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- ─── payment_tokens ───────────────────────────────────────────────────────────
 
@@ -307,15 +325,21 @@ CREATE TABLE IF NOT EXISTS public.payment_tokens (
 
 ALTER TABLE public.payment_tokens ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "tokens_tenant_select" ON public.payment_tokens
-  FOR SELECT USING (
-    EXISTS (SELECT 1 FROM public.invoices WHERE id = payment_tokens.invoice_id AND org_id = current_org_id())
-  );
+DO $$ BEGIN
+  CREATE POLICY "tokens_tenant_select" ON public.payment_tokens
+    FOR SELECT USING (
+      EXISTS (SELECT 1 FROM public.invoices WHERE id = payment_tokens.invoice_id AND org_id = current_org_id())
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY "tokens_tenant_insert" ON public.payment_tokens
-  FOR INSERT WITH CHECK (
-    EXISTS (SELECT 1 FROM public.invoices WHERE id = payment_tokens.invoice_id AND org_id = current_org_id())
-  );
+DO $$ BEGIN
+  CREATE POLICY "tokens_tenant_insert" ON public.payment_tokens
+    FOR INSERT WITH CHECK (
+      EXISTS (SELECT 1 FROM public.invoices WHERE id = payment_tokens.invoice_id AND org_id = current_org_id())
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- ─── subscriptions ────────────────────────────────────────────────────────────
 
@@ -333,8 +357,11 @@ CREATE TABLE IF NOT EXISTS public.subscriptions (
 
 ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "subs_tenant_select" ON public.subscriptions
-  FOR SELECT USING (org_id = current_org_id());
+DO $$ BEGIN
+  CREATE POLICY "subs_tenant_select" ON public.subscriptions
+    FOR SELECT USING (org_id = current_org_id());
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- ─── audit_logs (compliance) ──────────────────────────────────────────────────
 
@@ -352,30 +379,39 @@ CREATE TABLE IF NOT EXISTS public.audit_logs (
 
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "audit_tenant_select" ON public.audit_logs
-  FOR SELECT USING (org_id = current_org_id());
+DO $$ BEGIN
+  CREATE POLICY "audit_tenant_select" ON public.audit_logs
+    FOR SELECT USING (org_id = current_org_id());
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY "audit_tenant_insert" ON public.audit_logs
-  FOR INSERT WITH CHECK (org_id = current_org_id());
+DO $$ BEGIN
+  CREATE POLICY "audit_tenant_insert" ON public.audit_logs
+    FOR INSERT WITH CHECK (org_id = current_org_id());
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- ─── Indexes ──────────────────────────────────────────────────────────────────
 
-CREATE INDEX idx_org_members_user_id ON public.org_members(user_id);
-CREATE INDEX idx_org_members_org_id ON public.org_members(org_id);
-CREATE INDEX idx_clients_org_id ON public.clients(org_id);
-CREATE INDEX idx_invoices_org_id ON public.invoices(org_id);
-CREATE INDEX idx_invoices_client_id ON public.invoices(client_id);
-CREATE INDEX idx_invoices_status ON public.invoices(status);
-ALTER TABLE public.invoices ADD CONSTRAINT invoices_number_org_unique UNIQUE (org_id, number);
-CREATE INDEX idx_invoices_number ON public.invoices(number);
-CREATE INDEX idx_invoice_items_invoice_id ON public.invoice_items(invoice_id);
-CREATE INDEX idx_invoice_events_invoice_id ON public.invoice_events(invoice_id);
-CREATE INDEX idx_reminders_invoice_id ON public.reminders(invoice_id);
-CREATE INDEX idx_reminders_scheduled ON public.reminders(scheduled_for) WHERE sent_at IS NULL AND cancelled = false;
-CREATE INDEX idx_payment_tokens_invoice_id ON public.payment_tokens(invoice_id);
-CREATE INDEX idx_payment_tokens_hash ON public.payment_tokens(token_hash);
-CREATE INDEX idx_audit_logs_org_id ON public.audit_logs(org_id);
-CREATE INDEX idx_audit_logs_entity ON public.audit_logs(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_org_members_user_id ON public.org_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_org_members_org_id ON public.org_members(org_id);
+CREATE INDEX IF NOT EXISTS idx_clients_org_id ON public.clients(org_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_org_id ON public.invoices(org_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_client_id ON public.invoices(client_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_status ON public.invoices(status);
+DO $$ BEGIN
+  ALTER TABLE public.invoices ADD CONSTRAINT invoices_number_org_unique UNIQUE (org_id, number);
+EXCEPTION WHEN duplicate_table THEN NULL;
+END $$;
+CREATE INDEX IF NOT EXISTS idx_invoices_number ON public.invoices(number);
+CREATE INDEX IF NOT EXISTS idx_invoice_items_invoice_id ON public.invoice_items(invoice_id);
+CREATE INDEX IF NOT EXISTS idx_invoice_events_invoice_id ON public.invoice_events(invoice_id);
+CREATE INDEX IF NOT EXISTS idx_reminders_invoice_id ON public.reminders(invoice_id);
+CREATE INDEX IF NOT EXISTS idx_reminders_scheduled ON public.reminders(scheduled_for) WHERE sent_at IS NULL AND cancelled = false;
+CREATE INDEX IF NOT EXISTS idx_payment_tokens_invoice_id ON public.payment_tokens(invoice_id);
+CREATE INDEX IF NOT EXISTS idx_payment_tokens_hash ON public.payment_tokens(token_hash);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_org_id ON public.audit_logs(org_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_entity ON public.audit_logs(entity_type, entity_id);
 
 -- ─── Triggers ─────────────────────────────────────────────────────────────────
 
@@ -390,14 +426,17 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS trg_organizations_updated_at ON public.organizations;
 CREATE TRIGGER trg_organizations_updated_at
   BEFORE UPDATE ON public.organizations
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
+DROP TRIGGER IF EXISTS trg_clients_updated_at ON public.clients;
 CREATE TRIGGER trg_clients_updated_at
   BEFORE UPDATE ON public.clients
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
+DROP TRIGGER IF EXISTS trg_invoices_updated_at ON public.invoices;
 CREATE TRIGGER trg_invoices_updated_at
   BEFORE UPDATE ON public.invoices
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
@@ -434,6 +473,7 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
