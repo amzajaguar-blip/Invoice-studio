@@ -10,7 +10,7 @@
  * Requirements: 3.7, 9.8, 17.4
  */
 
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Switch, ScrollView } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Switch, ScrollView, Linking } from "react-native";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState, useCallback } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -19,12 +19,12 @@ import {
   updateNotificationSettings,
   type NotificationSettings,
 } from "@/lib/notifications-service";
-import { apiFetch } from "@/lib/ai";
 import { useLocale } from "@/components/LocaleProvider";
 import { AVAILABLE_LOCALES } from "@/lib/i18n";
 import { useToast } from "@/lib/toast";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useDeleteAccount } from "@/hooks/useDeleteAccount";
 
 // V34 — plan, smart cards, banner
 import { usePlan } from "@/context/PlanContext";
@@ -66,47 +66,37 @@ export default function SettingsScreen() {
   };
 
   const handleSignOut = () => {
-    Alert.alert("Esci?", "Vuoi disconnetterti da InvoiceStudio?", [
-      { text: "Annulla", style: "cancel" },
-      { text: "Esci", style: "destructive", onPress: signOut },
+    Alert.alert(t("settings_logout_title"), t("settings_logout_msg"), [
+      { text: t("cancel"), style: "cancel" },
+      { text: t("logout"), style: "destructive", onPress: signOut },
     ]);
   };
 
   const executeDeleteAccount = async () => {
-    try {
-      const { error } = await apiFetch("/api/profile", {
-        method: "DELETE",
-      });
+    const success = await deleteAccount();
+    if (!success) return;
 
-      if (error) {
-        Alert.alert("Errore", error || "Impossibile eliminare l'account in questo momento.");
-        return;
-      }
-
-      await signOut();
-      Alert.alert("Account eliminato", "Il tuo account è stato eliminato con successo.");
-    } catch (err) {
-      Alert.alert("Errore", "Si è verificato un errore di rete.");
-    }
+    await signOut();
+    Alert.alert(t("settings_account_deleted_title"), t("settings_account_deleted_msg"));
   };
 
   const handleDeleteAccount = () => {
     Alert.alert(
-      "Elimina account",
-      "Sei sicuro di voler eliminare permanentemente il tuo account? Tutti i tuoi dati, fatture e clienti verranno cancellati in modo irreversibile.",
+      t("deleteAccount"),
+      t("settings_delete_account_msg"),
       [
-        { text: "Annulla", style: "cancel" },
+        { text: t("cancel"), style: "cancel" },
         {
-          text: "Procedi",
+          text: t("settings_delete_proceed"),
           style: "destructive",
           onPress: () => {
             Alert.alert(
-              "Conferma finale",
-              "Questa è l'ultima conferma. Se procedi, il tuo account verrà eliminato definitivamente e verrai disconnesso.",
+              t("settings_delete_confirm_title"),
+              t("settings_delete_confirm_msg"),
               [
-                { text: "Annulla", style: "cancel" },
+                { text: t("cancel"), style: "cancel" },
                 {
-                  text: "Sì, elimina",
+                  text: t("settings_delete_yes"),
                   style: "destructive",
                   onPress: executeDeleteAccount,
                 },
@@ -123,6 +113,9 @@ export default function SettingsScreen() {
     // La CTA 'open_review' è gestita dalla card; per ora naviga a ProUpgrade
     // se il context fosse 'show_upgrade', altrimenti è già nel design dismissible
   }, []);
+
+  // Use delete account hook (Supabase RPC direct, no external fetch)
+  const { deleteAccount } = useDeleteAccount();
 
   return (
     <ScrollView
@@ -228,7 +221,7 @@ export default function SettingsScreen() {
             ]}
             onPress={async () => {
               await setLocale(loc.code);
-              showToast({ message: "Lingua aggiornata ✓", type: "success" });
+              showToast({ message: t("settings_language_updated"), type: "success" });
             }}
             accessibilityRole="button"
             accessibilityLabel={`Seleziona lingua ${loc.name}`}
@@ -247,6 +240,10 @@ export default function SettingsScreen() {
       <Text style={styles.sectionTitle}>{t("account")}</Text>
       <TouchableOpacity style={styles.button} onPress={handleSignOut}>
         <Text style={styles.buttonText}>{t("logout")}</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.button} onPress={() => Linking.openURL("https://vela.app/privacy")}>
+        <Text style={styles.buttonText}>Privacy Policy</Text>
       </TouchableOpacity>
 
       <TouchableOpacity

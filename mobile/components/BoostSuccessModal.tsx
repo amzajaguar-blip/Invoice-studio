@@ -28,6 +28,7 @@ import {
   AccessibilityInfo,
 } from 'react-native';
 import type { ResourceType } from '@/lib/rate-limit-engine';
+import { useLocale } from '@/components/LocaleProvider';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -39,14 +40,6 @@ export interface BoostSuccessModalProps {
   onClose:   () => void;
 }
 
-// ─── Risorse sbloccate ────────────────────────────────────────────────────────
-
-const UNLOCKED_RESOURCES: Array<{ emoji: string; label: string }> = [
-  { emoji: '📄', label: '+3 fatture' },
-  { emoji: '👤', label: '+1 cliente' },
-  { emoji: '📝', label: '+1 preventivo' },
-];
-
 // ─── Componente ───────────────────────────────────────────────────────────────
 
 export default function BoostSuccessModal({
@@ -54,6 +47,8 @@ export default function BoostSuccessModal({
   expiresIn,
   onClose,
 }: BoostSuccessModalProps) {
+  const { t } = useLocale();
+
   // Animazione: scale 1→1.08→1 e opacity 0→1
   const scaleAnim   = useRef(new Animated.Value(1)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -106,6 +101,13 @@ export default function BoostSuccessModal({
     ]).start();
   }, [visible, reduceMotion]);
 
+  // ─── Risorse sbloccate ────────────────────────────────────────────────────────
+  const UNLOCKED_RESOURCES: Array<{ emoji: string; labelKey: string }> = [
+    { emoji: '📄', labelKey: 'boost_success_resource_invoices' },
+    { emoji: '👤', labelKey: 'boost_success_resource_clients' },
+    { emoji: '📝', labelKey: 'boost_success_resource_quotes' },
+  ];
+
   return (
     <Modal
       transparent
@@ -113,7 +115,7 @@ export default function BoostSuccessModal({
       animationType="none"
       onRequestClose={onClose}
       accessibilityViewIsModal
-      accessibilityLabel="Business Boost attivato con successo."
+      accessibilityLabel={t('boost_success_modal_a11y_label')}
     >
       {/* Overlay semi-trasparente — non blocca interazione (pointerEvents="box-none") */}
       <View
@@ -130,27 +132,27 @@ export default function BoostSuccessModal({
               transform: [{ scale: scaleAnim }],
             },
           ]}
-          accessibilityLabel="Riepilogo Business Boost attivato"
+          accessibilityLabel={t('boost_success_modal_summary_a11y')}
         >
           {/* ── Badge principale ─────────────────────────────────────── */}
           <View style={s.badgeRow}>
             <View style={s.badge}>
-              <Text style={s.badgeText}>Business Boost Attivato</Text>
+              <Text style={s.badgeText}>{t('boost_success_badge_text')}</Text>
             </View>
           </View>
 
           {/* ── Messaggio incoraggiante ──────────────────────────────── */}
-          <Text style={s.headline}>Ottimo lavoro!</Text>
+          <Text style={s.headline}>{t('boost_success_headline')}</Text>
           <Text style={s.subtext}>
-            Hai sbloccato risorse extra per le prossime{' '}
+            {t('boost_success_subtext_part1')}{' '}
             <Text style={s.subtextHighlight}>{expiresIn}</Text>.{'\n'}
-            Usale per far crescere il tuo business!
+            {t('boost_success_subtext_part2')}
           </Text>
 
           {/* ── Risorse sbloccate ────────────────────────────────────── */}
           <View style={s.resourcesRow}>
             {UNLOCKED_RESOURCES.map((r) => (
-              <View key={r.label} style={s.resourceChip}>
+              <View key={r.labelKey} style={s.resourceChip}>
                 <Text
                   style={s.resourceEmoji}
                   accessibilityElementsHidden
@@ -158,7 +160,7 @@ export default function BoostSuccessModal({
                 >
                   {r.emoji}
                 </Text>
-                <Text style={s.resourceLabel}>{r.label}</Text>
+                <Text style={s.resourceLabel}>{t(r.labelKey)}</Text>
               </View>
             ))}
           </View>
@@ -173,7 +175,7 @@ export default function BoostSuccessModal({
               ⏳
             </Text>
             <Text style={s.expiryText}>
-              Scade in{' '}
+              {t('boost_success_expiry_label')}{' '}
               <Text style={s.expiryHighlight}>{expiresIn}</Text>
             </Text>
           </View>
@@ -182,7 +184,7 @@ export default function BoostSuccessModal({
           <View style={s.divider} />
 
           {/* ── Messaggio di ringraziamento ──────────────────────────── */}
-          <Text style={s.thankYou}>Grazie per supportare InvoiceStudio ❤️</Text>
+          <Text style={s.thankYou}>{t('boost_success_thank_you')}</Text>
 
           {/* ── CTA Primaria ─────────────────────────────────────────── */}
           <TouchableOpacity
@@ -190,10 +192,10 @@ export default function BoostSuccessModal({
             onPress={onClose}
             activeOpacity={0.85}
             accessibilityRole="button"
-            accessibilityLabel="Crea la mia fattura"
-            accessibilityHint="Chiude il riepilogo e torna alla schermata delle fatture"
+            accessibilityLabel={t('boost_success_cta_a11y')}
+            accessibilityHint={t('boost_success_cta_hint')}
           >
-            <Text style={s.ctaBtnText}>Crea la mia fattura →</Text>
+            <Text style={s.ctaBtnText}>{t('boost_success_cta_text')}</Text>
           </TouchableOpacity>
         </Animated.View>
       </View>

@@ -28,6 +28,7 @@ import * as Haptics from "@/lib/haptics";
 import { useToast } from "@/lib/toast";
 import { validatePartitaIVA } from "@/lib/validatePartitaIVA";
 import { apiFetch } from "@/lib/ai";
+import { useLocale } from "@/components/LocaleProvider";
 
 // ─── Costanti ─────────────────────────────────────────────────────────────────
 
@@ -109,6 +110,8 @@ export default function EditClientSheet({
   onSaved,
 }: EditClientSheetProps) {
   const { showToast } = useToast();
+  const localeCtx = useLocale();
+  const t = typeof localeCtx?.t === 'function' ? localeCtx.t : ((key: string) => key);
 
   // ─── Stato form ───────────────────────────────────────────────────────────
   const [form, setForm] = useState<ClientFormData>({
@@ -236,15 +239,15 @@ export default function EditClientSheet({
     if (!client) return;
 
     Alert.alert(
-      "Elimina cliente",
-      `Sei sicuro di voler eliminare "${client.name}"? Questa azione non può essere annullata.`,
+      t("client_delete_title"),
+      t("client_delete_msg").replace("{name}", client.name),
       [
         {
-          text: "Annulla",
+          text: t("cancel"),
           style: "cancel",
         },
         {
-          text: "Elimina",
+          text: t("delete"),
           style: "destructive",
           onPress: confirmDelete,
         },

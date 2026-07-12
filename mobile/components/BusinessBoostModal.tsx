@@ -28,6 +28,7 @@ import { useRouter } from 'expo-router';
 import { trackEvent } from '@/lib/analytics-events';
 import type { BoostSession } from '@/lib/business-boost';
 import type { ResourceType } from '@/lib/rate-limit-engine';
+import { useLocale } from '@/components/LocaleProvider'; // Import useLocale
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -38,34 +39,6 @@ export interface BusinessBoostModalProps {
   onUpgrade:    () => void;
   onClose:      () => void;
 }
-
-// ─── Testo dinamico per risorsa ────────────────────────────────────────────────
-
-const RESOURCE_COPY: Record<ResourceType, {
-  title:      string;
-  subtitle:   string;
-  boostLabel: string;
-  icon:       string;
-}> = {
-  invoice: {
-    title:      'Hai bisogno di altre fatture?',
-    subtitle:   'Guarda un breve video per sbloccare 3 fatture extra oggi.',
-    boostLabel: '+3 fatture per 24 ore',
-    icon:       '📄',
-  },
-  customer: {
-    title:      'Stai crescendo — aggiungi altri clienti',
-    subtitle:   'Guarda un breve video per espandere il tuo portfolio clienti.',
-    boostLabel: '+1 cliente per 24 ore',
-    icon:       '👥',
-  },
-  quote: {
-    title:      'Hai bisogno di altri preventivi?',
-    subtitle:   'Guarda un breve video per inviare altri preventivi oggi.',
-    boostLabel: '+1 preventivo per 24 ore',
-    icon:       '📝',
-  },
-};
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 
@@ -79,6 +52,7 @@ export default function BusinessBoostModal({
   onClose,
 }: BusinessBoostModalProps) {
   const router = useRouter();
+  const { t } = useLocale(); // Use the translation hook
 
   const { state, errorMsg, showAd, dailyAdsLeft } = boostSession;
 
@@ -161,8 +135,6 @@ export default function BusinessBoostModal({
     router.push('/(app)/PremiumPreview' as never);
   };
 
-  const copy = RESOURCE_COPY[resource];
-
   // ─── Determina il contenuto del Primary CTA ────────────────────────────
   // Regola (Req 2.11, 2.12):
   //   - Se state === 'unavailable' → testo "Video non disponibile"
@@ -172,6 +144,42 @@ export default function BusinessBoostModal({
   //   - Altrimenti                 → CTA principale "Guarda video — Business Boost"
   const showBoostCTA = state !== 'unavailable' && dailyAdsLeft > 0;
 
+  const getResourceTitle = () => {
+    switch (resource) {
+      case 'invoice': return t('boost_resource_invoices_title');
+      case 'customer': return t('boost_resource_clients_title');
+      case 'quote': return t('boost_resource_quotes_title');
+      default: return '';
+    }
+  };
+
+  const getResourceSubtitle = () => {
+    switch (resource) {
+      case 'invoice': return t('boost_resource_invoices_subtitle');
+      case 'customer': return t('boost_resource_clients_subtitle');
+      case 'quote': return t('boost_resource_quotes_subtitle');
+      default: return '';
+    }
+  };
+
+  const getBoostLabel = () => {
+    switch (resource) {
+      case 'invoice': return t('boost_resource_invoices_boost_label');
+      case 'customer': return t('boost_resource_clients_boost_label');
+      case 'quote': return t('boost_resource_quotes_boost_label');
+      default: return '';
+    }
+  };
+
+  const getResourceIcon = () => {
+    switch (resource) {
+      case 'invoice': return '📄';
+      case 'customer': return '👥';
+      case 'quote': return '📝';
+      default: return '';
+    }
+  };
+
   return (
     <Modal
       transparent
@@ -179,14 +187,14 @@ export default function BusinessBoostModal({
       animationType="none"
       onRequestClose={handleClose}
       accessibilityViewIsModal
-      accessibilityLabel={`${copy.title}. Guarda un video gratis o passa a Premium.`}
+      accessibilityLabel={`${getResourceTitle()}. ${t('boost_modal_description')}`}
     >
       <Animated.View style={[s.overlay, { opacity: fadeAnim }]}>
         {/* Tap overlay per chiudere */}
         <TouchableOpacity
           style={StyleSheet.absoluteFill}
           onPress={handleClose}
-          accessibilityLabel="Chiudi"
+          accessibilityLabel={t('cancel')}
         />
 
         <Animated.View
@@ -202,7 +210,7 @@ export default function BusinessBoostModal({
               accessibilityElementsHidden
               importantForAccessibility="no-hide-descendants"
             >
-              {copy.icon}
+              {getResourceIcon()}
             </Text>
             <View style={s.badgeWrap}>
               <Text
@@ -216,8 +224,8 @@ export default function BusinessBoostModal({
           </View>
 
           {/* Titolo + sottotitolo dinamici */}
-          <Text style={s.title}>{copy.title}</Text>
-          <Text style={s.subtitle}>{copy.subtitle}</Text>
+          <Text style={s.title}>{getResourceTitle()}</Text>
+          <Text style={s.subtitle}>{getResourceSubtitle()}</Text>
 
           <View style={s.divider} />
 
@@ -226,17 +234,18 @@ export default function BusinessBoostModal({
             <BoostCTA
               state={state}
               errorMsg={errorMsg}
-              boostLabel={copy.boostLabel}
+              boostLabel={getBoostLabel()}
               onShowAd={showAd}
+              t={t}
             />
           )}
 
           {/* ── Se video non disponibile (state === 'unavailable') ──────── */}
           {state === 'unavailable' && (
             <View style={s.unavailableBox}>
-              <Text style={s.unavailableText}>📵 Video non disponibile</Text>
+              <Text style={s.unavailableText}>📵 {t('boost_unavailable_video_text')}</Text>
               <Text style={s.unavailableHint}>
-                Hai guardato tutti i video disponibili oggi.
+                {t('boost_unavailable_video_hint')}
               </Text>
             </View>
           )}
@@ -247,8 +256,8 @@ export default function BusinessBoostModal({
             onPress={handleUpgrade}
             activeOpacity={0.85}
             accessibilityRole="button"
-            accessibilityLabel="Upgrade a Premium. Fatture, clienti e preventivi illimitati, niente pubblicità."
-            accessibilityHint="Apre la pagina di abbonamento Premium"
+            accessibilityLabel={t('upgrade_premium_cta')}
+            accessibilityHint={t('upgrade_premium_hint')}
           >
             <Text
               style={s.upgradeBtnIcon}
@@ -258,11 +267,11 @@ export default function BusinessBoostModal({
               🚀
             </Text>
             <View style={s.upgradeBtnText}>
-              <Text style={s.upgradeBtnTitle}>Upgrade a Premium</Text>
+              <Text style={s.upgradeBtnTitle}>{t('upgrade_premium')}</Text>
               <View style={s.upgradeFeatureList}>
-                <FeatureRow label="Fatture, clienti e preventivi illimitati" />
-                <FeatureRow label="Nessuna pubblicità" />
-                <FeatureRow label="Supporto prioritario" />
+                <FeatureRow label={t('feature_unlimited_resources')} />
+                <FeatureRow label={t('feature_no_ads')} />
+                <FeatureRow label={t('feature_priority_support')} />
               </View>
             </View>
           </TouchableOpacity>
@@ -272,9 +281,9 @@ export default function BusinessBoostModal({
             onPress={handleViewPremiumFeatures}
             style={s.premiumLink}
             accessibilityRole="link"
-            accessibilityLabel="Vedi tutte le funzioni Premium"
+            accessibilityLabel={t('view_premium_features')}
           >
-            <Text style={s.premiumLinkText}>Vedi tutte le funzioni Premium →</Text>
+            <Text style={s.premiumLinkText}>{t('view_premium_features')} →</Text>
           </TouchableOpacity>
 
           {/* ── Chiudi (conseguenza trasparente, no dark pattern) ────────── */}
@@ -282,9 +291,9 @@ export default function BusinessBoostModal({
             onPress={handleClose}
             style={s.closeLink}
             accessibilityRole="button"
-            accessibilityLabel="Chiudi senza attivare il boost"
+            accessibilityLabel={t('close_without_boost')}
           >
-            <Text style={s.closeLinkText}>Chiudi</Text>
+            <Text style={s.closeLinkText}>{t('close')}</Text>
           </TouchableOpacity>
         </Animated.View>
       </Animated.View>
@@ -299,9 +308,10 @@ interface BoostCTAProps {
   errorMsg:   string | null;
   boostLabel: string;
   onShowAd:   () => void;
+  t:          (key: string) => string; // Pass translation function
 }
 
-function BoostCTA({ state, errorMsg, boostLabel, onShowAd }: BoostCTAProps) {
+function BoostCTA({ state, errorMsg, boostLabel, onShowAd, t }: BoostCTAProps) {
   const isLoading  = state === 'loading';
   const isError    = state === 'error';
   const isReady    = state === 'ready';
@@ -313,15 +323,15 @@ function BoostCTA({ state, errorMsg, boostLabel, onShowAd }: BoostCTAProps) {
     return (
       <View style={s.boostErrorBox}>
         <Text style={s.boostErrorText}>
-          {errorMsg ?? 'Errore caricamento video.'}
+          {t(errorMsg ?? 'boost_error_loading_video')}
         </Text>
         <TouchableOpacity
           style={s.retryBtn}
           onPress={onShowAd}
           accessibilityRole="button"
-          accessibilityLabel="Riprova a caricare il video"
+          accessibilityLabel={t('boost_retry_ad_load')}
         >
-          <Text style={s.retryBtnText}>🔄 Riprova</Text>
+          <Text style={s.retryBtnText}>🔄 {t('retry')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -336,10 +346,10 @@ function BoostCTA({ state, errorMsg, boostLabel, onShowAd }: BoostCTAProps) {
       accessibilityRole="button"
       accessibilityLabel={
         isLoading
-          ? 'Caricamento video in corso…'
+          ? t('boost_loading_video_a11y')
           : isShowing
-            ? 'Video in riproduzione…'
-            : `Guarda video per sbloccare ${boostLabel}`
+            ? t('boost_playing_video_a11y')
+            : `${t('boost_watch_video_cta_a11y')} ${boostLabel}`
       }
       accessibilityState={{ disabled: isDisabled }}
     >
@@ -353,7 +363,7 @@ function BoostCTA({ state, errorMsg, boostLabel, onShowAd }: BoostCTAProps) {
             🎬
           </Text>
           <View>
-            <Text style={s.boostBtnTitle}>Guarda video — Business Boost</Text>
+            <Text style={s.boostBtnTitle}>{t('boost_watch_video_title')}</Text>
             <Text style={s.boostBtnSub}>{boostLabel}</Text>
           </View>
         </View>
@@ -363,7 +373,7 @@ function BoostCTA({ state, errorMsg, boostLabel, onShowAd }: BoostCTAProps) {
           <ActivityIndicator size="small" color="#6c63ff" />
         ) : isReady ? (
           <View style={s.boostReadyBadge}>
-            <Text style={s.boostReadyBadgeText}>GRATIS</Text>
+            <Text style={s.boostReadyBadgeText}>{t('free')}</Text>
           </View>
         ) : (
           <View style={s.boostUnavailableBadge}>

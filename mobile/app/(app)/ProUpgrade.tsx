@@ -5,7 +5,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import Purchases, { PurchasesPackage } from "react-native-purchases";
+import Purchases, { PurchasesPackage, PurchasesOffering } from "react-native-purchases";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const PURCHASE_TIMEOUT_MS = 15_000;
@@ -18,6 +18,27 @@ const PRODUCT_IDS = {
   yearly: 'vela-premium-yearly',
 } as const;
 
+/**
+ * Restituisce le info sul trial SOLO se RevenueCat / Google Play lo hanno
+ * configurato per il prodotto. Su Google Play il trial gratuito è esposto
+ * come introPrice con prezzo 0; se non c'è (o è solo uno sconto), non lo
+ * mostriamo. Ritorna { hasTrial:false } quando l'offering non è disponibile.
+ */
+function trialFor(offering: PurchasesOffering | null, productId: string): { hasTrial: boolean; text: string } {
+  const pkg = offering?.availablePackages?.find((p) => p.product.identifier === productId);
+  const intro = pkg?.product?.introPrice;
+  if (!intro || Number(intro.price) !== 0) return { hasTrial: false, text: "" };
+
+  const units = intro.periodNumberOfUnits ?? 0;
+  const unit = String(intro.periodUnit ?? "").toUpperCase();
+  const label =
+    unit === "DAY" ? (units === 1 ? "giorno" : "giorni") :
+    unit === "WEEK" ? (units === 1 ? "settimana" : "settimane") :
+    unit === "MONTH" ? (units === 1 ? "mese" : "mesi") :
+    unit === "YEAR" ? (units === 1 ? "anno" : "anni") : "periodo";
+  return { hasTrial: true, text: `${units} ${label}` };
+}
+
 export default function ProUpgradeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -26,6 +47,9 @@ export default function ProUpgradeScreen() {
   const [errorMessage, setErrorMessage] = useState("");
   const [reduceMotion, setReduceMotion] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Offering RC caricata all'avvio: usata per mostrare il trial SOLO se
+  // configurato su RevenueCat / Google Play (introPrice con prezzo 0).
+  const [rcOffering, setRcOffering] = useState<PurchasesOffering | null>(null);
 
   // Req 18.4: success animation refs
   const successScaleAnim = useRef(new Animated.Value(0.8)).current;
@@ -34,6 +58,16 @@ export default function ProUpgradeScreen() {
   useEffect(() => {
     AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
     return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
+  }, []);
+
+  // Carica le offering RC all'avvio per mostrare il trial solo se configurato
+  // su RevenueCat / Google Play (altrimenti introPrice è null e non si vede).
+  useEffect(() => {
+    let active = true;
+    Purchases.getOfferings()
+      .then((o) => { if (active) setRcOffering(o.current ?? null); })
+      .catch(() => { if (active) setRcOffering(null); });
+    return () => { active = false; };
   }, []);
 
   // Req 18.4: Trigger success animation when purchaseState becomes 'success'
@@ -167,6 +201,7 @@ export default function ProUpgradeScreen() {
       <View style={s.plansContainer} accessibilityRole="radiogroup" accessibilityLabel="Seleziona un piano di abbonamento">
         {packages.map((pkg) => {
           const isActive = selectedPlan === pkg.id;
+          const trial = trialFor(rcOffering, pkg.productId);
           return (
             <TouchableOpacity
               key={pkg.id}
@@ -174,7 +209,7 @@ export default function ProUpgradeScreen() {
               onPress={() => setSelectedPlan(pkg.id)}
               activeOpacity={0.8}
               accessibilityRole="radio"
-              accessibilityLabel={`${pkg.title}: ${pkg.price}. ${pkg.recurring}${pkg.tag ? ". " + pkg.tag : ""}`}
+              accessibilityLabel={`${pkg.title}: ${pkg.price}. ${pkg.recurring}${pkg.tag ? ". " + pkg.tag : ""}${trial.hasTrial ? ". Prova gratuita " + trial.text : ""}`}
               accessibilityState={{ selected: isActive }}
             >
               {pkg.tag && (
@@ -189,6 +224,11 @@ export default function ProUpgradeScreen() {
               <Text style={[s.planRecurring, isActive && s.textActiveDesc]}>
                 {pkg.recurring}
               </Text>
+              {trial.hasTrial && (
+                <Text style={[s.planTrial, isActive && s.textActiveDesc]}>
+                  Prova gratuita {trial.text} — poi {pkg.price}
+                </Text>
+              )}
             </TouchableOpacity>
           );
         })}
@@ -278,7 +318,7 @@ const FeatureItem = ({ text }: { text: string }) => (
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#0a0b0f", padding: 24 },
   header: { marginBottom: 30, alignItems: "center" },
-  title: { fontSize: 32, fontWeight: "bold", color: "#f0f0f2", fontFamily: "serif", marginBottom: 10 },
+  title: { fontSize: 32, fontWeight: "bold", color: "#f0f0f2", marginBottom: 10 },
   subtitle: { fontSize: 16, color: "#9ca3af", textAlign: "center", lineHeight: 24 },
 
   featuresBox: { backgroundColor: "#111318", borderRadius: 16, padding: 20, marginBottom: 30, borderWidth: 1, borderColor: "#1e2029" },
@@ -301,6 +341,7 @@ const s = StyleSheet.create({
   planTitle: { fontSize: 18, fontWeight: "bold", color: "#f0f0f2" },
   planPrice: { fontSize: 20, fontWeight: "bold", color: "#f0f0f2" },
   planRecurring: { fontSize: 13, color: "#9ca3af" },
+  planTrial: { fontSize: 12, color: "#a78bfa", marginTop: 4, fontWeight: "600" },
   textActive: { color: "#a78bfa" },
   textActiveDesc: { color: "#c4b5fd" },
 

@@ -4,7 +4,10 @@ import {
   ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { apiFetch } from "@/lib/ai";
+import { useLocale } from "@/components/LocaleProvider";
+import { QuickAddClientModal } from "@/components/QuickAddClientModal";
 
 interface Client {
   id: string;
@@ -23,9 +26,11 @@ const generateId = () => Math.random().toString(36).slice(2);
 
 export default function NewInvoiceScreen() {
   const router = useRouter();
+  const { t } = useLocale();
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [showClientPicker, setShowClientPicker] = useState(false);
+  const [showQuickAddClientModal, setShowQuickAddClientModal] = useState(false);
   const [lineItems, setLineItems] = useState<LineItem[]>([
     { id: generateId(), description: "", quantity: "1", rate: "" },
   ]);
@@ -82,14 +87,14 @@ export default function NewInvoiceScreen() {
 
   const handleSave = async (status: "draft" | "sent") => {
     if (!selectedClientId) {
-      Alert.alert("Cliente mancante", "Seleziona un cliente prima di salvare.");
+      Alert.alert(t("missing_client"), t("missing_client_msg"));
       return;
     }
     const validItems = lineItems.filter(
       (i) => i.description.trim() && parseFloat(i.rate) > 0
     );
     if (validItems.length === 0) {
-      Alert.alert("Voci mancanti", "Aggiungi almeno una voce con descrizione e importo.");
+      Alert.alert(t("missing_items"), t("invoice_missing_items_msg"));
       return;
     }
 
@@ -115,15 +120,15 @@ export default function NewInvoiceScreen() {
     setLoading(false);
 
     if (error) {
-      Alert.alert("Errore", error);
+      Alert.alert(t("error"), error);
       return;
     }
 
     Alert.alert(
-      status === "draft" ? "Bozza salvata ✓" : "Fattura creata ✓",
+      status === "draft" ? t("invoice_draft_saved_title") : t("invoice_created_title"),
       status === "draft"
-        ? "La fattura è stata salvata come bozza."
-        : "La fattura è stata creata e contrassegnata come inviata.",
+        ? t("invoice_draft_saved_msg")
+        : t("invoice_created_msg"),
       [{ text: "OK", onPress: () => router.back() }]
     );
   };
@@ -165,9 +170,15 @@ export default function NewInvoiceScreen() {
         {showClientPicker && (
           <View style={s.clientList}>
             {clients.length === 0 ? (
-              <Text style={s.noClientsText}>
-                Nessun cliente. Aggiungili dalla versione web.
-              </Text>
+              <TouchableOpacity
+                style={s.addClientInlineButton}
+                onPress={() => setShowQuickAddClientModal(true)}
+              >
+                <Ionicons name="person-add-outline" size={18} color="#6C63FF" />
+                <Text style={s.addClientInlineText}>
+                  {t("add_client_now") || "Aggiungi il tuo primo cliente"}
+                </Text>
+              </TouchableOpacity>
             ) : (
               clients.map((c) => (
                 <TouchableOpacity
@@ -307,6 +318,15 @@ export default function NewInvoiceScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+      <QuickAddClientModal
+        visible={showQuickAddClientModal}
+        onClose={() => setShowQuickAddClientModal(false)}
+        onClientAdded={(newClient) => {
+          setClients((prev) => [...prev, newClient as Client]);
+          setSelectedClientId(newClient.id);
+          setShowClientPicker(false);
+        }}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -338,6 +358,8 @@ const s = StyleSheet.create({
   clientOptionNameActive: { color: "#6c63ff" },
   clientOptionEmail: { fontSize: 12, color: "#6b7280", marginTop: 2 },
   noClientsText: { padding: 14, color: "#6b7280", fontSize: 14 },
+  addClientInlineButton: { flexDirection: "row", alignItems: "center", padding: 14, gap: 8 },
+  addClientInlineText: { color: "#6c63ff", fontSize: 15, fontWeight: "500" },
 
   lineItemCard: {
     backgroundColor: "#111318", borderRadius: 12, padding: 14,

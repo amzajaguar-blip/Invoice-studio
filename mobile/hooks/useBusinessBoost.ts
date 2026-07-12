@@ -20,7 +20,6 @@ import {
 import { usePlan } from '@/context/PlanContext';
 import { useAuth } from '@/hooks/useAuth';
 import type { ResourceType } from '@/lib/rate-limit-engine';
-import { type RewardedAd } from 'react-native-google-mobile-ads';
 
 // ─── Tipi Pubblici ────────────────────────────────────────────────────────────
 
@@ -42,19 +41,6 @@ export interface UseBusinessBoostReturn {
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
-/**
- * useBusinessBoost
- *
- * Preconditions:
- *   - Deve essere usato dentro PlanProvider e AuthProvider
- *
- * Postconditions:
- *   - Al mount: precarica l'annuncio se dailyAdsLeft > 0 (Req 2.5, 2.6)
- *   - openBoostModal(resource): imposta showBoostModal = true + currentResource
- *   - closeBoostModal(): avvia il 6h cooldown (Req 12.3, 12.6)
- *
- * Requirements: 2.5, 2.6, 12.3, 12.6
- */
 export function useBusinessBoost(): UseBusinessBoostReturn {
   const { limits } = usePlan();
   const { user } = useAuth();
@@ -67,8 +53,8 @@ export function useBusinessBoost(): UseBusinessBoostReturn {
   const [adState, setAdState]   = useState<BoostAdState>('idle');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Riferimento all'oggetto RewardedAd caricato (per chiamare .show())
-  const adRef = useRef<RewardedAd | null>(null);
+  // Riferimento all'oggetto annuncio caricato (per chiamare .show())
+  const adRef = useRef<unknown | null>(null);
 
   // Ref per cleanup del preload (rimuove listener e timeout)
   const cleanupPreloadRef = useRef<(() => void) | null>(null);
@@ -84,15 +70,6 @@ export function useBusinessBoost(): UseBusinessBoostReturn {
   const dailyAdsLeft = Math.max(0, limits.dailyAdsMax - limits.dailyAdsWatched);
 
   // ─── Precaricamento annuncio al mount ─────────────────────────────────
-  /**
-   * Algoritmo di precaricamento (da design.md):
-   *  1. Se dailyAdsLeft <= 0 → stato = 'unavailable', RETURN
-   *  2. stato = 'loading'
-   *  3. preloadBoostAd con callbacks onReady/onError/onEarnedReward
-   *  4. Timeout 5s gestito internamente da preloadBoostAd
-   *
-   * Requirements: 2.5, 2.6
-   */
   useEffect(() => {
     // Non precaricare se il limite giornaliero è raggiunto (Req 2.5, 2.6)
     if (dailyAdsLeft <= 0) {
@@ -115,7 +92,7 @@ export function useBusinessBoost(): UseBusinessBoostReturn {
     }
 
     const cleanup = preloadBoostAd({
-      onReady: (loadedAd: RewardedAd) => {
+      onReady: (loadedAd: unknown) => {
         if (mountedRef.current) {
           adRef.current = loadedAd;
           setAdState('ready');
@@ -130,16 +107,12 @@ export function useBusinessBoost(): UseBusinessBoostReturn {
         }
       },
       onEarnedReward: (_callbackId: string) => {
-        // Il reward viene gestito da showBoostAd (business-boost.ts).
-        // Qui aggiorniamo lo stato dopo la riproduzione.
         if (mountedRef.current) {
           setAdState('idle');
           adRef.current = null;
         }
       },
       onClosed: () => {
-        // L'annuncio è stato chiuso (con o senza reward).
-        // Ripristiniamo lo stato per permettere un eventuale reload.
         if (mountedRef.current) {
           setAdState('idle');
           adRef.current = null;
@@ -159,10 +132,6 @@ export function useBusinessBoost(): UseBusinessBoostReturn {
   }, [dailyAdsLeft]);
 
   // ─── showAd: mostra l'annuncio già caricato ───────────────────────────
-  /**
-   * Funzione di callback da passare a BoostSession.
-   * Precondition: adState === 'ready' && adRef.current !== null
-   */
   const showAd = useCallback(() => {
     if (adState !== 'ready' || !adRef.current) return;
 
@@ -213,26 +182,16 @@ export function useBusinessBoost(): UseBusinessBoostReturn {
   };
 
   // ─── openBoostModal ───────────────────────────────────────────────────
-  /**
-   * Imposta showBoostModal = true e currentResource.
-   * Requirement: 4.2 (task) — openBoostModal(resource) imposta showBoostModal = true e currentResource
-   */
   const openBoostModal = useCallback((resource: ResourceType) => {
     setCurrentResource(resource);
     setShowBoostModal(true);
   }, []);
 
   // ─── closeBoostModal ──────────────────────────────────────────────────
-  /**
-   * Chiude il modal e avvia il 6h suggestion cooldown (Req 12.3, 12.6).
-   * Il cooldown viene scritto in AsyncStorage tramite writeSuggestionCooldown
-   * dalla business-boost.ts.
-   */
   const closeBoostModal = useCallback(() => {
     setShowBoostModal(false);
     setCurrentResource(null);
 
-    // Avvia il 6h suggestion cooldown (Req 12.3, 12.6)
     writeSuggestionCooldown(Date.now()).catch((err) => {
       console.warn('[useBusinessBoost] Failed to write suggestion cooldown:', err);
     });

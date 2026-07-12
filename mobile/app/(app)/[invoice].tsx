@@ -6,6 +6,7 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as MailComposer from "expo-mail-composer";
 import { apiFetch } from "@/lib/ai";
+import { useLocale } from "@/components/LocaleProvider";
 
 interface LineItem {
   description: string;
@@ -59,6 +60,8 @@ export default function InvoiceDetailScreen() {
   const { invoice } = useLocalSearchParams();
   const router = useRouter();
   const invoiceId = typeof invoice === "string" ? invoice : "";
+  const localeCtx = useLocale();
+  const t = typeof localeCtx?.t === 'function' ? localeCtx.t : ((key: string) => key);
 
   const [data, setData] = useState<InvoiceDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -88,7 +91,7 @@ export default function InvoiceDetailScreen() {
     setUpdatingStatus(false);
 
     if (error) {
-      Alert.alert("Errore", error);
+      Alert.alert(t("error"), error);
       return;
     }
     if (updated) {
@@ -108,7 +111,7 @@ export default function InvoiceDetailScreen() {
       `Scadenza: ${data?.due_date ? new Date(data.due_date).toLocaleDateString("it-IT") : "—"}`,
       `Stato: ${STATUS_LABELS[data?.status ?? "draft"]}`,
       "",
-      "Visualizza su InvoiceStudio",
+      "Visualizza su VELA",
       `https://invoicestudio.app`,
     ];
     return lines.join("\n");
@@ -131,7 +134,7 @@ export default function InvoiceDetailScreen() {
   const handleEmail = async () => {
     const available = await MailComposer.isAvailableAsync();
     if (!available) {
-      Alert.alert("Email non disponibile", "Configura un account email sul dispositivo.");
+      Alert.alert(t("invoice_email_unavailable_title"), t("invoice_email_unavailable_msg"));
       return;
     }
     await MailComposer.composeAsync({
@@ -147,7 +150,7 @@ export default function InvoiceDetailScreen() {
     const url = `whatsapp://send?text=${text}`;
     const canOpen = await Linking.canOpenURL(url);
     if (!canOpen) {
-      Alert.alert("WhatsApp non trovato", "Installa WhatsApp per condividere.");
+      Alert.alert(t("invoice_whatsapp_not_found_title"), t("invoice_whatsapp_not_found_msg"));
       return;
     }
     await Linking.openURL(url);
@@ -165,7 +168,7 @@ export default function InvoiceDetailScreen() {
           style: "destructive",
           onPress: async () => {
             const { error } = await apiFetch(`/api/invoices/${invoiceId}`, { method: "DELETE" });
-            if (error) { Alert.alert("Errore", error); return; }
+            if (error) { Alert.alert(t("error"), error); return; }
             router.back();
           },
         },

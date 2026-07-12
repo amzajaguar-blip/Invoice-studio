@@ -226,7 +226,7 @@ export default function InvoicesScreen() {
   // ─── Smart Empty State (Req 17.2, 20.1, 20.2) ────────────────────────────
   /**
    * Req 17.2: icona 📄, titolo "Crea la tua prima fattura professionale.",
-   * hint "InvoiceStudio ti guida passo per passo.", CTA "Crea fattura"
+   * hint "VELA ti guida passo per passo.", CTA "Crea fattura"
    * Req 20.1: CTA presente e chiaramente visibile
    * Req 20.2: no dark pattern, testo onesto
    */
@@ -272,7 +272,7 @@ export default function InvoicesScreen() {
       <EmptyState
         icon="document-text-outline"
         title="Crea la tua prima fattura professionale."
-        hint="InvoiceStudio ti guida passo per passo."
+        hint="VELA ti guida passo per passo."
         cta="Crea fattura"
         onCTA={handleNewInvoice}
       />

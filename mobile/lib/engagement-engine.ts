@@ -100,7 +100,7 @@ const MILESTONE_COPY: Record<MilestoneType, Omit<MilestoneEvent, 'type'>> = {
   },
   review_ask: {
     emoji: '⭐',
-    title: 'Ti piace InvoiceStudio?',
+    title: 'Ti piace VELA?',
     body:  'Lascia una recensione e aiuta altri freelancer a scoprirci!',
   },
 };

@@ -2,7 +2,7 @@
 set -e
 
 echo "============================================"
-echo "  🚀 Invoice Studio - Build Release AAB"
+echo "  🚀 VELA - Build Release AAB"
 echo "============================================"
 echo ""
 
@@ -67,7 +67,7 @@ if [ -f "$AAB_FILE" ]; then
   echo ""
   echo "  📋 Prossimi passi:"
   echo "     1. Vai su https://play.google.com/console"
-  echo "     2. Seleziona Invoice Studio"
+  echo "     2. Seleziona VELA"
   echo "     3. Produzione → Crea nuova release"
   echo "     4. Carica il file .aab"
   echo ""

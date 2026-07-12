@@ -7,7 +7,7 @@
  *    per il contesto corrente, oppure null.
  *
  * Costanti esportate:
- *  - `CONTEXTUAL_CARDS` — definizioni statiche di tutte le card
+ *  - `CONTEXTUAL_CARDS` — definizioni statiche di tutte le card (struttura)
  *  - `CARD_ACCENT_COLORS` — colori accent per ogni CardContext
  *
  * @see Requirements 6.1, 6.2, 6.3, 6.4, 6.5, 6.7, 6.10
@@ -41,10 +41,12 @@ export type CardContext =
 export interface ContextualCard {
   /** Identificatore univoco — coincide con il CardContext */
   id: CardContext;
-  title: string;
-  body: string;
-  /** Testo del pulsante CTA opzionale */
-  cta?: string;
+  /** Chiave di traduzione per il titolo */
+  titleKey: string;
+  /** Chiave di traduzione per il corpo */
+  bodyKey: string;
+  /** Chiave di traduzione per il pulsante CTA opzionale */
+  ctaKey?: string;
   /** Azione associata al CTA */
   ctaAction?: 'show_boost' | 'show_upgrade' | 'open_review' | 'convert_quote';
   /**
@@ -57,52 +59,53 @@ export interface ContextualCard {
   visible: boolean;
 }
 
-// ─── Definizioni statiche delle card ─────────────────────────────────────────
+// ─── Definizioni statiche delle card (solo struttura) ─────────────────────────
 
 /**
- * Mappa di tutte le card disponibili con i loro contenuti statici.
+ * Mappa di tutte le card disponibili con la loro struttura statica.
  * Le condizioni di visibilità sono valutate da `resolveContextualCard`.
+ * I testi sono gestiti tramite chiavi di traduzione (titleKey, bodyKey, ctaKey).
  *
  * @see Requirements 6.3, 6.4, 6.5, 6.7, 6.10
  */
 export const CONTEXTUAL_CARDS: Record<CardContext, Omit<ContextualCard, 'visible'>> = {
   dashboard_limit_warning: {
     id: 'dashboard_limit_warning',
-    title: 'Quasi al limite mensile',
-    body: "Hai usato l'80% delle tue fatture mensili. Guarda un video per sbloccare 3 in più.",
-    cta: 'Business Boost',
+    titleKey: 'dashboard_limit_warning_title',
+    bodyKey: 'dashboard_limit_warning_body',
+    ctaKey: 'dashboard_limit_warning_cta',
     ctaAction: 'show_boost',
     priority: 1,
   },
   invoices_boost_available: {
     id: 'invoices_boost_available',
-    title: 'Business Boost disponibile',
-    body: 'Guarda un breve video e sblocca subito 3 fatture extra per 24 ore.',
-    cta: 'Guarda video',
+    titleKey: 'invoices_boost_available_title',
+    bodyKey: 'invoices_boost_available_body',
+    ctaKey: 'invoices_boost_available_cta',
     ctaAction: 'show_boost',
     priority: 2,
   },
   customers_upsell: {
     id: 'customers_upsell',
-    title: 'Stai crescendo!',
-    body: 'Hai quasi raggiunto il limite clienti. Passa a Premium per clienti illimitati.',
-    cta: 'Upgrade a Premium',
+    titleKey: 'customers_upsell_title',
+    bodyKey: 'customers_upsell_body',
+    ctaKey: 'customers_upsell_cta',
     ctaAction: 'show_upgrade',
     priority: 3,
   },
   quotes_convert_hint: {
     id: 'quotes_convert_hint',
-    title: 'Converti in fattura',
-    body: 'Hai preventivi in bozza pronti da inviare. Convertili in fattura in un tap.',
-    cta: 'Converti ora',
+    titleKey: 'quotes_convert_hint_title',
+    bodyKey: 'quotes_convert_hint_body',
+    ctaKey: 'quotes_convert_hint_cta',
     ctaAction: 'convert_quote',
     priority: 4,
   },
   settings_review_ask: {
     id: 'settings_review_ask',
-    title: 'Ti piace InvoiceStudio? ⭐',
-    body: 'Lascia una recensione e aiuta altri freelancer a scoprirci!',
-    cta: 'Lascia una recensione',
+    titleKey: 'settings_review_ask_title',
+    bodyKey: 'settings_review_ask_body',
+    ctaKey: 'settings_review_ask_cta',
     ctaAction: 'open_review',
     priority: 5,
   },

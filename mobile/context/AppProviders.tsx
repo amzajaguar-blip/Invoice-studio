@@ -23,12 +23,16 @@ import { PlanProvider } from "@/context/PlanContext";
 import { EngagementProvider } from "@/context/EngagementContext";
 import { ToastProvider } from "@/components/ToastProvider";
 import { LocaleProvider } from "@/components/LocaleProvider";
+import { runI18nDevCheck } from "@/lib/i18n-dev-check";
 
 interface AppProvidersProps {
   children: ReactNode;
 }
 
 export function AppProviders({ children }: AppProvidersProps) {
+  if (__DEV__) {
+    runI18nDevCheck();
+  }
   return (
     <ThemeProvider>
       <ToastProvider>

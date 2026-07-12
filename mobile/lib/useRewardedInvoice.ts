@@ -1,30 +1,13 @@
 /**
- * useRewardedInvoice — Hook per la gestione dei Rewarded Ads
+ * useRewardedInvoice — invoice quota hook.
  *
- * Flusso:
- * 1. Controlla il conteggio fatture mensili vs limite (5 free + crediti)
- * 2. Se limite raggiunto → mostra modale
- * 3. Utente sceglie "Guarda video" → carica e mostra annuncio AdMob
- * 4. onEarnedReward → chiama Supabase per accreditare +1 credito
- * 5. Ritorna canCreate = true e sblocca la creazione
- *
- * Idempotency: usa admob_callback_id come chiave. La UNIQUE su ad_impressions
- * impedisce doppie attribuzioni anche in race condition.
+ * Rewarded ads were removed for Play Store prep, so the rewarded-ad
+ * flow (loadAd/showAd) is disabled (no-op). The quota / monthly-limit logic
+ * is preserved unchanged.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import {
-  RewardedAd,
-  RewardedAdEventType,
-  TestIds,
-  AdEventType,
-} from 'react-native-google-mobile-ads';
 import { supabase } from './supabase';
-
-// ─── Configurazione ID Annunci ────────────────────────────────────────────────
-const REWARDED_AD_UNIT_ID = __DEV__
-  ? TestIds.REWARDED
-  : 'ca-app-pub-4053625490298263/3442892886'; // ← Il tuo ID reale!
 
 const FREE_INVOICES_LIMIT = 5;
 
@@ -62,11 +45,6 @@ export function useRewardedInvoice(): {
     dailyMax: 10,
     dailyResetIn: "",
   });
-
-  const [adLoaded, setAdLoaded] = useState(false);
-  const [adLoading, setAdLoading] = useState(false);
-  const [adError, setAdError] = useState<string | null>(null);
-  const [rewarded, setRewarded] = useState<RewardedAd | null>(null);
 
   // Ref per evitare setState su component unmounted
   const mountedRef = useRef(true);
@@ -138,7 +116,7 @@ export function useRewardedInvoice(): {
       const dailyCreditsUsed = dailyDate < today ? 0 : rawDaily;
       const DAILY_MAX = 10;
 
-      // Time until midnight (local) — riuso `now` già dichiarato sopra
+      // Time until midnight (local)
       const midnight = new Date(now);
       midnight.setHours(24, 0, 0, 0);
       const msLeft = midnight.getTime() - now.getTime();
@@ -179,116 +157,17 @@ export function useRewardedInvoice(): {
     refreshQuota();
   }, [refreshQuota]);
 
-  // ─── Accreditamento credito con idempotency via RPC atomica ───────────────
-  // DEFINITO PRIMA di loadAd per evitare TDZ ReferenceError
-
-  const claimCredit = useCallback(async (admobCallbackId: string) => {
-    if (!admobCallbackId) return;
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data: orgData } = await supabase
-      .from('org_members')
-      .select('org_id')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (!orgData?.org_id) return;
-
-    const { data: result, error: rpcError } = await supabase.rpc(
-      'atomic_earn_credit',
-      {
-        p_org_id: orgData.org_id,
-        p_user_id: user.id,
-        p_callback_id: admobCallbackId,
-        p_ad_unit_id: REWARDED_AD_UNIT_ID,
-        p_reward_type: 'invoice_credit',
-        p_reward_amount: 1,
-      }
-    );
-
-    if (rpcError) {
-      console.error('atomic_earn_credit RPC failed:', rpcError);
-    }
-  }, []);
-
-  // ─── Carica annuncio rewarded ───────────────────────────────────────────────
-
-  const loadAd = useCallback(() => {
-    setAdLoading(true);
-    setAdError(null);
-
-    const ad = RewardedAd.createForAdRequest(REWARDED_AD_UNIT_ID, {
-      requestNonPersonalizedAdsOnly: false,
-    });
-
-    const unsubLoaded = ad.addAdEventListener(RewardedAdEventType.LOADED, () => {
-      if (mountedRef.current) {
-        setAdLoaded(true);
-        setAdLoading(false);
-        setRewarded(ad);
-      }
-    });
-
-    const unsubEarned = ad.addAdEventListener(
-      RewardedAdEventType.EARNED_REWARD,
-      (reward: { type: string; amount: number }) => {
-        // L'evento EARNED_REWARD di AdMob non espone il callback_id direttamente.
-        // Usiamo l'ad unit ID + timestamp + reward type come chiave composita.
-        // In produzione, implementare SSV lato server per ottenere il vero callback_id.
-        const callbackId = `admob_${REWARDED_AD_UNIT_ID}_${Date.now()}_${reward.type}_${reward.amount}`;
-        claimCredit(callbackId).then(() => refreshQuota());
-      }
-    );
-
-    const unsubError = ad.addAdEventListener(AdEventType.ERROR, (error: Error) => {
-      if (mountedRef.current) {
-        setAdLoading(false);
-        setAdLoaded(false);
-        setAdError(error.message);
-      }
-    });
-
-    const unsubClosed = ad.addAdEventListener(AdEventType.CLOSED, () => {
-      if (mountedRef.current) {
-        setAdLoaded(false);
-        setRewarded(null);
-      }
-      // Precarica il prossimo annuncio in background
-      setTimeout(() => {
-        if (mountedRef.current) loadAd();
-      }, 1000);
-    });
-
-    ad.load();
-
-    return () => {
-      unsubLoaded();
-      unsubEarned();
-      unsubError();
-      unsubClosed();
-    };
-  }, [claimCredit, refreshQuota]);
-
-  useEffect(() => {
-    const cleanup = loadAd();
-    return cleanup;
-  }, [loadAd]);
-
-  // ─── Mostra annuncio ────────────────────────────────────────────────────────
+  // ─── Mostra annuncio (rewarded ads disabilitati per Play Store prep) ────────
 
   const showAd = useCallback(() => {
-    if (rewarded && adLoaded) {
-      rewarded.show();
-    }
-  }, [rewarded, adLoaded]);
+    // Rewarded ads removed for Play Store prep — no-op.
+  }, []);
 
   return {
     quota,
-    adLoaded,
-    adLoading,
-    adError,
+    adLoaded: false,
+    adLoading: false,
+    adError: null,
     showAd,
     refreshQuota,
   };

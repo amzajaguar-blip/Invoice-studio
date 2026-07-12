@@ -10,7 +10,7 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiFetch } from "@/lib/ai";
-import { useLocale } from "@/lib/i18n";
+import { useLocale } from "@/components/LocaleProvider";
 
 interface Quote {
   id: string;

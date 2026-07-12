@@ -369,7 +369,7 @@ export function checkLimit(limits: PlanLimits, resource: ResourceType): CheckLim
  * Applica il Business Boost (+3 fatture, +1 cliente, +1 preventivo, 24h).
  * Atomico via Supabase RPC. Idempotente per callbackId.
  *
- * @precondition orgId valido, callbackId univoco per questo evento reward AdMob
+ * @precondition orgId valido, callbackId univoco per questo evento reward
  * @postcondition
  *   - Se successo: user_plan.boost_*_extra aggiornati, boost_expires_at = now + 24h
  *   - Idempotente: stessa callbackId non può applicare boost due volte (UNIQUE constraint)

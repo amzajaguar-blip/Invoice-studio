@@ -360,7 +360,7 @@ export default function DashboardScreen() {
         <View style={styles.headerGradient}>
           <View style={[StyleSheet.absoluteFill, { backgroundColor: "#12131a" }]} />
           <View style={[StyleSheet.absoluteFill, { backgroundColor: "#0a0b0f", opacity: 0.6 }]} />
-          <Text style={styles.title}>✦ InvoiceStudio</Text>
+          <Text style={styles.title}>✦ VELA</Text>
           <Text style={styles.subtitle}>Dashboard</Text>
         </View>
 
@@ -377,7 +377,7 @@ export default function DashboardScreen() {
             {dashboardState === 'new' && (
               /* ONBOARDING GUIDE CARDS */
               <View style={styles.onboardingContainer}>
-                <Text style={styles.onboardingTitle}>Inizia con InvoiceStudio</Text>
+                <Text style={styles.onboardingTitle}>Inizia con VELA</Text>
                 {[
                   { icon: '📄', label: 'Crea la tua prima fattura', onPress: () => router.push('/(app)/invoices/new') },
                   { icon: '👥', label: 'Aggiungi il tuo primo cliente', onPress: () => router.push('/(app)/clients/add') },

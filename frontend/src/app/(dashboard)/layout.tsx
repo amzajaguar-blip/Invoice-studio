@@ -74,7 +74,7 @@ export default function DashboardLayout({
         {/* Logo */}
         <div className="px-5 pb-7 pt-3">
           <h1 className="text-[#f0f0f2] text-xl font-bold font-[Georgia,serif] flex items-center gap-2">
-            <Star className="w-5 h-5 text-[#6c63ff]" /> InvoiceStudio
+            <Star className="w-5 h-5 text-[#6c63ff]" /> VELA
           </h1>
         </div>
 
@@ -125,7 +125,7 @@ export default function DashboardLayout({
             <Menu className="w-5 h-5" />
           </button>
           <span className="text-[#f0f0f2] font-bold font-[Georgia,serif] text-lg flex items-center gap-2">
-            <Star className="w-4 h-4 text-[#6c63ff]" /> InvoiceStudio
+            <Star className="w-4 h-4 text-[#6c63ff]" /> VELA
           </span>
         </header>
 

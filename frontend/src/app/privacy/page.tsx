@@ -1,21 +1,31 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { LanguageSelector } from "@/components/LanguageSelector";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: "Informativa sulla privacy di InvoiceStudio — GDPR compliant.",
+  description: "Informativa sulla privacy di VELA — GDPR compliant.",
+  alternates: {
+    languages: {
+      it: "/privacy",
+      en: "/en/privacy",
+    },
+  },
 };
 
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-[#0a0b0f] text-[#d1d5db]">
       <div className="max-w-3xl mx-auto px-4 py-12 md:py-16">
-        <Link
-          href="/"
-          className="text-sm text-[#6c63ff] hover:text-[#8b5cf6] no-underline transition-colors inline-block mb-8"
-        >
-          ← Torna alla home
-        </Link>
+        <div className="flex items-center justify-between mb-4">
+          <Link
+            href="/"
+            className="text-sm text-[#6c63ff] hover:text-[#8b5cf6] no-underline transition-colors"
+          >
+            ← Torna alla home
+          </Link>
+          <LanguageSelector current="/privacy" itPath="/privacy" enPath="/en/privacy" />
+        </div>
 
         <h1 className="text-3xl font-bold text-[#f0f0f2] font-[Georgia,serif] mb-3">
           Privacy Policy
@@ -30,50 +40,54 @@ export default function PrivacyPage() {
             1. Titolare del Trattamento
           </h2>
           <p className="text-sm leading-relaxed text-[#9ca3af]">
-            InvoiceStudio, con sede operativa in Italia, è il titolare del
+            VELA, con sede operativa in Italia, è il titolare del
             trattamento dei dati personali raccolti attraverso questa
-            piattaforma SaaS. Per qualsiasi richiesta relativa alla privacy, puoi
+            applicazione mobile. Per qualsiasi richiesta relativa alla privacy, puoi
             contattarci all&apos;indirizzo email:{" "}
-            <span className="text-[#6c63ff]">privacy@invoicestudio.it</span>.
+            <span className="text-[#6c63ff]">privacy@vela.app</span>.
           </p>
         </section>
 
         {/* 2. Dati raccolti */}
         <section className="mb-8">
           <h2 className="text-lg font-semibold text-[#f0f0f2] mb-3">
-            2. Dati Personali Raccolti
+            2. Dati Raccolti e Finalità del Trattamento
           </h2>
-          <p className="text-sm leading-relaxed text-[#9ca3af] mb-2">
+          <p className="text-sm leading-relaxed text-[#9ca3af] mb-4">
             Raccogliamo le seguenti categorie di dati personali:
           </p>
-          <ul className="list-disc list-inside text-sm text-[#9ca3af] space-y-1 ml-2">
+          <ul className="list-disc list-inside text-sm text-[#9ca3af] space-y-2 mb-4">
             <li>
-              <strong className="text-[#d1d5db]">Dati dell&apos;account:</strong>{" "}
-              nome completo, indirizzo email, password (hash crittografato).
+              <strong>Dati di registrazione e profilo:</strong> nome, email,
+              password (hash), lingua preferita, fuso orario.
             </li>
             <li>
-              <strong className="text-[#d1d5db]">Dati di fatturazione:</strong>{" "}
-              informazioni relative ai clienti (nome, email, partita IVA,
-              indirizzo), dettagli delle fatture emesse.
+              <strong>Dati fiscali e aziendali (opzionali):</strong> ragione
+              sociale, partita IVA/CF, indirizzo, CAP, città, nazione,
+              codice SDI/PEC per fatturazione elettronica.
             </li>
             <li>
-              <strong className="text-[#d1d5db]">Dati di pagamento:</strong>{" "}
-              gestiti esclusivamente tramite Stripe. InvoiceStudio non memorizza
-              dati di carte di credito o debito.
+              <strong>Dati dei documenti:</strong> fatture, preventivi, clienti,
+              prodotti/servizi, importi, IVA, date, numerazione.
             </li>
             <li>
-              <strong className="text-[#d1d5db]">Dati tecnici:</strong>{" "}
-              indirizzo IP, tipo di browser, sistema operativo, pagine visitate
-              (solo cookie tecnici essenziali).
+              <strong>Dati di pagamento (gestiti da Google Play Billing):</strong>
+              l&apos;app non raccoglie né conserva numeri di carta di credito,
+              coordinate bancarie o dati sensibili di pagamento. Gli abbonamenti
+              sono processati tramite <strong>Google Play Billing</strong> su
+              Android. <strong>RevenueCat</strong> funge da layer di gestione
+              abbonamenti/entitlements e non memorizza dati di carte.
             </li>
             <li>
-              <strong className="text-[#d1d5db]">Dati pubblicitari:</strong>{" "}
-              ID dispositivo (Advertising ID / AD_ID) e dati di interazione con
-              gli annunci (visualizzazioni video rewarded), raccolti tramite
-              Google AdMob per erogare annunci premiali facoltativi all&apos;interno
-              dell&apos;app mobile.
+              <strong>Dati di utilizzo e diagnostici (Sentry):</strong> errori,
+              performance, crash report, session replay (testo/mascherato).
             </li>
           </ul>
+          <p className="text-sm leading-relaxed text-[#9ca3af]">
+            Base giuridica: esecuzione contratto (art. 6.1.b GDPR), consenso
+            (art. 6.1.a per analytics), interesse legittimo (art. 6.1.f per
+            sicurezza/antifrode).
+          </p>
         </section>
 
         {/* 3. Finalità e base giuridica */}
@@ -87,24 +101,29 @@ export default function PrivacyPage() {
           <ul className="list-disc list-inside text-sm text-[#9ca3af] space-y-1 ml-2">
             <li>
               <strong className="text-[#d1d5db]">
-                Esecuzione del contratto (Art. 6.1.b GDPR):
+                Erogazione del servizio (Art. 6.1.b GDPR):
               </strong>{" "}
-              fornire il servizio SaaS di fatturazione, gestire il tuo account,
-              elaborare le fatture.
+              gestione account, fatture, preventivi, clienti, sincronizzazione
+              cloud, backup.
             </li>
             <li>
               <strong className="text-[#d1d5db]">
                 Obblighi di legge (Art. 6.1.c GDPR):
               </strong>{" "}
-              conservazione dei dati fiscali e contabili come richiesto dalla
-              normativa italiana (10 anni per le fatture).
+              conservazione 10 anni documenti fiscali (Art. 2220 c.c.),
+              fatturazione elettronica (SDI).
             </li>
             <li>
               <strong className="text-[#d1d5db]">
-                Legittimo interesse (Art. 6.1.f GDPR):
+                Consenso (Art. 6.1.a GDPR):
               </strong>{" "}
-              garantire la sicurezza della piattaforma, prevenire frodi,
-              migliorare il servizio.
+              analisi crash/performance (Sentry).
+            </li>
+            <li>
+              <strong className="text-[#d1d5db]">
+                Interesse legittimo (Art. 6.1.f GDPR):
+              </strong>{" "}
+              sicurezza, antifrode, prevenzione abuso, miglioramento servizio.
             </li>
           </ul>
         </section>
@@ -161,7 +180,7 @@ export default function PrivacyPage() {
           </ul>
           <p className="text-sm leading-relaxed text-[#9ca3af] mt-2">
             Per esercitare i tuoi diritti, scrivi a{" "}
-            <span className="text-[#6c63ff]">privacy@invoicestudio.it</span>.
+            <span className="text-[#6c63ff]">privacy@vela.app</span>.
             Risponderemo entro 30 giorni. Hai inoltre il diritto di presentare
             reclamo al Garante per la Protezione dei Dati Personali (
             <a
@@ -174,28 +193,22 @@ export default function PrivacyPage() {
           </p>
         </section>
 
-        {/* 6. Cookie */}
+        {/* 6. Cookie e tecnologie simili */}
         <section className="mb-8">
           <h2 className="text-lg font-semibold text-[#f0f0f2] mb-3">
-            6. Cookie Policy
+            6. Cookie e Tecnologie Simili
           </h2>
           <p className="text-sm leading-relaxed text-[#9ca3af]">
-            InvoiceStudio utilizza esclusivamente cookie tecnici essenziali per
-            il funzionamento della piattaforma (autenticazione, sicurezza,
-            preferenze di sessione). Non utilizziamo cookie di profilazione sul
-            sito web.
+            L&apos;app mobile VELA (Android) non utilizza cookie web
+            tradizionali. Impiega identificatori di dispositivo per:
           </p>
-          <p className="text-sm leading-relaxed text-[#9ca3af] mt-2">
-            L&apos;app mobile (Android) integra Google AdMob per la pubblicità
-            rewarded. AdMob può utilizzare l&apos;ID pubblicità del dispositivo
-            (AD_ID) per erogare annunci. Gli utenti possono reimpostare o
-            disattivare l&apos;ID pubblicità dalle impostazioni Android:
-            Impostazioni → Google → Annunci → &ldquo;Ripristina ID
-            pubblicità&rdquo; o &ldquo;Disattiva personalizzazione annunci&rdquo;.
-          </p>
+          <ul className="list-disc list-inside text-sm text-[#9ca3af] space-y-1 ml-2 mt-2">
+            <li>Autenticazione e sessione (token sicuri, httpOnly).</li>
+            <li>Diagnostica crash/performance (Sentry) — testo mascherato.</li>
+          </ul>
         </section>
 
-        {/* 7. Terze parti */}
+        {/* 7. Terze parti (Responsabili del Trattamento) */}
         <section className="mb-8">
           <h2 className="text-lg font-semibold text-[#f0f0f2] mb-3">
             7. Terze Parti (Responsabili del Trattamento)
@@ -217,10 +230,22 @@ export default function PrivacyPage() {
               .
             </li>
             <li>
-              <strong className="text-[#d1d5db]">Stripe:</strong> elaborazione
-              dei pagamenti online. Certificato PCI-DSS Level 1.{" "}
+              <strong className="text-[#d1d5db]">RevenueCat:</strong> gestione
+              abbonamenti, entitlements, validazione receipt Google Play.
+              Non conserva dati di carte di credito.{" "}
               <a
-                href="https://stripe.com/it/privacy"
+                href="https://www.revenuecat.com/privacy/"
+                className="text-[#6c63ff] hover:text-[#8b5cf6] transition-colors"
+              >
+                Privacy Policy
+              </a>
+              .
+            </li>
+            <li>
+              <strong className="text-[#d1d5db]">Google Play Billing:</strong>
+              elaborazione pagamenti abbonamenti in-app Android.{" "}
+              <a
+                href="https://policies.google.com/privacy"
                 className="text-[#6c63ff] hover:text-[#8b5cf6] transition-colors"
               >
                 Privacy Policy
@@ -232,19 +257,6 @@ export default function PrivacyPage() {
               transazionali (fatture, reminder).{" "}
               <a
                 href="https://resend.com/privacy"
-                className="text-[#6c63ff] hover:text-[#8b5cf6] transition-colors"
-              >
-                Privacy Policy
-              </a>
-              .
-            </li>
-            <li>
-              <strong className="text-[#d1d5db]">Google AdMob:</strong>{" "}
-              erogazione di annunci video rewarded nell&apos;app mobile. AdMob
-              raccoglie l&apos;ID dispositivo (AD_ID) e i dati di interazione con
-              gli annunci.{" "}
-              <a
-                href="https://policies.google.com/privacy"
                 className="text-[#6c63ff] hover:text-[#8b5cf6] transition-colors"
               >
                 Privacy Policy
@@ -279,7 +291,7 @@ export default function PrivacyPage() {
 
         <div className="border-t border-[#1e2029] pt-8 mt-12">
           <p className="text-xs text-[#6b7280]">
-            InvoiceStudio — Piattaforma SaaS per fatturazione professionale.
+            VELA — App mobile per fatturazione e preventivi professionali.
             Sede operativa in Italia.
           </p>
         </div>

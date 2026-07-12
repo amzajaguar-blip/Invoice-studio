@@ -10,87 +10,35 @@ import { StatusBar } from "expo-status-bar";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/ThemeContext";
 import { ToastProvider } from "@/components/ToastProvider";
-import { LocaleProvider } from "@/components/LocaleProvider";
+import { LocaleProvider, useLocale } from "@/components/LocaleProvider";
 import { PlanProvider } from "@/context/PlanContext";
 import { EngagementProvider } from "@/context/EngagementContext";
 import { StartupErrorBoundary } from "@/app/components/StartupErrorBoundary";
-import { useEffect, useState } from "react";
-import { View, ActivityIndicator, Platform } from "react-native";
+import { useEffect } from "react";
+import { Platform } from "react-native";
 import Constants from "expo-constants";
-import mobileAds, { AdsConsent, AdsConsentStatus } from "react-native-google-mobile-ads";
 import Purchases from "react-native-purchases";
 import * as Notifications from "expo-notifications";
 import * as Linking from "expo-linking";
 import { initializePushNotifications } from "@/lib/notifications-service";
-import { COLORS } from "../constants/theme";
 
 const logBoot = (msg: string, data?: any) => {
-  // eslint-disable-next-line no-console
-  console.log(`[BOOT] ${msg}`, data !== undefined ? data : "");
+  if (__DEV__) {
+    // eslint-disable-next-line no-console
+    console.log(`[BOOT] ${msg}`, data !== undefined ? data : "");
+  }
 };
 
 const logBootError = (msg: string, err: any) => {
-  // eslint-disable-next-line no-console
-  console.error(`[BOOT ERROR] ${msg}`, err);
+  if (__DEV__) {
+    // eslint-disable-next-line no-console
+    console.error(`[BOOT ERROR] ${msg}`, err);
+  }
 };
 
 // BOOT_000: Module evaluated successfully — proves the JS bundle loaded.
 // If this never appears in logcat, the problem is at the native/Hermes level.
 logBoot("BOOT_000 Module loaded — JS bundle evaluated OK");
-
-function AdMobInitializer({ children }: { children: React.ReactNode }) {
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    logBoot("AdMobInitializer init start");
-
-    // Never let AdMob block the app UI. Show children after a short grace
-    // period even if the SDK is still initializing, and keep trying in background.
-    const unblockTimeout = setTimeout(() => {
-      logBoot("AdMobInitializer unblocking UI after grace period");
-      setReady(true);
-    }, 1500);
-
-    const initializeAds = async () => {
-      try {
-        logBoot("Requesting AdsConsent info");
-        const consentInfo = await AdsConsent.requestInfoUpdate();
-        
-        if (
-          consentInfo.isConsentFormAvailable &&
-          consentInfo.status === AdsConsentStatus.REQUIRED
-        ) {
-          logBoot("Showing AdsConsent form");
-          await AdsConsent.showForm();
-        }
-
-        logBoot("Initializing mobileAds");
-        await mobileAds().initialize();
-        logBoot("AdMob initialized successfully");
-      } catch (err) {
-        logBootError("AdMob init error (non-fatal)", err);
-      } finally {
-        clearTimeout(unblockTimeout);
-        setReady(true);
-      }
-    };
-
-    initializeAds();
-
-    return () => clearTimeout(unblockTimeout);
-  }, []);
-
-  if (!ready) {
-    logBoot("AdMobInitializer showing brief spinner");
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: COLORS.background }}>
-        <ActivityIndicator size="large" color={COLORS.accent} />
-      </View>
-    );
-  }
-
-  return <>{children}</>;
-}
 
 function NotificationDeepLinkHandler() {
   const router = useRouter();
@@ -166,6 +114,21 @@ function BootCheckpoint({ id, label }: { id: string; label: string }) {
   return null;
 }
 
+/**
+ * LocaleSlot — Slot di Expo Router legato alla lingua corrente.
+ *
+ * Rimonta l'intero sottoalbero di navigazione quando `locale` cambia,
+ * così componenti che leggono il dizionario in modo statico al primo
+ * render vengono ricreati e riflettono la nuova lingua senza riavvio
+ * dell'app.
+ *
+ * Deve essere renderizzato DENTRO <LocaleProvider> perché usa useLocale().
+ */
+function LocaleSlot() {
+  const { locale } = useLocale();
+  return <Slot key={locale} />;
+}
+
 export default function RootLayout() {
   logBoot("BOOT_001 RootLayout render start");
 
@@ -184,22 +147,27 @@ export default function RootLayout() {
     }
 
     logBoot("BOOT_002 RootLayout useEffect running");
-    if (Platform.OS === "android") {
-      try {
-        // Read from app.json extra (works in production builds) with fallback
-        // to process.env (works in dev mode with .env file).
-        const apiKey =
-          (Constants.expoConfig?.extra?.revenueCatApiKey as string) ||
-          process.env.EXPO_PUBLIC_REVENUECAT_API_KEY;
-        if (apiKey) {
-          Purchases.configure({ apiKey });
-          logBoot("BOOT_002a RevenueCat configured");
-        } else {
-          logBootError("RevenueCat init failed: Missing API key", null);
-        }
-      } catch (err) {
-        logBootError("RevenueCat init failed (non-fatal)", err);
+
+    // Configure RevenueCat for both iOS and Android
+    try {
+      // Read platform-specific API keys from app.json extra with env fallback
+      const androidApiKey =
+        (Constants.expoConfig?.extra?.revenueCatApiKey as string) ||
+        process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID;
+      const iosApiKey =
+        (Constants.expoConfig?.extra?.revenueCatApiKeyIOS as string) ||
+        process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_IOS;
+
+      const apiKey = Platform.OS === "ios" ? iosApiKey : androidApiKey;
+
+      if (apiKey) {
+        Purchases.configure({ apiKey });
+        logBoot(`BOOT_002a RevenueCat configured for ${Platform.OS}`);
+      } else {
+        logBootError(`RevenueCat init failed: Missing API key for ${Platform.OS}`, null);
       }
+    } catch (err) {
+      logBootError("RevenueCat init failed (non-fatal)", err);
     }
   }, []);
 
@@ -221,14 +189,7 @@ export default function RootLayout() {
                   <StatusBar style="auto" />
                   <NotificationDeepLinkHandler />
                   <AuthDeepLinkHandler />
-                  <AdMobInitializer>
-                    <BootCheckpoint id="BOOT_010" label="AdMobInitializer" />
-                    {/* Stack è già configurato dentro i layout figli
-                        (auth)/_layout e (app)/_layout. Usare Slot puro qui
-                        evita la nidificazione causa del forceStoreRerender
-                        race "undefined is not a function at TabLayout". */}
-                    <Slot />
-                  </AdMobInitializer>
+                  <LocaleSlot />
                 </EngagementProvider>
               </PlanProvider>
             </ToastProvider>

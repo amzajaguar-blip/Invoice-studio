@@ -17,17 +17,17 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "InvoiceStudio — Fatture Professionali per Freelancer",
-    template: "%s | InvoiceStudio",
+    default: "VELA — Fatture e Preventivi Professionali",
+    template: "%s | VELA",
   },
   description:
-    "Crea fatture professionali, accetta pagamenti online con Stripe e PayPal, e automatizza i reminder. La piattaforma SaaS per freelancer e agenzie italiane.",
-  keywords: ["fatture", "freelancer", "partita IVA", "Stripe", "fatturazione", "SaaS"],
-  authors: [{ name: "InvoiceStudio" }],
+    "Crea fatture e preventivi professionali, gestisci clienti e monitora i pagamenti. L'app mobile per freelance, professionisti e PMI italiane.",
+  keywords: ["fatture", "preventivi", "freelance", "partita IVA", "fatturazione", "business"],
+  authors: [{ name: "VELA" }],
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
   openGraph: {
-    title: "InvoiceStudio — Fatture Professionali per Freelancer",
-    description: "Fatture + pagamenti integrati in un'unica piattaforma.",
+    title: "VELA — Fatture e Preventivi Professionali",
+    description: "Fatture + preventivi + clienti in un'unica app.",
     type: "website",
     locale: "it_IT",
   },
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "InvoiceStudio",
+    title: "VELA",
   },
   other: {
     "mobile-web-app-capable": "yes",
@@ -63,7 +63,7 @@ export default function RootLayout({
         <meta name="theme-color" content="#0a0b0f" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="InvoiceStudio" />
+        <meta name="apple-mobile-web-app-title" content="VELA" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
       <body className="min-h-full flex flex-col">

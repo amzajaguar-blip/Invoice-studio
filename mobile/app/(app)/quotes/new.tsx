@@ -12,8 +12,10 @@ import {
   Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { apiFetch } from "@/lib/ai";
-import { useLocale } from "@/lib/i18n";
+import { useLocale } from "@/components/LocaleProvider";
+import { QuickAddClientModal } from "@/components/QuickAddClientModal";
 
 interface Client {
   id: string;
@@ -35,6 +37,7 @@ export default function NewQuoteScreen() {
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [showClientPicker, setShowClientPicker] = useState(false);
+  const [showQuickAddClientModal, setShowQuickAddClientModal] = useState(false);
   const [lineItems, setLineItems] = useState<LineItem[]>([
     { id: generateId(), description: "", quantity: "1", rate: "" },
   ]);
@@ -171,7 +174,15 @@ export default function NewQuoteScreen() {
         {showClientPicker && (
           <View style={s.clientList}>
             {clients.length === 0 ? (
-              <Text style={s.noClientsText}>{t("no_clients_web")}</Text>
+              <TouchableOpacity
+                style={s.addClientInlineButton}
+                onPress={() => setShowQuickAddClientModal(true)}
+              >
+                <Ionicons name="person-add-outline" size={18} color="#6C63FF" />
+                <Text style={s.addClientInlineText}>
+                  {t("add_client_now") || "Aggiungi il tuo primo cliente"}
+                </Text>
+              </TouchableOpacity>
             ) : (
               clients.map((c) => (
                 <TouchableOpacity
@@ -298,6 +309,15 @@ export default function NewQuoteScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+      <QuickAddClientModal
+        visible={showQuickAddClientModal}
+        onClose={() => setShowQuickAddClientModal(false)}
+        onClientAdded={(newClient) => {
+          setClients((prev) => [...prev, newClient as Client]);
+          setSelectedClientId(newClient.id);
+          setShowClientPicker(false);
+        }}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -329,6 +349,8 @@ const s = StyleSheet.create({
   clientOptionNameActive: { color: "#6c63ff" },
   clientOptionEmail: { fontSize: 12, color: "#6b7280", marginTop: 2 },
   noClientsText: { padding: 14, color: "#6b7280", fontSize: 14 },
+  addClientInlineButton: { flexDirection: "row", alignItems: "center", padding: 14, gap: 8 },
+  addClientInlineText: { color: "#6c63ff", fontSize: 15, fontWeight: "500" },
 
   lineItemCard: {
     backgroundColor: "#111318", borderRadius: 12, padding: 14,

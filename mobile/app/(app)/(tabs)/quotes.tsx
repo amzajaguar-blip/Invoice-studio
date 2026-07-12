@@ -28,7 +28,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { usePlan } from "@/context/PlanContext";
 import { useBusinessBoost } from "@/hooks/useBusinessBoost";
 import { trackEvent } from "@/lib/analytics-events";
-import { useLocale } from "@/lib/i18n";
+import { useLocale } from "@/components/LocaleProvider";
 import BusinessBoostModal from "@/components/BusinessBoostModal";
 import BoostSuccessModal from "@/components/BoostSuccessModal";
 import InAppContextualCard from "@/components/InAppContextualCard";

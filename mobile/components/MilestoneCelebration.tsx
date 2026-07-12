@@ -90,7 +90,7 @@ export const MILESTONE_COPY: Record<
   },
   review_ask: {
     emoji: '⭐',
-    title: 'Ti piace InvoiceStudio?',
+    title: 'Ti piace VELA?',
     body:  'Lascia una recensione e aiuta altri freelancer a scoprirci!',
   },
 };

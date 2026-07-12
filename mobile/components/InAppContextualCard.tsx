@@ -24,6 +24,7 @@ import {
   StyleProp,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useLocale } from '@/components/LocaleProvider';
 import {
   CARD_ACCENT_COLORS,
   CARD_ACCENT_FALLBACK,
@@ -61,6 +62,8 @@ export default function InAppContextualCard({
   onCTA,
   style,
 }: InAppContextualCardProps) {
+  const { t } = useLocale();
+
   // Determina il colore accent per il bordo sinistro (Req 6.8, 6.9)
   const accentColor = CARD_ACCENT_COLORS[card.id] ?? CARD_ACCENT_FALLBACK;
 
@@ -69,7 +72,7 @@ export default function InAppContextualCard({
   return (
     <View
       style={[s.card, { borderLeftColor: accentColor }, style]}
-      accessibilityLabel={card.title}
+      accessibilityLabel={t(card.titleKey)}
     >
       {/* Bordo sinistro colorato — reso come sottocomponente separato
           per garantire l'altezza piena indipendente dal contenuto */}
@@ -87,25 +90,25 @@ export default function InAppContextualCard({
       {/* Testo: titolo + body */}
       <View style={s.textBlock}>
         <Text style={s.title} numberOfLines={1}>
-          {card.title}
+          {t(card.titleKey)}
         </Text>
         <Text style={s.body} numberOfLines={2}>
-          {card.body}
+          {t(card.bodyKey)}
         </Text>
       </View>
 
-      {/* CTA link destra — solo se card.cta è definito (Req task 11.4) */}
-      {card.cta != null && (
+      {/* CTA link destra — solo se card.ctaKey è definito (Req task 11.4) */}
+      {card.ctaKey != null && (
         <TouchableOpacity
           style={s.ctaBtn}
           onPress={onCTA}
           activeOpacity={0.75}
           accessibilityRole="button"
-          accessibilityLabel={card.cta}
+          accessibilityLabel={t(card.ctaKey)}
           hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
         >
           <Text style={[s.ctaText, { color: accentColor }]} numberOfLines={1}>
-            {card.cta}
+            {t(card.ctaKey)}
           </Text>
         </TouchableOpacity>
       )}
@@ -116,7 +119,7 @@ export default function InAppContextualCard({
         onPress={onDismiss}
         activeOpacity={0.7}
         accessibilityRole="button"
-        accessibilityLabel="Chiudi"
+        accessibilityLabel={t('cancel') ?? 'Chiudi'}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
         <Text style={s.dismissIcon}>✕</Text>

@@ -41,7 +41,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="quotes"
         options={{
-          title: t("nav.quotes"),
+          title: t("quotes"),
           headerShown: false,
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons

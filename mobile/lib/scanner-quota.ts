@@ -117,7 +117,7 @@ export async function scheduleRetentionNotifications(): Promise<void> {
       schedules.map(({ seconds, body }) =>
         Notifications.scheduleNotificationAsync({
           content: {
-            title: "InvoiceStudio",
+            title: "VELA",
             body,
             sound: "default",
             data: { type: "retention", deepLink: "/(app)/invoices" },
