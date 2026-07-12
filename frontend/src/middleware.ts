@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 // Paths that do NOT require authentication
-const publicPaths = ["/", "/login", "/signup", "/forgot-password", "/reset-password", "/auth/callback", "/auth/confirm", "/pay", "/privacy", "/terms", "/delete-account", "/api/webhooks", "/manifest.json", "/manifest.webmanifest", "/robots.txt", "/sitemap.xml"];
+const publicPaths = ["/", "/login", "/signup", "/forgot-password", "/reset-password", "/auth/callback", "/auth/confirm", "/pay", "/privacy", "/terms", "/en/privacy", "/en/terms", "/delete-account", "/api/webhooks", "/manifest.json", "/manifest.webmanifest", "/robots.txt", "/sitemap.xml"];
 
 // Paths that redirect to /dashboard if user is already authenticated
 const authPaths = ["/login", "/signup"];
@@ -74,6 +74,13 @@ export async function middleware(request: NextRequest) {
 
   // Protected path without a session → redirect to /login.
   if (!user) {
+    // API routes authenticate themselves via the Bearer token inside each
+    // route handler (getAuthFromRequest / getAuthForAccountDeletion). Do NOT
+    // redirect them to /login — that would 307 every mobile/BFF call that
+    // sends only a Bearer token (no cookie) and break the app.
+    if (pathname.startsWith("/api/")) {
+      return response;
+    }
     const redirectUrl = new URL("/login", request.url);
     redirectUrl.searchParams.set("redirect", pathname);
     return redirectWithCookies(redirectUrl);
