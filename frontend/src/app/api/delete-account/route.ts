@@ -3,7 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
 // Since we need admin privileges to delete the user from auth.users,
-// we create a service role client.
+// we create a service role client. The service role also bypasses RLS,
+// which is required: deleting via the user's own (RLS-scoped) client
+// silently removes 0 rows when no DELETE policy exists, leaving FK
+// references in place and making auth.users deletion fail.
 const getAdminClient = () => {
   return createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,35 +21,38 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const supabase = auth.supabase;
   const userId = auth.user.id;
+  const admin = getAdminClient();
 
   try {
     // 1. Elimina dati utente (in ordine per rispettare FK)
-    
-    // We need to fetch organizations first
-    const { data: orgs } = await supabase
+    // All deletions go through the service-role client so RLS cannot block
+    // them and every referencing row is actually removed.
+
+    // Organizations owned by the user. CASCADE handles child tables
+    // (invoices, invoice_items, clients, quotes, quote_items, subscriptions).
+    const { data: orgs } = await admin
       .from('organizations')
       .select('id')
       .eq('owner_id', userId);
-      
-    const orgIds = orgs?.map(o => o.id) ?? [];
-
+    const orgIds = orgs?.map((o) => o.id) ?? [];
     if (orgIds.length > 0) {
-      await supabase.from('invoice_items').delete().in('organization_id', orgIds);
-      await supabase.from('invoices').delete().in('organization_id', orgIds);
-      await supabase.from('clients').delete().in('organization_id', orgIds);
-      await supabase.from('quotes').delete().in('organization_id', orgIds);
-      await supabase.from('organizations').delete().in('id', orgIds);
+      await admin.from('organizations').delete().in('id', orgIds);
     }
-    
-    await supabase.from('user_plan').delete().eq('user_id', userId);
-    await supabase.from('profiles').delete().eq('id', userId);
+
+    // Membership in any org the user does not own (cleaned separately so we
+    // don't delete orgs that still belong to other users).
+    await admin.from('org_members').delete().eq('user_id', userId);
+
+    // Tables that reference auth.users with a NON-cascading FK. These MUST be
+    // deleted explicitly or `auth.users` deletion fails with a FK violation.
+    await admin.from('user_plan').delete().eq('user_id', userId);
+    await admin.from('user_engagement').delete().eq('user_id', userId);
+    await admin.from('profiles').delete().eq('id', userId);
 
     // 2. Elimina auth user (richiede service role key — fare lato server)
-    const adminClient = getAdminClient();
-    const { error: adminError } = await adminClient.auth.admin.deleteUser(userId);
-    
+    const { error: adminError } = await admin.auth.admin.deleteUser(userId);
+
     if (adminError) {
       console.error('Delete user admin error:', adminError);
       return NextResponse.json({ error: 'Failed to delete auth user' }, { status: 500 });
