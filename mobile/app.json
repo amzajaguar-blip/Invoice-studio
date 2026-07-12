@@ -2,7 +2,7 @@
   "expo": {
     "name": "VELA — Invoice & Quotes",
     "slug": "vela-invoice",
-    "version": "1.0.37",
+    "version": "1.0.38",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "vela",
@@ -23,10 +23,9 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0a0b0f"
       },
-      "package": "com.vela.mobile",
-      "versionCode": 37,
+      "package": "com.Invoice_Studio.myapp",
+      "versionCode": 38,
       "permissions": [
-        "com.google.android.gms.permission.AD_ID",
         "com.android.vending.BILLING",
         "android.permission.CAMERA",
         "android.permission.INTERNET",
@@ -74,18 +73,8 @@
           "android": {
             "compileSdkVersion": 35,
             "targetSdkVersion": 35,
-            "buildToolsVersion": "35.0.0",
-            "extraPermissions": [
-              "com.google.android.gms.permission.AD_ID"
-            ]
+            "buildToolsVersion": "35.0.0"
           }
-        }
-      ],
-      [
-        "react-native-google-mobile-ads",
-        {
-          "androidAppId": "ca-app-pub-4053625490298263~3067488369",
-          "iosAppId": "ca-app-pub-4053625490298263~3067488369"
         }
       ],
       "expo-font"
@@ -98,6 +87,7 @@
       "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhpcWViZ29oZ3diYnp5bmhpc2FoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwODY4MjIsImV4cCI6MjA5NDY2MjgyMn0.xxWSzUd3zuuQeqMr0MVHCAll4nF3JkyEYND8S0uSy_A",
       "apiUrl": "https://vela.app",
       "revenueCatApiKey": "goog_jQbcLtPLxDFDpSxwHblTiWwaDhw",
+      "revenueCatApiKeyIOS": "appl_YOUR_IOS_KEY_HERE",
       "eas": {
         "projectId": "TBD"
       }
