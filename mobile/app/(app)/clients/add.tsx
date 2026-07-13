@@ -16,6 +16,7 @@ import * as Haptics from "@/lib/haptics";
 import { useToast } from "@/lib/toast";
 import { validatePartitaIVA } from "@/lib/validatePartitaIVA";
 import { apiFetch } from "@/lib/ai";
+import { useLocale } from "@/components/LocaleProvider";
 
 // ─── Costanti ─────────────────────────────────────────────────────────────────
 
@@ -79,6 +80,7 @@ export default function AddClientScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { showToast } = useToast();
+  const { t } = useLocale();
 
   const [form, setForm] = useState<ClientFormData>({
     name: "",

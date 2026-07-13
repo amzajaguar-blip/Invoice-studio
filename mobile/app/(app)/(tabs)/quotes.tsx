@@ -221,9 +221,9 @@ export default function QuotesScreen() {
   const renderEmpty = () => (
     <EmptyState
       icon="document-text-outline"
-      title={t("quotesDetail")}
-      hint={t("quote_not_found")}
-      cta={t("newQuote")}
+      title={t("tabs.quotes.empty.title")}
+      hint={t("tabs.quotes.empty.hint")}
+      cta={t("tabs.quotes.empty.cta")}
       onCTA={handleNewQuote}
     />
   );
@@ -244,7 +244,7 @@ export default function QuotesScreen() {
           style={[s.quotaBadge, !canCreate && s.quotaBadgeWarn]}
           onPress={handleNewQuote}
           accessibilityRole="button"
-          accessibilityLabel="Quota preventivi"
+          accessibilityLabel={t("tabs.quotes.quota.a11y")}
         >
           <View style={s.quotaInner}>
             <Ionicons
@@ -266,7 +266,7 @@ export default function QuotesScreen() {
         onPress={handleNewQuote}
         activeOpacity={0.85}
         accessibilityRole="button"
-        accessibilityLabel="Crea nuovo preventivo"
+        accessibilityLabel={t("tabs.quotes.new.a11y")}
       >
         <Text style={s.newBtnText}>{t("newQuote")}</Text>
       </TouchableOpacity>

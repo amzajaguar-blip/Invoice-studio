@@ -150,19 +150,19 @@ export default function NewInvoiceScreen() {
         {/* Header */}
         <View style={s.header}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-            <Text style={s.backText}>← Indietro</Text>
+            <Text style={s.backText}>{t("invoices.new.back")}</Text>
           </TouchableOpacity>
-          <Text style={s.title}>Nuova Fattura</Text>
+          <Text style={s.title}>{t("invoices.new.title")}</Text>
         </View>
 
         {/* Cliente */}
-        <Text style={s.sectionLabel}>CLIENTE</Text>
+        <Text style={s.sectionLabel}>{t("invoices.new.section.client")}</Text>
         <TouchableOpacity
           style={s.clientSelector}
           onPress={() => setShowClientPicker(!showClientPicker)}
         >
           <Text style={s.clientName}>
-            {selectedClient ? selectedClient.name : "Seleziona un cliente"}
+            {selectedClient ? selectedClient.name : t("invoices.new.client.select_placeholder")}
           </Text>
           <Text style={s.chevron}>{showClientPicker ? "▲" : "▼"}</Text>
         </TouchableOpacity>
@@ -176,7 +176,7 @@ export default function NewInvoiceScreen() {
               >
                 <Ionicons name="person-add-outline" size={18} color="#6C63FF" />
                 <Text style={s.addClientInlineText}>
-                  {t("add_client_now") || "Aggiungi il tuo primo cliente"}
+                  {t("add_client_now")}
                 </Text>
               </TouchableOpacity>
             ) : (
@@ -200,27 +200,27 @@ export default function NewInvoiceScreen() {
         )}
 
         {/* Voci */}
-        <Text style={s.sectionLabel}>VOCI</Text>
+        <Text style={s.sectionLabel}>{t("invoices.new.section.items")}</Text>
         {lineItems.map((item, index) => (
           <View key={item.id} style={s.lineItemCard}>
             <View style={s.lineItemHeader}>
-              <Text style={s.lineItemNum}>Voce {index + 1}</Text>
+              <Text style={s.lineItemNum}>{t("invoices.new.item_number_prefix")} {index + 1}</Text>
               {lineItems.length > 1 && (
                 <TouchableOpacity onPress={() => removeItem(item.id)}>
-                  <Text style={s.removeText}>Rimuovi</Text>
+                  <Text style={s.removeText}>{t("invoices.new.item_remove")}</Text>
                 </TouchableOpacity>
               )}
             </View>
             <TextInput
               style={s.input}
-              placeholder="Descrizione del servizio"
+              placeholder={t("invoices.new.item.description.placeholder")}
               placeholderTextColor="#4b5563"
               value={item.description}
               onChangeText={(v) => updateItem(item.id, "description", v)}
             />
             <View style={s.lineItemRow}>
               <View style={s.inputHalf}>
-                <Text style={s.inputLabel}>Quantità</Text>
+                <Text style={s.inputLabel}>{t("invoices.new.item.quantity.label")}</Text>
                 <TextInput
                   style={s.input}
                   placeholder="1"
@@ -231,7 +231,7 @@ export default function NewInvoiceScreen() {
                 />
               </View>
               <View style={s.inputHalf}>
-                <Text style={s.inputLabel}>Prezzo (€)</Text>
+                <Text style={s.inputLabel}>{t("invoices.new.item.price.label")}</Text>
                 <TextInput
                   style={s.input}
                   placeholder="0,00"
@@ -244,18 +244,18 @@ export default function NewInvoiceScreen() {
             </View>
             {parseFloat(item.rate) > 0 && (
               <Text style={s.lineTotal}>
-                Totale voce: {fmt((parseFloat(item.quantity) || 1) * (parseFloat(item.rate) || 0))}
+                {t("invoices.new.item.line_total_prefix")} {fmt((parseFloat(item.quantity) || 1) * (parseFloat(item.rate) || 0))}
               </Text>
             )}
           </View>
         ))}
 
         <TouchableOpacity style={s.addItemBtn} onPress={addItem}>
-          <Text style={s.addItemText}>+ Aggiungi voce</Text>
+          <Text style={s.addItemText}>{t("invoices.new.add_item.button")}</Text>
         </TouchableOpacity>
 
         {/* IVA */}
-        <Text style={s.sectionLabel}>IVA (%)</Text>
+        <Text style={s.sectionLabel}>{t("invoices.new.section.tax")}</Text>
         <TextInput
           style={s.input}
           placeholder="22"
@@ -266,10 +266,10 @@ export default function NewInvoiceScreen() {
         />
 
         {/* Note */}
-        <Text style={s.sectionLabel}>NOTE (opzionale)</Text>
+        <Text style={s.sectionLabel}>{t("invoices.new.section.notes")}</Text>
         <TextInput
           style={[s.input, s.notesInput]}
-          placeholder="Condizioni di pagamento, note aggiuntive…"
+          placeholder={t("invoices.new.notes.placeholder")}
           placeholderTextColor="#4b5563"
           multiline
           value={notes}
@@ -279,11 +279,11 @@ export default function NewInvoiceScreen() {
         {/* Riepilogo */}
         <View style={s.summaryCard}>
           <View style={s.summaryRow}>
-            <Text style={s.summaryLabel}>Imponibile</Text>
+            <Text style={s.summaryLabel}>{t("invoices.new.summary.subtotal.label")}</Text>
             <Text style={s.summaryValue}>{fmt(subtotal)}</Text>
           </View>
           <View style={s.summaryRow}>
-            <Text style={s.summaryLabel}>IVA ({taxRate}%)</Text>
+            <Text style={s.summaryLabel}>{t("invoices.new.summary.tax.label_template").replace("{rate}", String(taxRate))}</Text>
             <Text style={s.summaryValue}>{fmt(taxAmount)}</Text>
           </View>
           <View style={[s.summaryRow, s.summaryTotal]}>
@@ -302,7 +302,7 @@ export default function NewInvoiceScreen() {
             {loading ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
-              <Text style={s.btnText}>Salva bozza</Text>
+              <Text style={s.btnText}>{t("invoices.new.button.draft")}</Text>
             )}
           </TouchableOpacity>
           <TouchableOpacity
@@ -313,7 +313,7 @@ export default function NewInvoiceScreen() {
             {loading ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
-              <Text style={s.btnText}>Crea e invia</Text>
+              <Text style={s.btnText}>{t("invoices.new.button.send")}</Text>
             )}
           </TouchableOpacity>
         </View>

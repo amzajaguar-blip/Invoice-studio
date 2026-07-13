@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { useAuth } from "@/hooks/useAuth";
+import { useLocale } from "@/components/LocaleProvider";
 
 /** Logo Google ufficiale — react-native-svg è nel package.json ed è
  *  linkato automaticamente da expo prebuild durante la build AAB. */
@@ -26,6 +27,7 @@ function GoogleIcon({ size = 20 }: { size?: number }) {
 
 export default function LoginScreen() {
   const { signInWithGoogle } = useAuth();
+  const { t } = useLocale();
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -47,8 +49,8 @@ export default function LoginScreen() {
         <View style={styles.card}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>VELA</Text>
-            <Text style={styles.subtitle}>Accedi con Google per continuare</Text>
+            <Text style={styles.title}>{t("login.title")}</Text>
+            <Text style={styles.subtitle}>{t("login.subtitle")}</Text>
           </View>
 
           {/* Google button */}
@@ -62,7 +64,7 @@ export default function LoginScreen() {
             ) : (
               <GoogleIcon size={20} />
             )}
-            <Text style={styles.googleButtonText}>Accedi con Google</Text>
+            <Text style={styles.googleButtonText}>{t("login.button.text")}</Text>
           </TouchableOpacity>
 
           {error && (

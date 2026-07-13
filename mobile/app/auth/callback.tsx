@@ -3,9 +3,11 @@ import { View, ActivityIndicator, Text, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import * as Linking from "expo-linking";
 import { supabase } from "@/lib/supabase";
+import { useLocale } from "@/components/LocaleProvider";
 
 export default function AuthCallbackScreen() {
   const router = useRouter();
+  const { t } = useLocale();
 
   useEffect(() => {
     const handleCallback = async () => {
@@ -50,7 +52,7 @@ export default function AuthCallbackScreen() {
   return (
     <View style={styles.container}>
       <ActivityIndicator size="large" color="#6c63ff" />
-      <Text style={styles.text}>Accesso in corso…</Text>
+      <Text style={styles.text}>{t("auth.callback.loading_text")}</Text>
     </View>
   );
 }

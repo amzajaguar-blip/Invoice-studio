@@ -160,7 +160,7 @@ export default function SettingsScreen() {
             style={styles.upgradeRow}
             onPress={() => router.push("/(app)/ProUpgrade" as never)}
             accessibilityRole="button"
-            accessibilityLabel="Passa a Premium — Rimuovi tutti i limiti"
+            accessibilityLabel={t("upgrade_premium") + " — " + t("remove_limits")}
           >
             <View style={styles.upgradeTextBlock}>
               <Text style={styles.upgradeTitle}>{t("upgrade_premium")}</Text>
@@ -224,13 +224,13 @@ export default function SettingsScreen() {
               showToast({ message: t("settings_language_updated"), type: "success" });
             }}
             accessibilityRole="button"
-            accessibilityLabel={`Seleziona lingua ${loc.name}`}
+            accessibilityLabel={t("tabs.settings.locale_select_a11y").replace("{name}", loc.name)}
           >
             <Text style={styles.localeText}>
-              {loc.flag} {loc.name}
+              {t("tabs.settings.locale_flag_text").replace("{flag}", loc.flag).replace("{name}", loc.name)}
             </Text>
             {locale === loc.code && (
-              <Text style={styles.localeCheck}>✓</Text>
+              <Text style={styles.localeCheck}>{t("tabs.settings.locale_check")}</Text>
             )}
           </TouchableOpacity>
         ))}
@@ -243,7 +243,7 @@ export default function SettingsScreen() {
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.button} onPress={() => Linking.openURL("https://vela.app/privacy")}>
-        <Text style={styles.buttonText}>Privacy Policy</Text>
+        <Text style={styles.buttonText}>{t("tabs.settings.account.privacy_policy")}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity

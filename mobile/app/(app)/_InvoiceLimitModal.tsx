@@ -20,6 +20,7 @@ import {
   AccessibilityInfo,
 } from 'react-native';
 import type { InvoiceQuota } from '@/lib/useRewardedInvoice';
+import { useLocale } from '@/components/LocaleProvider';
 
 interface InvoiceLimitModalProps {
   visible: boolean;
@@ -54,6 +55,7 @@ export default function InvoiceLimitModal({
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [reduceMotion, setReduceMotion] = useState(false);
   const [adLoadTimedOut, setAdLoadTimedOut] = useState(false);
+  const { t } = useLocale();
 
   // Check accessibility preference
   useEffect(() => {
@@ -115,14 +117,14 @@ export default function InvoiceLimitModal({
     if (adError || (adLoadTimedOut && !adLoaded)) {
       return (
         <View style={s.adStateWrap}>
-          <Text style={s.adStateError}>Video non disponibile</Text>
+          <Text style={s.adStateError}>{t("modal.invoice_limit.ad.state.error")}</Text>
           <TouchableOpacity
             onPress={onWatchAd}
             style={s.retryPill}
             accessibilityRole="button"
-            accessibilityLabel="Riprova a caricare il video"
+            accessibilityLabel={t("modal.invoice_limit.ad.retry.a11y")}
           >
-            <Text style={s.retryPillText}>Riprova</Text>
+            <Text style={s.retryPillText}>{t("modal.invoice_limit.ad.retry.text")}</Text>
           </TouchableOpacity>
         </View>
       );
@@ -132,7 +134,7 @@ export default function InvoiceLimitModal({
       return (
         <View style={s.adStateWrap}>
           <ActivityIndicator size="small" color="#6c63ff" />
-          <Text style={s.adStateLoading}>Caricamento…</Text>
+          <Text style={s.adStateLoading}>{t("modal.invoice_limit.ad.state.loading")}</Text>
         </View>
       );
     }
@@ -140,15 +142,15 @@ export default function InvoiceLimitModal({
     if (!adLoaded) {
       return (
         <View style={s.adStateWrap}>
-          <Text style={s.adStateUnavailable}>Non disponibile</Text>
-          <Text style={s.adStateHint}>Riprova tra qualche istante</Text>
+          <Text style={s.adStateUnavailable}>{t("modal.invoice_limit.ad.state.unavailable_primary")}</Text>
+          <Text style={s.adStateHint}>{t("modal.invoice_limit.ad.state.unavailable_hint")}</Text>
         </View>
       );
     }
 
     return (
       <View style={s.freeBadge}>
-        <Text style={s.freeBadgeText}>GRATIS</Text>
+        <Text style={s.freeBadgeText}>{t("modal.invoice_limit.free_badge")}</Text>
       </View>
     );
   };
@@ -160,13 +162,13 @@ export default function InvoiceLimitModal({
       animationType="none"
       onRequestClose={onClose}
       accessibilityViewIsModal
-      accessibilityLabel="Limite mensile raggiunto. Scegli come continuare."
+      accessibilityLabel={t("modal.invoice_limit.a11y_title")}
     >
       <Animated.View style={[s.overlay, { opacity: fadeAnim }]}>
         <TouchableOpacity
           style={StyleSheet.absoluteFill}
           onPress={onClose}
-          accessibilityLabel="Chiudi e continua senza creare altre fatture"
+          accessibilityLabel={t("modal.invoice_limit.overlay.close.a11y")}
         />
 
         <Animated.View
@@ -188,10 +190,8 @@ export default function InvoiceLimitModal({
           </View>
 
           {/* Titolo + sottotitolo */}
-          <Text style={s.title}>Hai raggiunto il limite mensile</Text>
-          <Text style={s.subtitle}>
-            5 fatture create questo mese. Per continuare:
-          </Text>
+          <Text style={s.title}>{t("modal.invoice_limit.title")}</Text>
+          <Text style={s.subtitle}>{t("modal.invoice_limit.subtitle")}</Text>
 
           <View style={s.divider} />
 
@@ -201,8 +201,8 @@ export default function InvoiceLimitModal({
             onPress={onUpgrade}
             activeOpacity={0.85}
             accessibilityRole="button"
-            accessibilityLabel="Passa a Pro. 19 euro al mese. Fatture illimitate, invio diretto via email e PDF, annulla in qualsiasi momento."
-            accessibilityHint="Apre la pagina di abbonamento"
+            accessibilityLabel={t("modal.invoice_limit.pro_a11y_prefix") + " " + t("modal.invoice_limit.pro_a11y_body")}
+            accessibilityHint={t("modal.invoice_limit.pro_a11y_hint")}
           >
             <Text
               style={s.proBtnIcon}
@@ -212,19 +212,19 @@ export default function InvoiceLimitModal({
               🚀
             </Text>
             <View style={s.proBtnText}>
-              <Text style={s.proBtnTitle}>Passa a Pro — €4,99/mese</Text>
+              <Text style={s.proBtnTitle}>{t("modal.invoice_limit.pro_button_title")}</Text>
               <View style={s.proFeatureList}>
                 <View style={s.proFeatureRow}>
                   <Text style={s.proFeatureCheck}>✓</Text>
-                  <Text style={s.proFeatureItem}>Fatture illimitate ogni mese</Text>
+                  <Text style={s.proFeatureItem}>{t("modal.invoice_limit.pro_feature.unlimited")}</Text>
                 </View>
                 <View style={s.proFeatureRow}>
                   <Text style={s.proFeatureCheck}>✓</Text>
-                  <Text style={s.proFeatureItem}>Invio diretto via email e PDF</Text>
+                  <Text style={s.proFeatureItem}>{t("modal.invoice_limit.pro_feature.email_pdf")}</Text>
                 </View>
                 <View style={s.proFeatureRow}>
                   <Text style={s.proFeatureCheck}>✓</Text>
-                  <Text style={s.proFeatureItem}>Annulla in qualsiasi momento</Text>
+                  <Text style={s.proFeatureItem}>{t("modal.invoice_limit.pro_feature.cancel_anytime")}</Text>
                 </View>
               </View>
             </View>
@@ -233,10 +233,10 @@ export default function InvoiceLimitModal({
           {/* ── Daily progress bar ──────────────────────────────────── */}
           <View style={s.dailyRow}>
             <Text style={s.dailyLabel}>
-              Crediti oggi: {dailyUsed}/{dailyMax}
+              {t("modal.invoice_limit.daily.label").replace("{used}", String(dailyUsed)).replace("{max}", String(dailyMax))}
             </Text>
             {isDailyLimitHit && dailyResetIn ? (
-              <Text style={s.dailyReset}>Reset in {dailyResetIn}</Text>
+              <Text style={s.dailyReset}>{t("modal.invoice_limit.daily.reset_in").replace("{time}", dailyResetIn)}</Text>
             ) : null}
           </View>
           <View style={s.progressTrack}>
@@ -252,10 +252,10 @@ export default function InvoiceLimitModal({
             accessibilityRole="button"
             accessibilityLabel={
               isDailyLimitHit
-                ? `Limite giornaliero raggiunto. Reset in ${dailyResetIn}.`
+                ? t("modal.invoice_limit.ad.a11y_limit_template").replace("{time}", dailyResetIn)
                 : adLoaded
-                  ? 'Guarda un video breve per sbloccare una fattura extra gratis'
-                  : 'Video non disponibile. Riprova più tardi.'
+                  ? t("modal.invoice_limit.ad.a11y_loaded")
+                  : t("modal.invoice_limit.ad.a11y_unavailable")
             }
             accessibilityState={{ disabled: isDailyLimitHit || !adLoaded }}
           >
@@ -269,19 +269,19 @@ export default function InvoiceLimitModal({
                   🎬
                 </Text>
                 <View>
-                  <Text style={s.adBtnTitle}>Guarda un video breve</Text>
+                  <Text style={s.adBtnTitle}>{t("modal.invoice_limit.ad.title")}</Text>
                   {isDailyLimitHit ? (
                     <Text style={[s.adBtnSub, s.adBtnSubWarn]}>
-                      Limite giornaliero · Reset in {dailyResetIn}
+                      {t("modal.invoice_limit.ad.sub_limit_template").replace("{time}", dailyResetIn)}
                     </Text>
                   ) : (
-                    <Text style={s.adBtnSub}>Sblocca 1 fattura extra gratis</Text>
+                    <Text style={s.adBtnSub}>{t("modal.invoice_limit.ad.sub_loaded")}</Text>
                   )}
                 </View>
               </View>
               {isDailyLimitHit ? (
                 <View style={s.limitBadge}>
-                  <Text style={s.limitBadgeText}>ESAURITO</Text>
+                  <Text style={s.limitBadgeText}>{t("modal.invoice_limit.limit_badge")}</Text>
                 </View>
               ) : (
                 <AdState />
@@ -294,10 +294,10 @@ export default function InvoiceLimitModal({
             onPress={onClose}
             style={s.closeLink}
             accessibilityRole="button"
-            accessibilityLabel="Continua senza creare altre fatture"
+            accessibilityLabel={t("modal.invoice_limit.close.a11y")}
           >
             <Text style={s.closeLinkText}>
-              Continua senza creare altre fatture
+              {t("modal.invoice_limit.close.text")}
             </Text>
           </TouchableOpacity>
         </Animated.View>

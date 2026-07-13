@@ -12,6 +12,7 @@ import React from 'react';
 import { ScrollView, TouchableOpacity, Text, StyleSheet, View } from 'react-native';
 import * as Haptics from '@/lib/haptics';
 import type { InvoiceStatus } from '@/hooks/useInvoiceFilters';
+import { useLocale } from '@/components/LocaleProvider';
 
 // ---------------------------------------------------------------------------
 // Tipi
@@ -23,16 +24,16 @@ export interface FilterBarProps {
 }
 
 // ---------------------------------------------------------------------------
-// Dati pills
+// Mappa pill → chiave di traduzione
 // ---------------------------------------------------------------------------
 
-const PILLS: Array<{ key: InvoiceStatus | 'all'; label: string }> = [
-  { key: 'all',     label: 'Tutte'   },
-  { key: 'draft',   label: 'Bozze'   },
-  { key: 'sent',    label: 'Inviate' },
-  { key: 'paid',    label: 'Pagate'  },
-  { key: 'overdue', label: 'Scadute' },
-];
+const PILL_TRANSLATION_KEYS: Record<InvoiceStatus | 'all', string> = {
+  all:     'filter.pill.all',
+  draft:   'filter.pill.draft',
+  sent:    'filter.pill.sent',
+  paid:    'filter.pill.paid',
+  overdue: 'filter.pill.overdue',
+};
 
 // ---------------------------------------------------------------------------
 // Componente
@@ -47,6 +48,7 @@ const PILLS: Array<{ key: InvoiceStatus | 'all'; label: string }> = [
  * - ScrollView orizzontale senza scrollbar visibile (Requisito 5.5)
  */
 export function FilterBar({ activeStatus, onStatusChange }: FilterBarProps) {
+  const { t } = useLocale();
   const handlePillPress = async (key: InvoiceStatus | 'all') => {
     // Haptic feedback leggero (Requisiti 5.6, 14.5)
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -60,19 +62,20 @@ export function FilterBar({ activeStatus, onStatusChange }: FilterBarProps) {
       contentContainerStyle={styles.container}
       style={styles.scrollView}
     >
-      {PILLS.map((pill) => {
-        const isActive = pill.key === activeStatus;
+      {(['all', 'draft', 'sent', 'paid', 'overdue'] as Array<InvoiceStatus | 'all'>).map((key) => {
+        const isActive = key === activeStatus;
+        const label = t(PILL_TRANSLATION_KEYS[key]);
         return (
           <TouchableOpacity
-            key={pill.key}
+            key={key}
             style={[styles.pill, isActive ? styles.pillActive : styles.pillInactive]}
-            onPress={() => handlePillPress(pill.key)}
+            onPress={() => handlePillPress(key)}
             accessibilityRole="button"
-            accessibilityLabel={`Filtra per ${pill.label}`}
+            accessibilityLabel={t('filter.pill.a11y').replace('{label}', label)}
             accessibilityState={{ selected: isActive }}
           >
             <Text style={[styles.pillText, isActive ? styles.pillTextActive : styles.pillTextInactive]}>
-              {pill.label}
+              {label}
             </Text>
           </TouchableOpacity>
         );

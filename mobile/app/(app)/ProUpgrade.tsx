@@ -7,6 +7,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import Purchases, { PurchasesPackage, PurchasesOffering } from "react-native-purchases";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useLocale } from "@/components/LocaleProvider";
 
 const PURCHASE_TIMEOUT_MS = 15_000;
 /** Duration of the success animation before auto-navigating back. Max 500ms. */
@@ -24,7 +25,7 @@ const PRODUCT_IDS = {
  * come introPrice con prezzo 0; se non c'è (o è solo uno sconto), non lo
  * mostriamo. Ritorna { hasTrial:false } quando l'offering non è disponibile.
  */
-function trialFor(offering: PurchasesOffering | null, productId: string): { hasTrial: boolean; text: string } {
+function trialFor(offering: PurchasesOffering | null, productId: string, t: (key: string) => string): { hasTrial: boolean; text: string } {
   const pkg = offering?.availablePackages?.find((p) => p.product.identifier === productId);
   const intro = pkg?.product?.introPrice;
   if (!intro || Number(intro.price) !== 0) return { hasTrial: false, text: "" };
@@ -32,16 +33,17 @@ function trialFor(offering: PurchasesOffering | null, productId: string): { hasT
   const units = intro.periodNumberOfUnits ?? 0;
   const unit = String(intro.periodUnit ?? "").toUpperCase();
   const label =
-    unit === "DAY" ? (units === 1 ? "giorno" : "giorni") :
-    unit === "WEEK" ? (units === 1 ? "settimana" : "settimane") :
-    unit === "MONTH" ? (units === 1 ? "mese" : "mesi") :
-    unit === "YEAR" ? (units === 1 ? "anno" : "anni") : "periodo";
-  return { hasTrial: true, text: `${units} ${label}` };
+    unit === "DAY" ? t(units === 1 ? "modal.pro_upgrade.trial.day.singular" : "modal.pro_upgrade.trial.day.plural") :
+    unit === "WEEK" ? t(units === 1 ? "modal.pro_upgrade.trial.week.singular" : "modal.pro_upgrade.trial.week.plural") :
+    unit === "MONTH" ? t(units === 1 ? "modal.pro_upgrade.trial.month.singular" : "modal.pro_upgrade.trial.month.plural") :
+    unit === "YEAR" ? t(units === 1 ? "modal.pro_upgrade.trial.year.singular" : "modal.pro_upgrade.trial.year.plural") : t("modal.pro_upgrade.trial.fallback");
+  return { hasTrial: true, text: t("modal.pro_upgrade.trial.template").replace("{n}", String(units)).replace("{label}", label) };
 }
 
 export default function ProUpgradeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { t } = useLocale();
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "yearly">("yearly");
   const [purchaseState, setPurchaseState] = useState<"idle" | "loading" | "restoring" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
@@ -103,8 +105,8 @@ export default function ProUpgradeScreen() {
   }, [purchaseState, reduceMotion]);
 
   const packages = [
-    { id: "monthly" as const, title: "Mensile", price: "€ 4,99", recurring: "€4,99/mese", productId: PRODUCT_IDS.monthly },
-    { id: "yearly" as const, title: "Annuale", price: "€ 39,99", recurring: "€3,33/mese", tag: "PIÙ CONVENIENTE", productId: PRODUCT_IDS.yearly },
+    { id: "monthly" as const, title: t("modal.pro_upgrade.plan.monthly.title"), price: t("modal.pro_upgrade.plan.monthly.price"), recurring: t("modal.pro_upgrade.plan.monthly.recurring"), productId: PRODUCT_IDS.monthly },
+    { id: "yearly" as const, title: t("modal.pro_upgrade.plan.yearly.title"), price: t("modal.pro_upgrade.plan.yearly.price"), recurring: t("modal.pro_upgrade.plan.yearly.recurring"), tag: t("modal.pro_upgrade.plan.yearly.tag"), productId: PRODUCT_IDS.yearly },
   ];
 
   const handleSubscribe = async () => {
@@ -114,15 +116,15 @@ export default function ProUpgradeScreen() {
     // Timeout di sicurezza
     timeoutRef.current = setTimeout(() => {
       setPurchaseState("error");
-      setErrorMessage("Richiesta scaduta. Verifica la connessione e riprova.");
+      setErrorMessage(t("modal.pro_upgrade.error.timeout"));
     }, PURCHASE_TIMEOUT_MS);
 
     try {
       const offerings = await Purchases.getOfferings();
       if (!offerings.current) {
-        throw new Error("Impossibile caricare i prezzi. Riprova più tardi.");
+        throw new Error(t("modal.pro_upgrade.error.loading_prices"));
       }
-      
+
       // Mappiamo il piano selezionato all'ID prodotto RevenueCat/Google Play
       const targetId = PRODUCT_IDS[selectedPlan];
       const pkg = offerings.current.availablePackages.find(
@@ -130,23 +132,23 @@ export default function ProUpgradeScreen() {
       );
 
       if (!pkg) {
-        throw new Error("Prodotto non trovato.");
+        throw new Error(t("modal.pro_upgrade.error.product_not_found"));
       }
 
       const { customerInfo } = await Purchases.purchasePackage(pkg);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      
+
       if (customerInfo.entitlements.active['pro'] || customerInfo.entitlements.active['com.Invoice_Studio.myapp Pro']) {
         setPurchaseState("success");
       } else {
         setPurchaseState("error");
-        setErrorMessage("Acquisto completato ma abbonamento non rilevato. Riavvia l'app.");
+        setErrorMessage(t("modal.pro_upgrade.error.subscription_not_detected"));
       }
     } catch (e: any) {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      if (!e.userCancelled) { 
-        setPurchaseState("error"); 
-        setErrorMessage(e.message || "Errore sconosciuto"); 
+      if (!e.userCancelled) {
+        setPurchaseState("error");
+        setErrorMessage(e.message || t("modal.pro_upgrade.error.unknown"));
       } else {
         setPurchaseState("idle");
       }
@@ -168,11 +170,11 @@ export default function ProUpgradeScreen() {
         setPurchaseState("success");
       } else {
         setPurchaseState("error");
-        setErrorMessage("Nessun acquisto da ripristinare su questo account.");
+        setErrorMessage(t("modal.pro_upgrade.restore.not_found"));
       }
     } catch (e: any) {
       setPurchaseState("error");
-      setErrorMessage(e.message || "Errore durante il ripristino. Riprova.");
+      setErrorMessage(e.message || t("modal.pro_upgrade.restore.error"));
     }
   };
 
@@ -182,26 +184,24 @@ export default function ProUpgradeScreen() {
     <View style={[s.container, { paddingTop: insets.top }]}>
       {/* Intestazione */}
       <View style={s.header}>
-        <Text style={s.title}>Passa a Pro</Text>
-        <Text style={s.subtitle}>
-          Fatture illimitate, invio email/PDF, ritenuta d&apos;acconto automatica.
-        </Text>
+        <Text style={s.title}>{t("modal.pro_upgrade.title")}</Text>
+        <Text style={s.subtitle}>{t("modal.pro_upgrade.subtitle")}</Text>
       </View>
 
       {/* Vantaggi — unificati con InvoiceLimitModal */}
       <View style={s.featuresBox}>
-        <FeatureItem text="Fatture illimitate" />
-        <FeatureItem text="Invio diretto via email e PDF" />
-        <FeatureItem text="Ritenuta d&apos;acconto automatica" />
-        <FeatureItem text="Supporto prioritario" />
-        <FeatureItem text="Annulla in qualsiasi momento" />
+        <FeatureItem text={t("modal.pro_upgrade.feature.unlimited")} />
+        <FeatureItem text={t("modal.pro_upgrade.feature.email_pdf")} />
+        <FeatureItem text={t("modal.pro_upgrade.feature.ritenuta")} />
+        <FeatureItem text={t("modal.pro_upgrade.feature.support")} />
+        <FeatureItem text={t("modal.pro_upgrade.feature.cancel_anytime")} />
       </View>
 
       {/* Piani */}
-      <View style={s.plansContainer} accessibilityRole="radiogroup" accessibilityLabel="Seleziona un piano di abbonamento">
+      <View style={s.plansContainer} accessibilityRole="radiogroup" accessibilityLabel={t("modal.pro_upgrade.plans.a11y")}>
         {packages.map((pkg) => {
           const isActive = selectedPlan === pkg.id;
-          const trial = trialFor(rcOffering, pkg.productId);
+          const trial = trialFor(rcOffering, pkg.productId, t);
           return (
             <TouchableOpacity
               key={pkg.id}
@@ -226,7 +226,7 @@ export default function ProUpgradeScreen() {
               </Text>
               {trial.hasTrial && (
                 <Text style={[s.planTrial, isActive && s.textActiveDesc]}>
-                  Prova gratuita {trial.text} — poi {pkg.price}
+                  {t("modal.pro_upgrade.trial_line").replace("{trial}", trial.text).replace("{price}", pkg.price)}
                 </Text>
               )}
             </TouchableOpacity>
@@ -236,8 +236,8 @@ export default function ProUpgradeScreen() {
 
       {/* Trust signals */}
       <View style={s.reassuranceRow}>
-        <Text style={s.reassuranceText}>Pagamento sicuro via Google Play</Text>
-        <Text style={s.reassuranceText}>Annulla quando vuoi</Text>
+        <Text style={s.reassuranceText}>{t("modal.pro_upgrade.trust.secure")}</Text>
+        <Text style={s.reassuranceText}>{t("modal.pro_upgrade.trust.cancel_anytime")}</Text>
       </View>
 
       {/* CTA */}
@@ -246,19 +246,19 @@ export default function ProUpgradeScreen() {
         onPress={handleSubscribe}
         disabled={purchaseState === "loading" || purchaseState === "restoring"}
         accessibilityRole="button"
-        accessibilityLabel={`Attiva abbonamento ${selectedPlan === "yearly" ? "annuale" : "mensile"}. ${selectedPkg.recurring}. Rinnovo automatico.`}
-        accessibilityHint="Completa l'acquisto tramite Google Play"
+        accessibilityLabel={t("modal.pro_upgrade.cta.a11y_subscribe").replace("{periodo}", selectedPlan === "yearly" ? t("modal.pro_upgrade.cta.a11y_yearly") : t("modal.pro_upgrade.cta.a11y_monthly")).replace("{prezzo}", selectedPkg.recurring)}
+        accessibilityHint={t("modal.pro_upgrade.cta.a11y_hint")}
       >
         {purchaseState === "loading" ? (
           reduceMotion ? (
-            <Text style={s.ctaText}>In elaborazione…</Text>
+            <Text style={s.ctaText}>{t("modal.pro_upgrade.cta.processing")}</Text>
           ) : (
             <ActivityIndicator color="#fff" />
           )
         ) : (
           <View style={s.ctaContent}>
-            <Text style={s.ctaText}>Attiva — {selectedPkg.recurring}</Text>
-            <Text style={s.ctaSub}>Rinnovo automatico. Annulla quando vuoi.</Text>
+            <Text style={s.ctaText}>{t("modal.pro_upgrade.cta.text").replace("{plano}", selectedPkg.recurring)}</Text>
+            <Text style={s.ctaSub}>{t("modal.pro_upgrade.cta.sub")}</Text>
           </View>
         )}
       </TouchableOpacity>
@@ -269,17 +269,17 @@ export default function ProUpgradeScreen() {
         onPress={handleRestore}
         disabled={purchaseState === "loading" || purchaseState === "restoring"}
         accessibilityRole="button"
-        accessibilityLabel="Ripristina acquisti precedenti"
+        accessibilityLabel={t("modal.pro_upgrade.restore.a11y")}
         accessibilityHint="Recupera un abbonamento Pro già acquistato su questo account Google"
       >
         {purchaseState === "restoring" ? (
           reduceMotion ? (
-            <Text style={s.restoreText}>Ripristino in corso…</Text>
+            <Text style={s.restoreText}>{t("modal.pro_upgrade.restore.processing")}</Text>
           ) : (
             <ActivityIndicator size="small" color="#6b7280" />
           )
         ) : (
-          <Text style={s.restoreText}>Ripristina acquisti</Text>
+          <Text style={s.restoreText}>{t("modal.pro_upgrade.restore.text")}</Text>
         )}
       </TouchableOpacity>
 
@@ -287,8 +287,8 @@ export default function ProUpgradeScreen() {
       {purchaseState === "error" && (
         <View style={s.errorBanner}>
           <Text style={s.errorText}>{errorMessage}</Text>
-          <TouchableOpacity onPress={handleRetry} accessibilityRole="button" accessibilityLabel="Riprova acquisto">
-            <Text style={s.retryText}>Riprova</Text>
+          <TouchableOpacity onPress={handleRetry} accessibilityRole="button" accessibilityLabel={t("modal.pro_upgrade.retry.a11y")}>
+            <Text style={s.retryText}>{t("modal.pro_upgrade.retry.text")}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -299,9 +299,9 @@ export default function ProUpgradeScreen() {
           style={s.cancelBtn}
           onPress={() => router.back()}
           accessibilityRole="button"
-          accessibilityLabel="Continua con il piano gratuito"
+          accessibilityLabel={t("modal.pro_upgrade.cancel.text")}
         >
-          <Text style={s.cancelText}>Continua con il piano gratuito</Text>
+          <Text style={s.cancelText}>{t("modal.pro_upgrade.cancel.text")}</Text>
         </TouchableOpacity>
       </View>
     </View>

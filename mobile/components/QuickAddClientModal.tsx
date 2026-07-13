@@ -61,19 +61,19 @@ export function QuickAddClientModal({
 
   const validate = () => {
     const newErrors: typeof errors = {};
-    
+
     if (name.trim().length < 2) {
-      newErrors.name = "Nome deve avere almeno 2 caratteri";
+      newErrors.name = t("form.client.field.name.error_min");
     }
 
     if (email.trim() && !/.+@.+\..+/.test(email.trim())) {
-      newErrors.email = "Email non valida";
+      newErrors.email = t("form.client.field.email.error");
     }
 
     if (vatNumber.trim().length > 0) {
       const result = validatePartitaIVA(vatNumber);
       if (!result.valid) {
-        newErrors.vat_number = result.error ?? "P.IVA non valida";
+        newErrors.vat_number = result.error ?? t("form.client.field.vat.error");
       }
     }
 
@@ -98,12 +98,12 @@ export function QuickAddClientModal({
 
     if (error || !data) {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      showToast({ message: error ?? "Errore durante il salvataggio", type: "error" });
+      showToast({ message: error ?? t("form.client.toast.error_save"), type: "error" });
       return;
     }
 
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    showToast({ message: "Cliente aggiunto ✓", type: "success" });
+    showToast({ message: t("form.client.toast.saved"), type: "success" });
     onClientAdded(data);
     handleClose();
   };
@@ -121,7 +121,7 @@ export function QuickAddClientModal({
       >
         <View style={styles.modalContent}>
           <View style={styles.header}>
-            <Text style={styles.title}>{t("newClient") || "Nuovo Cliente"}</Text>
+            <Text style={styles.title}>{t("form.client.add_label")}</Text>
             <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
               <Text style={styles.closeBtnText}>✕</Text>
             </TouchableOpacity>
@@ -130,10 +130,10 @@ export function QuickAddClientModal({
           <ScrollView style={styles.form} keyboardShouldPersistTaps="handled">
             {/* Nome */}
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Nome *</Text>
+              <Text style={styles.label}>{t("form.client.field.name.label")}</Text>
               <TextInput
                 style={[styles.input, errors.name ? styles.inputError : null]}
-                placeholder="Es. Mario Rossi"
+                placeholder={t("form.client.field.name.placeholder")}
                 placeholderTextColor="#6b7280"
                 autoCapitalize="words"
                 value={name}
@@ -145,10 +145,10 @@ export function QuickAddClientModal({
 
             {/* Email */}
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Email (opzionale)</Text>
+              <Text style={styles.label}>{t("form.client.field.email.label_optional")}</Text>
               <TextInput
                 style={[styles.input, errors.email ? styles.inputError : null]}
-                placeholder="Es. mario@studio.it"
+                placeholder={t("form.client.field.email.placeholder")}
                 placeholderTextColor="#6b7280"
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -161,10 +161,10 @@ export function QuickAddClientModal({
 
             {/* P.IVA */}
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Partita IVA (opzionale)</Text>
+              <Text style={styles.label}>{t("form.client.field.vat.label_optional")}</Text>
               <TextInput
                 style={[styles.input, errors.vat_number ? styles.inputError : null]}
-                placeholder="Es. 01234567890"
+                placeholder={t("form.client.field.vat.placeholder")}
                 placeholderTextColor="#6b7280"
                 autoCapitalize="characters"
                 value={vatNumber}
@@ -183,7 +183,7 @@ export function QuickAddClientModal({
               {saving ? (
                 <ActivityIndicator color="#fff" size="small" />
               ) : (
-                <Text style={styles.saveBtnText}>{t("save") || "Salva"}</Text>
+                <Text style={styles.saveBtnText}>{t("form.client.save")}</Text>
               )}
             </TouchableOpacity>
           </ScrollView>

@@ -17,6 +17,7 @@ import { apiFetch } from "@/lib/ai";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useInvoiceFilters } from "@/hooks/useInvoiceFilters";
+import { useLocale } from "@/components/LocaleProvider";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { SearchBar } from "@/components/SearchBar";
 import { FilterBar } from "@/components/FilterBar";
@@ -48,16 +49,22 @@ const STATUS_COLORS: Record<string, string> = {
   draft: "#6b7280", sent: "#3b82f6",
   paid: "#22c55e", overdue: "#ef4444", cancelled: "#9ca3af",
 };
-const STATUS_LABELS: Record<string, string> = {
-  draft: "Bozza", sent: "Inviata",
-  paid: "Pagata", overdue: "Scaduta", cancelled: "Annullata",
-};
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function InvoicesScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { t } = useLocale();
+
+  // Translated status labels (built after t is available)
+  const STATUS_LABELS: Record<string, string> = {
+    draft: t("tabs.invoices.status.draft"),
+    sent: t("tabs.invoices.status.sent"),
+    paid: t("tabs.invoices.status.paid"),
+    overdue: t("tabs.invoices.status.overdue"),
+    cancelled: t("tabs.invoices.status.cancelled"),
+  };
 
   // ─── Data state ─────────────────────────────────────────────────────────
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -235,8 +242,8 @@ export default function InvoicesScreen() {
       return (
         <EmptyState
           icon="search-outline"
-          title="Nessun risultato"
-          hint={`Nessuna fattura trovata per "${filters.query}"`}
+          title={t("tabs.invoices.empty.query.title")}
+          hint={t("tabs.invoices.empty.query.hint").replace("{query}", filters.query)}
         />
       );
     }
@@ -244,8 +251,8 @@ export default function InvoicesScreen() {
       return (
         <EmptyState
           icon="checkmark-circle-outline"
-          title="Nessuna fattura scaduta"
-          hint="Ottimo lavoro! Tutti i pagamenti sono in ordine."
+          title={t("tabs.invoices.empty.overdue.title")}
+          hint={t("tabs.invoices.empty.overdue.hint")}
         />
       );
     }
@@ -253,8 +260,8 @@ export default function InvoicesScreen() {
       return (
         <EmptyState
           icon="cash-outline"
-          title="Ancora nessun incasso"
-          hint="Invia le tue fatture per iniziare a ricevere pagamenti."
+          title={t("tabs.invoices.empty.paid.title")}
+          hint={t("tabs.invoices.empty.paid.hint")}
         />
       );
     }
@@ -262,8 +269,8 @@ export default function InvoicesScreen() {
       return (
         <EmptyState
           icon="document-text-outline"
-          title="Nessuna bozza"
-          hint="Le fatture salvate come bozza appariranno qui."
+          title={t("tabs.invoices.empty.draft.title")}
+          hint={t("tabs.invoices.empty.draft.hint")}
         />
       );
     }
@@ -271,9 +278,9 @@ export default function InvoicesScreen() {
     return (
       <EmptyState
         icon="document-text-outline"
-        title="Crea la tua prima fattura professionale."
-        hint="VELA ti guida passo per passo."
-        cta="Crea fattura"
+        title={t("tabs.invoices.empty.default.title")}
+        hint={t("tabs.invoices.empty.default.hint")}
+        cta={t("tabs.invoices.empty.default.cta")}
         onCTA={handleNewInvoice}
       />
     );
@@ -288,10 +295,8 @@ export default function InvoicesScreen() {
       {/* Header */}
       <View style={s.header}>
         <View>
-          <Text style={s.title}>Fatture</Text>
-          <Text style={s.sub}>
-            {invoices.length} fattur{invoices.length === 1 ? "a" : "e"}
-          </Text>
+          <Text style={s.title}>{t("tabs.invoices.title")}</Text>
+          <Text style={s.sub}>{t("tabs.invoices.sub_count").replace("{n}", String(invoices.length)).replace("{a|e}", invoices.length === 1 ? "a" : "e")}</Text>
         </View>
 
         {/* Quota badge — ora usa i limiti V34 da PlanContext */}
@@ -299,10 +304,10 @@ export default function InvoicesScreen() {
           style={[s.quotaBadge, !canCreate && s.quotaBadgeWarn]}
           onPress={handleNewInvoice}
           accessibilityRole="button"
-          accessibilityLabel="Quota fatture"
+          accessibilityLabel={t("tabs.invoices.quota.a11y")}
         >
           <Text style={[s.quotaText, !canCreate && s.quotaTextWarn]}>
-            {invoiceLimits?.used ?? 0}/{invoiceLimits?.base ?? 5} 📄
+            {t("tabs.invoices.quota_text").replace("{used}", String(invoiceLimits?.used ?? 0)).replace("{base}", String(invoiceLimits?.base ?? 5))}
           </Text>
         </TouchableOpacity>
       </View>
@@ -310,7 +315,7 @@ export default function InvoicesScreen() {
       {/* Pulsante nuova fattura */}
       <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
         <TouchableOpacity style={s.newBtn} onPress={handleNewInvoice} activeOpacity={0.85}>
-          <Text style={s.newBtnText}>+ Nuova Fattura</Text>
+          <Text style={s.newBtnText}>{t("tabs.invoices.new_button")}</Text>
         </TouchableOpacity>
       </Animated.View>
 

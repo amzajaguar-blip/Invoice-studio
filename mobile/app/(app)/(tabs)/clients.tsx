@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { apiFetch } from "@/lib/ai";
+import { useLocale } from "@/components/LocaleProvider";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { EmptyState } from "@/components/EmptyState";
 import EditClientSheet from "@/app/(app)/clients/EditClientSheet";
@@ -33,6 +34,7 @@ interface Client {
 export default function ClientsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { t } = useLocale();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -174,13 +176,13 @@ export default function ClientsScreen() {
     return (
       <View style={[s.container, { paddingTop: insets.top }]}>
         <View style={s.headerRow}>
-          <Text style={s.title}>Clienti</Text>
+          <Text style={s.title}>{t("tabs.clients.title")}</Text>
           <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
             <TouchableOpacity
               style={s.addButton}
               onPress={handleAddClient}
               accessibilityRole="button"
-              accessibilityLabel="Aggiungi cliente"
+              accessibilityLabel={t("tabs.clients.add.a11y")}
             >
               <Text style={s.addButtonText}>+</Text>
             </TouchableOpacity>
@@ -198,19 +200,19 @@ export default function ClientsScreen() {
   return (
     <View style={[s.container, { paddingTop: insets.top }]}>
       <View style={s.headerRow}>
-        <Text style={s.title}>Clienti</Text>
+        <Text style={s.title}>{t("tabs.clients.title")}</Text>
         <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
           <TouchableOpacity
             style={s.addButton}
             onPress={handleAddClient}
             accessibilityRole="button"
-            accessibilityLabel="Aggiungi cliente"
+            accessibilityLabel={t("tabs.clients.add.a11y")}
           >
             <Text style={s.addButtonText}>+</Text>
           </TouchableOpacity>
         </Animated.View>
       </View>
-      <Text style={s.sub}>{clients.length} client{clients.length === 1 ? "e" : "i"}</Text>
+      <Text style={s.sub}>{t("tabs.clients.sub_count").replace("{n}", String(clients.length)).replace("{e|i}", clients.length === 1 ? "e" : "i")}</Text>
 
       {/* V34 — InAppContextualCard for customers_upsell (Req 9.7, 6.7) */}
       {showContextCard && contextCard && (
@@ -250,9 +252,9 @@ export default function ClientsScreen() {
           /* V34 — Smart Empty State (Req 17.1, 20.1) */
           <EmptyState
             icon="people-outline"
-            title="Nessun cliente ancora."
-            hint="Aggiungi il tuo primo cliente per iniziare a fatturare."
-            cta="Crea primo cliente"
+            title={t("tabs.clients.empty.title")}
+            hint={t("tabs.clients.empty.hint")}
+            cta={t("tabs.clients.empty.cta")}
             onCTA={handleAddClient}
           />
         }

@@ -26,6 +26,7 @@ import {
 } from 'react-native';
 import type { MilestoneEvent, MilestoneType } from '@/lib/engagement-engine';
 import { ImpactFeedbackStyle, impactAsync } from '@/lib/haptics';
+import { useLocale } from '@/components/LocaleProvider';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -137,6 +138,7 @@ function MilestoneCelebrationInner({
   onDismiss,
   reduceMotion,
 }: MilestoneCelebrationInnerProps) {
+  const { t } = useLocale();
   // ── Animated values ────────────────────────────────────────────────────────
   /** translateY: slide-up — parte da +80 (sotto), arriva a 0 */
   const translateY   = useRef(new Animated.Value(reduceMotion ? 0 : 80)).current;
@@ -300,7 +302,7 @@ function MilestoneCelebrationInner({
             onPress={dismiss}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             accessibilityRole="button"
-            accessibilityLabel="Chiudi celebrazione"
+            accessibilityLabel={t('milestone.close.a11y')}
           >
             <Text style={s.closeBtnText}>✕</Text>
           </TouchableOpacity>
@@ -313,10 +315,10 @@ function MilestoneCelebrationInner({
             onPress={dismiss}
             activeOpacity={0.8}
             accessibilityRole="button"
-            accessibilityLabel="Sblocca Premium per crescita illimitata"
+            accessibilityLabel={t('milestone.premium_cta.a11y')}
           >
             <Text style={s.premiumCTAText}>
-              ✨ Sblocca Premium per crescita illimitata
+              {t('milestone.premium_cta.text')}
             </Text>
           </TouchableOpacity>
         )}

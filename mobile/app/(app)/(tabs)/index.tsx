@@ -28,6 +28,7 @@ import { useSmartCards } from "@/hooks/useSmartCards";
 import { BannerAdWrapper } from "@/components/BannerAdWrapper";
 import MilestoneCelebration from "@/components/MilestoneCelebration";
 import InAppContextualCard from "@/components/InAppContextualCard";
+import { useLocale } from "@/components/LocaleProvider";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -77,12 +78,12 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: "#9ca3af",
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  draft: "Bozza",
-  sent: "Inviata",
-  paid: "Pagata",
-  overdue: "Scaduta",
-  cancelled: "Annullata",
+const STATUS_KEY_MAP: Record<string, string> = {
+  draft: "tabs.invoices.status.draft",
+  sent: "tabs.invoices.status.sent",
+  paid: "tabs.invoices.status.paid",
+  overdue: "tabs.invoices.status.overdue",
+  cancelled: "tabs.invoices.status.cancelled",
 };
 
 // ─── Monthly Report Helpers ───────────────────────────────────────────────────
@@ -102,7 +103,7 @@ function getCurrentAndPreviousMonth(): { current: string; previous: string } {
 }
 
 /** Calcola il report mensile derivando i dati dall'array fatture esistente */
-function computeMonthlyReport(invoices: Invoice[]): MonthlyReport {
+function computeMonthlyReport(invoices: Invoice[], t: (k: string) => string): MonthlyReport {
   const { current, previous } = getCurrentAndPreviousMonth();
 
   const invoicesCurrentMonth = invoices.filter((inv) => {
@@ -122,17 +123,17 @@ function computeMonthlyReport(invoices: Invoice[]): MonthlyReport {
 
   const metrics: MonthlyReportMetric[] = [
     {
-      label: "Fatture create",
+      label: t("tabs.dashboard.report.metric.created"),
       current: countCreated(invoicesCurrentMonth),
       previous: countCreated(invoicesPreviousMonth),
     },
     {
-      label: "Fatture pagate",
+      label: t("tabs.dashboard.report.metric.paid"),
       current: countPaid(invoicesCurrentMonth),
       previous: countPaid(invoicesPreviousMonth),
     },
     {
-      label: "In scadenza",
+      label: t("tabs.dashboard.report.metric.due"),
       current: invoicesCurrentMonth.filter(
         (inv) =>
           inv.status === "sent" || inv.status === "overdue"
@@ -148,9 +149,9 @@ function computeMonthlyReport(invoices: Invoice[]): MonthlyReport {
 }
 
 /** Formatta la variazione percentuale tra valore corrente e precedente */
-function formatGrowth(current: number, previous: number): { text: string; color: string } | null {
+function formatGrowth(current: number, previous: number, t: (k: string) => string): { text: string; color: string } | null {
   if (previous === 0 && current === 0) return null;
-  if (previous === 0) return { text: "Nuovo", color: "#22c55e" };
+  if (previous === 0) return { text: t("tabs.dashboard.report.growth_new"), color: "#22c55e" };
   const pct = ((current - previous) / previous) * 100;
   if (Math.abs(pct) < 0.5) return null; // nessuna variazione significativa
   const rounded = Math.round(pct);
@@ -215,11 +216,20 @@ function KPICard({ index, reduceMotion, value, label, valueColor, borderColor }:
 export default function DashboardScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { t } = useLocale();
 
   // ─── V34 Phase 2 hooks ─────────────────────────────────────────────────────
   const { isPremium, limits } = usePlan();
   const { pendingMilestone, dismissMilestone, engagement } = useEngagementContext();
   const { card, dismiss: dismissCard } = useSmartCards("dashboard_limit_warning");
+
+  // ─── Translated status labels (memoized so render uses fresh t outputs) ───
+  const STATUS_LABELS: Record<string, string> = useMemo(() => {
+    return Object.fromEntries(
+      Object.entries(STATUS_KEY_MAP).map(([k, keyName]) => [k, t(keyName)])
+    ) as Record<string, string>;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t]);
 
   const [stats, setStats] = useState<DashboardStats>({
     invoiceCount: 0,
@@ -262,7 +272,7 @@ export default function DashboardScreen() {
 
       setStats({ invoiceCount, totalRevenue, pendingCount, paidCount });
       setInvoices(rawInvoices as Invoice[]);
-      setMonthlyReport(computeMonthlyReport(rawInvoices as Invoice[]));
+      setMonthlyReport(computeMonthlyReport(rawInvoices as Invoice[], t));
       setTrend(getMonthlyRevenueTrend(rawInvoices, 6));
       setCashflow(predictCashflow(rawInvoices));
 
@@ -272,7 +282,8 @@ export default function DashboardScreen() {
     }
 
     setLoading(false);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t]);
 
   useEffect(() => {
     fetchStats();
@@ -312,32 +323,33 @@ export default function DashboardScreen() {
 
   // ─── Quick Actions ─────────────────────────────────────────────────────────
 
-  const QUICK_ACTIONS = [
+  const QUICK_ACTIONS = useMemo(() => [
     {
       icon: "📄",
-      label: "Nuova\nFattura",
+      label: t("tabs.dashboard.quick_actions.new_invoice.label"),
       onPress: handleNewInvoice,
-      accessibilityLabel: "Crea nuova fattura",
+      accessibilityLabel: t("tabs.dashboard.quick_actions.new_invoice.a11y"),
     },
     {
       icon: "👤",
-      label: "Nuovo\nCliente",
+      label: t("tabs.dashboard.quick_actions.new_client.label"),
       onPress: () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         router.push("/(app)/clients/add");
       },
-      accessibilityLabel: "Aggiungi nuovo cliente",
+      accessibilityLabel: t("tabs.dashboard.quick_actions.new_client.a11y"),
     },
     {
       icon: "📷",
-      label: "Scansiona",
+      label: t("tabs.dashboard.quick_actions.scan.label"),
       onPress: () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         router.push("/(app)/scanner");
       },
-      accessibilityLabel: "Scansiona ricevuta",
+      accessibilityLabel: t("tabs.dashboard.quick_actions.scan.a11y"),
     },
-  ];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [t]);
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
@@ -360,8 +372,8 @@ export default function DashboardScreen() {
         <View style={styles.headerGradient}>
           <View style={[StyleSheet.absoluteFill, { backgroundColor: "#12131a" }]} />
           <View style={[StyleSheet.absoluteFill, { backgroundColor: "#0a0b0f", opacity: 0.6 }]} />
-          <Text style={styles.title}>✦ VELA</Text>
-          <Text style={styles.subtitle}>Dashboard</Text>
+          <Text style={styles.title}>{t("tabs.dashboard.brand")}</Text>
+          <Text style={styles.subtitle}>{t("tabs.dashboard.title")}</Text>
         </View>
 
         {/* ── Dynamic Dashboard (4-state) ────────────────────────────────── */}
@@ -377,16 +389,16 @@ export default function DashboardScreen() {
             {dashboardState === 'new' && (
               /* ONBOARDING GUIDE CARDS */
               <View style={styles.onboardingContainer}>
-                <Text style={styles.onboardingTitle}>Inizia con VELA</Text>
+                <Text style={styles.onboardingTitle}>{t("tabs.dashboard.onboarding.title")}</Text>
                 {[
-                  { icon: '📄', label: 'Crea la tua prima fattura', onPress: () => router.push('/(app)/invoices/new') },
-                  { icon: '👥', label: 'Aggiungi il tuo primo cliente', onPress: () => router.push('/(app)/clients/add') },
-                  { icon: '⚙️', label: 'Imposta il tuo profilo', onPress: () => router.push('/(app)/(tabs)/settings') },
+                  { icon: '📄', label: t("tabs.dashboard.onboarding.first_invoice"), onPress: () => router.push('/(app)/invoices/new') },
+                  { icon: '👥', label: t("tabs.dashboard.onboarding.first_client"), onPress: () => router.push('/(app)/clients/add') },
+                  { icon: '⚙️', label: t("tabs.dashboard.onboarding.profile_setup"), onPress: () => router.push('/(app)/(tabs)/settings') },
                 ].map((item) => (
                   <TouchableOpacity key={item.label} style={styles.onboardingCard} onPress={item.onPress} activeOpacity={0.8}>
                     <Text style={styles.onboardingCardIcon}>{item.icon}</Text>
                     <Text style={styles.onboardingCardLabel}>{item.label}</Text>
-                    <Text style={styles.onboardingCardChevron}>→</Text>
+                    <Text style={styles.onboardingCardChevron}>{t("tabs.dashboard.onboarding.chevron")}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -397,32 +409,35 @@ export default function DashboardScreen() {
                 {/* Near-limit prominent warning */}
                 {dashboardState === 'near_limit' && (
                   <View style={styles.nearLimitWarning}>
-                    <Text style={styles.nearLimitText}>⚠️ Sei vicino al limite mensile — considera il Business Boost</Text>
+                    <Text style={styles.nearLimitText}>{t("tabs.dashboard.near_limit_warning")}</Text>
                   </View>
                 )}
 
                 {/* Streak indicator (growing/premium) */}
-                {engagement.currentStreak > 0 && (
-                  <View style={[styles.analyticsCard, { marginBottom: 12 }]}>
-                    <Text style={styles.analyticsTitle}>🔥 Streak: {engagement.currentStreak} giorn{engagement.currentStreak === 1 ? 'o' : 'i'} consecutivi</Text>
-                  </View>
-                )}
+                {engagement.currentStreak > 0 && (() => {
+                  const streakText = t("tabs.dashboard.streak_text").replace("{n}", String(engagement.currentStreak)).replace("{o|i}", engagement.currentStreak === 1 ? 'o' : 'i');
+                  return (
+                    <View style={[styles.analyticsCard, { marginBottom: 12 }]}>
+                      <Text style={styles.analyticsTitle}>{streakText}</Text>
+                    </View>
+                  );
+                })()}
 
                 {/* KPI Cards */}
                 <View style={styles.cards}>
-                  <KPICard index={0} reduceMotion={reduceMotion} value={stats.invoiceCount} label="Fatture emesse" />
-                  <KPICard index={1} reduceMotion={reduceMotion} value={fmt(stats.totalRevenue)} label="Incassato" valueColor="#6c63ff" />
+                  <KPICard index={0} reduceMotion={reduceMotion} value={stats.invoiceCount} label={t("tabs.dashboard.kpi.invoice_count")} />
+                  <KPICard index={1} reduceMotion={reduceMotion} value={fmt(stats.totalRevenue)} label={t("tabs.dashboard.kpi.revenue")} valueColor="#6c63ff" />
                 </View>
                 <View style={styles.cards}>
-                  <KPICard index={2} reduceMotion={reduceMotion} value={stats.paidCount} label="Pagate" valueColor="#22c55e" borderColor="#22c55e30" />
-                  <KPICard index={3} reduceMotion={reduceMotion} value={stats.pendingCount} label="In attesa / Scadute" valueColor="#f59e0b" borderColor="#f59e0b30" />
+                  <KPICard index={2} reduceMotion={reduceMotion} value={stats.paidCount} label={t("tabs.dashboard.kpi.paid")} valueColor="#22c55e" borderColor="#22c55e30" />
+                  <KPICard index={3} reduceMotion={reduceMotion} value={stats.pendingCount} label={t("tabs.dashboard.kpi.pending_overdue")} valueColor="#f59e0b" borderColor="#f59e0b30" />
                 </View>
 
                 {/* Usage progress bar (growing/near_limit only) */}
                 {dashboardState !== 'premium' && !limits.isLoading && (
                   <View style={styles.usageCard}>
                     <View style={styles.usageHeader}>
-                      <Text style={styles.usageLabel}>Fatture mensili</Text>
+                      <Text style={styles.usageLabel}>{t("tabs.dashboard.usage.label")}</Text>
                       <Text style={styles.usageCount}>{limits.invoices.used}/{limits.invoices.base + limits.invoices.boost}</Text>
                     </View>
                     <View style={styles.usageBarBg}>
@@ -443,17 +458,17 @@ export default function DashboardScreen() {
                 {monthlyReport && (
                   <View style={styles.analyticsCard}>
                     <View style={styles.analyticsHeader}>
-                      <Text style={styles.analyticsTitle}>📊 Report Mensile</Text>
+                      <Text style={styles.analyticsTitle}>{t("tabs.dashboard.report.title")}</Text>
                       {isPremium ? (
-                        <Text style={styles.reportCTAText}>Vedi report completo</Text>
+                        <Text style={styles.reportCTAText}>{t("tabs.dashboard.report.view_full")}</Text>
                       ) : (
                         <TouchableOpacity onPress={() => router.push('/(app)/ProUpgrade' as never)}>
-                          <Text style={[styles.reportCTAText, { color: '#6c63ff' }]}>Sblocca Analytics →</Text>
+                          <Text style={[styles.reportCTAText, { color: '#6c63ff' }]}>{t("tabs.dashboard.report.upgrade_cta")}</Text>
                         </TouchableOpacity>
                       )}
                     </View>
                     {monthlyReport.metrics.map((metric) => {
-                      const growth = formatGrowth(metric.current, metric.previous);
+                      const growth = formatGrowth(metric.current, metric.previous, t);
                       return (
                         <View key={metric.label} style={styles.reportRow}>
                           <Text style={styles.reportLabel}>{metric.label}</Text>
@@ -475,7 +490,7 @@ export default function DashboardScreen() {
                 {trend.length > 0 && (
                   <View style={styles.analyticsCard}>
                     <View style={styles.analyticsHeader}>
-                      <Text style={styles.analyticsTitle}>📈 Trend incassi — ultimi 6 mesi</Text>
+                      <Text style={styles.analyticsTitle}>{t("tabs.dashboard.trend.title")}</Text>
                     </View>
                     <MiniBarChart data={trend} height={88} />
                     <View style={styles.trendLegend}>
@@ -490,17 +505,21 @@ export default function DashboardScreen() {
                 {cashflow && (
                   <View style={styles.analyticsCard}>
                     <View style={styles.analyticsHeader}>
-                      <Text style={styles.analyticsTitle}>🔮 Cashflow previsto — prossimi 30 giorni</Text>
+                      <Text style={styles.analyticsTitle}>{t("tabs.dashboard.cashflow.title")}</Text>
                       <View style={[styles.confidenceBadge, { borderColor: CONFIDENCE_COLOR[cashflow.confidence] + '40', backgroundColor: CONFIDENCE_COLOR[cashflow.confidence] + '12' }]}>
                         <Text style={[styles.confidenceText, { color: CONFIDENCE_COLOR[cashflow.confidence] }]}>
-                          {cashflow.confidence === 'high' ? 'Alta' : cashflow.confidence === 'medium' ? 'Media' : 'Bassa'} affidabilità
+                          {cashflow.confidence === 'high'
+                            ? t("tabs.dashboard.cashflow.confidence.high")
+                            : cashflow.confidence === 'medium'
+                              ? t("tabs.dashboard.cashflow.confidence.medium")
+                              : t("tabs.dashboard.cashflow.confidence.low")}
                         </Text>
                       </View>
                     </View>
                     <Text style={styles.cashflowAmount}>{fmt(cashflow.expectedNext30Days)}</Text>
                     <View style={styles.cashflowMeta}>
-                      <Text style={styles.cashflowMetaText}>📄 {cashflow.pendingInvoices} fattura/e in scadenza nei prossimi 30gg</Text>
-                      <Text style={styles.cashflowMetaText}>📊 Media mensile: {fmt(cashflow.avgMonthlyRevenue)}</Text>
+                      <Text style={styles.cashflowMetaText}>{t("tabs.dashboard.cashflow.invoice_count").replace("{n}", String(cashflow.pendingInvoices))}</Text>
+                      <Text style={styles.cashflowMetaText}>{t("tabs.dashboard.cashflow.avg_monthly").replace("{value}", fmt(cashflow.avgMonthlyRevenue))}</Text>
                     </View>
                   </View>
                 )}
@@ -508,14 +527,14 @@ export default function DashboardScreen() {
                 {/* Ultime attività */}
                 {invoices.length > 0 && (
                   <View style={styles.analyticsCard}>
-                    <Text style={[styles.analyticsTitle, { marginBottom: 12 }]}>🕒 Ultime attività</Text>
+                    <Text style={[styles.analyticsTitle, { marginBottom: 12 }]}>{t("tabs.dashboard.activity.title")}</Text>
                     {invoices.slice(0, 3).map((item) => {
                       const color = STATUS_COLORS[item.status] ?? '#6b7280';
                       return (
                         <TouchableOpacity key={item.id} style={styles.activityRow} onPress={() => router.push(`/(app)/${item.id}`)} accessibilityRole="button">
                           <View style={styles.activityLeft}>
                             <Text style={styles.activityNumber}>{item.number}</Text>
-                            <Text style={styles.activityClient}>{item.clients?.name ?? '—'}</Text>
+                            <Text style={styles.activityClient}>{item.clients?.name ?? t("tabs.dashboard.activity_row.client_missing")}</Text>
                           </View>
                           <View style={styles.activityRight}>
                             <View style={[styles.statusBadge, { backgroundColor: color + '20', borderColor: color + '40' }]}>

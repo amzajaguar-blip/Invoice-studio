@@ -25,6 +25,7 @@ import {
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trackEvent } from "@/lib/analytics-events";
+import { useLocale } from "@/components/LocaleProvider";
 
 // ─── Dati benefici Premium ────────────────────────────────────────────────────
 
@@ -34,44 +35,6 @@ interface Benefit {
   description: string;
 }
 
-const PREMIUM_BENEFITS: Benefit[] = [
-  {
-    emoji: "📄",
-    title: "Fatture illimitate",
-    description: "Crea tutte le fatture che vuoi, ogni mese, senza limiti.",
-  },
-  {
-    emoji: "👥",
-    title: "Clienti illimitati",
-    description: "Gestisci un portfolio clienti senza restrizioni.",
-  },
-  {
-    emoji: "📝",
-    title: "Preventivi illimitati",
-    description: "Prepara e invia tutti i preventivi che ti servono.",
-  },
-  {
-    emoji: "🎨",
-    title: "Template PDF illimitati",
-    description: "Accedi a tutti i template professionali per i tuoi documenti.",
-  },
-  {
-    emoji: "☁️",
-    title: "Cloud sync",
-    description: "I tuoi dati sincronizzati su tutti i tuoi dispositivi.",
-  },
-  {
-    emoji: "🎯",
-    title: "Supporto prioritario",
-    description: "Risposte rapide quando hai bisogno di aiuto.",
-  },
-  {
-    emoji: "🚫",
-    title: "Nessuna pubblicità",
-    description: "Un'esperienza pulita, senza interruzioni pubblicitarie.",
-  },
-];
-
 // ─── Dati feature locked preview ─────────────────────────────────────────────
 
 interface LockedFeature {
@@ -79,21 +42,14 @@ interface LockedFeature {
   label: string;
 }
 
-const LOCKED_FEATURES: LockedFeature[] = [
-  { emoji: "📊", label: "Analytics avanzate" },
-  { emoji: "🔄", label: "Esportazione dati" },
-  { emoji: "📬", label: "Invio email diretto" },
-  { emoji: "🏷️", label: "Template personalizzati" },
-];
-
 // ─── Componenti ───────────────────────────────────────────────────────────────
 
-function BenefitRow({ benefit }: { benefit: Benefit }) {
+function BenefitRow({ benefit, a11yLabel }: { benefit: Benefit; a11yLabel: string }) {
   return (
     <View
       style={s.benefitRow}
       accessibilityRole="text"
-      accessibilityLabel={`${benefit.title}: ${benefit.description}`}
+      accessibilityLabel={a11yLabel}
     >
       <View style={s.benefitIconContainer}>
         <Text style={s.benefitEmoji}>{benefit.emoji}</Text>
@@ -109,9 +65,9 @@ function BenefitRow({ benefit }: { benefit: Benefit }) {
   );
 }
 
-function LockedFeatureCard({ feature }: { feature: LockedFeature }) {
+function LockedFeatureCard({ feature, a11yLabel }: { feature: LockedFeature; a11yLabel: string }) {
   return (
-    <View style={s.lockedCard} accessibilityLabel={`Funzione bloccata: ${feature.label}`}>
+    <View style={s.lockedCard} accessibilityLabel={a11yLabel}>
       {/* Contenuto della card (sfumato/dimmed) */}
       <View style={s.lockedCardContent}>
         <Text style={s.lockedEmoji}>{feature.emoji}</Text>
@@ -130,6 +86,52 @@ function LockedFeatureCard({ feature }: { feature: LockedFeature }) {
 export default function PremiumPreviewScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { t } = useLocale();
+
+  const PREMIUM_BENEFITS: Benefit[] = [
+    {
+      emoji: "📄",
+      title: t("modal.premium_preview.benefit.unlimited_invoices.title"),
+      description: t("modal.premium_preview.benefit.unlimited_invoices.desc"),
+    },
+    {
+      emoji: "👥",
+      title: t("modal.premium_preview.benefit.unlimited_clients.title"),
+      description: t("modal.premium_preview.benefit.unlimited_clients.desc"),
+    },
+    {
+      emoji: "📝",
+      title: t("modal.premium_preview.benefit.unlimited_quotes.title"),
+      description: t("modal.premium_preview.benefit.unlimited_quotes.desc"),
+    },
+    {
+      emoji: "🎨",
+      title: t("modal.premium_preview.benefit.pdf_templates.title"),
+      description: t("modal.premium_preview.benefit.pdf_templates.desc"),
+    },
+    {
+      emoji: "☁️",
+      title: t("modal.premium_preview.benefit.cloud_sync.title"),
+      description: t("modal.premium_preview.benefit.cloud_sync.desc"),
+    },
+    {
+      emoji: "🎯",
+      title: t("modal.premium_preview.benefit.support.title"),
+      description: t("modal.premium_preview.benefit.support.desc"),
+    },
+    {
+      emoji: "🚫",
+      title: t("modal.premium_preview.benefit.no_ads.title"),
+      description: t("modal.premium_preview.benefit.no_ads.desc"),
+    },
+  ];
+
+  const LOCKED_FEATURES: LockedFeature[] = [
+    { emoji: "📊", label: t("modal.premium_preview.locked.analytics") },
+    { emoji: "🔄", label: t("modal.premium_preview.locked.export") },
+    { emoji: "📬", label: t("modal.premium_preview.locked.email") },
+    { emoji: "🏷️", label: t("modal.premium_preview.locked.templates") },
+  ];
 
   // Nessun tracking al mount — questa schermata è informativa, non aggressiva.
   // Il tracking avviene solo quando l'utente sceglie di fare upgrade.
@@ -153,12 +155,12 @@ export default function PremiumPreviewScreen() {
       {/* Header con pulsante Chiudi */}
       <View style={s.header}>
         <View style={s.headerLeft} />
-        <Text style={s.headerTitle}>✨ Premium</Text>
+        <Text style={s.headerTitle}>{t("modal.premium_preview.header_title")}</Text>
         <TouchableOpacity
           style={s.closeButton}
           onPress={handleClose}
           accessibilityRole="button"
-          accessibilityLabel="Chiudi anteprima Premium"
+          accessibilityLabel={t("modal.premium_preview.close.a11y")}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text style={s.closeButtonText}>✕</Text>
@@ -172,34 +174,41 @@ export default function PremiumPreviewScreen() {
       >
         {/* Hero */}
         <View style={s.heroSection}>
-          <Text style={s.heroEmoji}>🚀</Text>
-          <Text style={s.heroTitle}>Porta il tuo business al livello successivo</Text>
+          <Text style={s.heroEmoji}>{t("modal.premium_preview.hero.emoji")}</Text>
+          <Text style={s.heroTitle}>{t("modal.premium_preview.hero.title")}</Text>
           <Text style={s.heroSubtitle}>
-            Tutte le funzionalità di cui hai bisogno per fatturare senza limiti e gestire il tuo business da professionista.
+            {t("modal.premium_preview.hero.subtitle")}
           </Text>
         </View>
 
         {/* Feature locked preview */}
         <View style={s.lockedSection}>
-          <Text style={s.sectionLabel}>FUNZIONI PREMIUM</Text>
-          <View style={s.lockedGrid} accessibilityRole="list" accessibilityLabel="Funzioni Premium bloccate">
+          <Text style={s.sectionLabel}>{t("modal.premium_preview.section.locked")}</Text>
+          <View style={s.lockedGrid} accessibilityRole="list" accessibilityLabel={t("modal.premium_preview.locked.a11y")}>
             {LOCKED_FEATURES.map((feature) => (
-              <LockedFeatureCard key={feature.label} feature={feature} />
+              <LockedFeatureCard
+                key={feature.label}
+                feature={feature}
+                a11yLabel={t("modal.premium_preview.lock_a11y_template").replace("{label}", feature.label)}
+              />
             ))}
           </View>
         </View>
 
         {/* Lista benefici */}
         <View style={s.benefitsSection}>
-          <Text style={s.sectionLabel}>COSA INCLUDE PREMIUM</Text>
+          <Text style={s.sectionLabel}>{t("modal.premium_preview.section.benefits")}</Text>
           <View
             style={s.benefitsCard}
             accessibilityRole="list"
-            accessibilityLabel="Lista completa dei benefici Premium"
+            accessibilityLabel={t("modal.premium_preview.benefits.a11y")}
           >
             {PREMIUM_BENEFITS.map((benefit, index) => (
               <React.Fragment key={benefit.title}>
-                <BenefitRow benefit={benefit} />
+                <BenefitRow
+                  benefit={benefit}
+                  a11yLabel={t("modal.premium_preview.benefit_a11y_template").replace("{title}", benefit.title).replace("{description}", benefit.description)}
+                />
                 {index < PREMIUM_BENEFITS.length - 1 && (
                   <View style={s.benefitDivider} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
                 )}
@@ -210,9 +219,9 @@ export default function PremiumPreviewScreen() {
 
         {/* Trust signals */}
         <View style={s.trustSection}>
-          <Text style={s.trustText}>🔒 Pagamento sicuro via Google Play</Text>
-          <Text style={s.trustText}>Annulla quando vuoi</Text>
-          <Text style={s.trustText}>Nessun vincolo a lungo termine</Text>
+          <Text style={s.trustText}>{t("modal.premium_preview.trust.secure")}</Text>
+          <Text style={s.trustText}>{t("modal.premium_preview.trust.cancel_anytime")}</Text>
+          <Text style={s.trustText}>{t("modal.premium_preview.trust.no_lockin")}</Text>
         </View>
 
         {/* Spazio extra per il CTA fisso */}
@@ -226,19 +235,19 @@ export default function PremiumPreviewScreen() {
           onPress={handleUpgrade}
           activeOpacity={0.85}
           accessibilityRole="button"
-          accessibilityLabel="Passa a Premium"
-          accessibilityHint="Apre la schermata di acquisto del piano Premium"
+          accessibilityLabel={t("modal.premium_preview.cta.a11y")}
+          accessibilityHint={t("modal.premium_preview.cta.a11y_hint")}
         >
-          <Text style={s.ctaText}>Upgrade Now ✨</Text>
+          <Text style={s.ctaText}>{t("modal.premium_preview.cta.text")}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={s.dismissButton}
           onPress={handleClose}
           accessibilityRole="button"
-          accessibilityLabel="Continua con il piano gratuito"
+          accessibilityLabel={t("modal.premium_preview.dismiss.text")}
         >
-          <Text style={s.dismissText}>Continua con il piano gratuito</Text>
+          <Text style={s.dismissText}>{t("modal.premium_preview.dismiss.text")}</Text>
         </TouchableOpacity>
       </View>
     </View>

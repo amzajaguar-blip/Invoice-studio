@@ -1,4 +1,5 @@
 import { View, TextInput, TouchableOpacity, StyleSheet, Text } from "react-native";
+import { useLocale } from "@/components/LocaleProvider";
 
 export interface SearchBarProps {
   value: string;
@@ -10,9 +11,10 @@ export interface SearchBarProps {
 export function SearchBar({
   value,
   onChangeText,
-  placeholder = "Cerca per numero, cliente, importo…",
   onClear,
 }: SearchBarProps) {
+  const { t } = useLocale();
+  const placeholder = t("search.placeholder_default");
   return (
     <View style={styles.container}>
       <Text style={styles.searchIcon} accessibilityElementsHidden>
@@ -33,7 +35,7 @@ export function SearchBar({
         <TouchableOpacity
           onPress={onClear}
           style={styles.clearButton}
-          accessibilityLabel="Cancella ricerca"
+          accessibilityLabel={t("search.clear.a11y")}
           accessibilityRole="button"
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >

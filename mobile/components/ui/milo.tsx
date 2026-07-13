@@ -295,11 +295,12 @@ export function MiloSpinner({
   color?: string;
 }) {
   const { colors } = useTheme();
+  const { t } = useLocale();
   return (
     <ActivityIndicator
       size={size > 30 ? "large" : "small"}
       color={color ?? colors.accent}
-      accessibilityLabel="Caricamento…"
+      accessibilityLabel={t("milo.spinner.a11y")}
     />
   );
 }

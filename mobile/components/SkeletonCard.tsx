@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AccessibilityInfo, Animated, StyleSheet, View } from "react-native";
+import { useLocale } from "@/components/LocaleProvider";
 
 export interface SkeletonCardProps {
   lines?: number;       // default 2 — numero di righe di testo simulate
@@ -12,6 +13,7 @@ export function SkeletonCard({
   height = 80,
   showAvatar = false,
 }: SkeletonCardProps) {
+  const { t } = useLocale();
   const shimmer = useRef(new Animated.Value(0)).current;
   const [reduceMotion, setReduceMotion] = useState(false);
 
@@ -48,7 +50,7 @@ export function SkeletonCard({
     <Animated.View
       style={[styles.card, { height, opacity }]}
       accessibilityRole="progressbar"
-      accessibilityLabel="Caricamento in corso"
+      accessibilityLabel={t("skeleton.a11y")}
     >
       <View style={styles.row}>
         {showAvatar && <View style={styles.avatar} />}

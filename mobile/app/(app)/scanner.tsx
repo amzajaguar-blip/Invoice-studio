@@ -15,6 +15,7 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
 import { useIsFocused } from "@react-navigation/native";
 import { apiFetch } from "@/lib/ai";
+import { useLocale } from "@/components/LocaleProvider";
 import { COLORS, SIZES, SHADOWS } from "../../constants/theme";
 import {
   incrementScanCount,
@@ -48,6 +49,7 @@ export default function ScannerScreen() {
   const router = useRouter();
   const isFocused = useIsFocused();
   const isMounted = useRef(true);
+  const { t } = useLocale();
   
   const cameraRef = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
@@ -124,14 +126,14 @@ export default function ScannerScreen() {
           setPhotoBase64(photo.base64 ?? null);
           setScanState("preview");
         } else {
-          setError("Impossibile acquisire l'immagine.");
+          setError(t("scanner.capture_error.unable_acquire"));
           setScanState("idle");
         }
       }
     } catch (e) {
       if (isMounted.current) {
         console.error("Camera capture error:", e);
-        setError("Errore durante lo scatto. Assicurati che la fotocamera sia pronta.");
+        setError(t("scanner.capture_error.shot_failed"));
         setScanState("idle");
       }
     }
@@ -150,7 +152,7 @@ export default function ScannerScreen() {
         body: JSON.stringify({ imageBase64: photoBase64 }),
       });
       const timeoutPromise = new Promise<ApiFetchResult>((_, reject) =>
-        setTimeout(() => reject(new Error("Timeout: il server non risponde. Riprova tra poco.")), ANALYZE_TIMEOUT_MS)
+        setTimeout(() => reject(new Error(t("scanner.analyze.timeout"))), ANALYZE_TIMEOUT_MS)
       );
       const { data, error: apiError } = await Promise.race<ApiFetchResult>([
         fetchPromise,
@@ -159,7 +161,7 @@ export default function ScannerScreen() {
 
       if (isMounted.current) {
         if (apiError || !data) {
-          setError("Estrazione non riuscita. Prova con una foto più nitida.");
+          setError(t("scanner.analyze.extraction_failed"));
           setScanState("preview");
           return;
         }
@@ -183,7 +185,7 @@ export default function ScannerScreen() {
       }
     } catch (err) {
       if (isMounted.current) {
-        setError(err instanceof Error ? err.message : "Errore di rete o di sistema. Riprova tra poco.");
+        setError(err instanceof Error ? err.message : t("scanner.analyze.network"));
         setScanState("preview");
       }
     }
@@ -221,15 +223,15 @@ export default function ScannerScreen() {
           <View style={styles.permissionIconWrap}>
             <Text style={styles.permissionEmoji}>📷</Text>
           </View>
-          <Text style={styles.permTitle}>Accesso fotocamera</Text>
+          <Text style={styles.permTitle}>{t("scanner.permission.title")}</Text>
           <Text style={styles.permSubtitle}>
-            Consenti l'accesso per scansionare ricevute e documenti con l'AI in stile Milo.
+            {t("scanner.permission.subtitle")}
           </Text>
           <TouchableOpacity style={styles.primaryBtn} onPress={requestPermission}>
-            <Text style={styles.primaryBtnTxt}>Consenti fotocamera</Text>
+            <Text style={styles.primaryBtnTxt}>{t("scanner.permission.allow")}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.back()} style={styles.cancelLink}>
-            <Text style={styles.cancelLinkTxt}>Annulla</Text>
+            <Text style={styles.cancelLinkTxt}>{t("scanner.permission.cancel")}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -248,23 +250,23 @@ export default function ScannerScreen() {
           </TouchableOpacity>
           <View style={styles.successBadge}>
             <Text style={styles.successDot}>✓</Text>
-            <Text style={styles.successLabel}>Ricevuta rilevata</Text>
+            <Text style={styles.successLabel}>{t("scanner.result.success_badge")}</Text>
           </View>
         </View>
 
-        <Text style={styles.resultHint}>Verifica i dati estratti dall'AI</Text>
+        <Text style={styles.resultHint}>{t("scanner.result.hint")}</Text>
 
         <ScrollView style={styles.resultCard} contentContainerStyle={styles.resultContent} showsVerticalScrollIndicator={false}>
-          <ResultRow label="Fornitore" value={ocrResult.vendor || "—"} />
+          <ResultRow label={t("scanner.result.label.vendor")} value={ocrResult.vendor || t("scanner.result.dash")} />
           <View style={styles.divider} />
-          <ResultRow label="Data" value={ocrResult.date || "—"} />
+          <ResultRow label={t("scanner.result.label.date")} value={ocrResult.date || t("scanner.result.dash")} />
           <View style={styles.divider} />
           <ResultRow
-            label="Totale"
+            label={t("scanner.result.label.total")}
             value={
               ocrResult.total !== null
                 ? `${ocrResult.total.toFixed(2)} ${ocrResult.currency || '€'}`
-                : "—"
+                : t("scanner.result.dash")
             }
             highlight
           />
@@ -278,10 +280,10 @@ export default function ScannerScreen() {
 
         <View style={styles.actionsRow}>
           <TouchableOpacity style={styles.secondaryBtn} onPress={handleReset}>
-            <Text style={styles.secondaryBtnTxt}>✕ Riprova</Text>
+            <Text style={styles.secondaryBtnTxt}>{t("scanner.actions.retry")}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.primaryBtn} onPress={handleConfirm}>
-            <Text style={styles.primaryBtnTxt}>Conferma →</Text>
+            <Text style={styles.primaryBtnTxt}>{t("scanner.actions.confirm")}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -305,13 +307,13 @@ export default function ScannerScreen() {
       {showPaywall && (
         <View style={styles.paywallOverlay}>
           <View style={styles.paywallContent}>
-            <Text style={styles.paywallTitle}>Limite di scansioni raggiunto</Text>
-            <Text style={styles.paywallMessage}>Hai usato le 3 scansioni gratuite del mese. Sblocca scansioni illimitate con il nostro abbonamento.</Text>
+            <Text style={styles.paywallTitle}>{t("scanner.paywall.title")}</Text>
+            <Text style={styles.paywallMessage}>{t("scanner.paywall.message")}</Text>
             <TouchableOpacity style={styles.paywallButton} onPress={() => { setShowPaywall(false); router.push("/(app)/ProUpgrade" as any); }}>
-              <Text style={styles.paywallButtonText}>Vai a Pro</Text>
+              <Text style={styles.paywallButtonText}>{t("scanner.paywall.go_pro")}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.paywallClose} onPress={() => setShowPaywall(false)}>
-              <Text style={styles.paywallCloseText}>Chiudi</Text>
+              <Text style={styles.paywallCloseText}>{t("scanner.paywall.close")}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -336,14 +338,14 @@ export default function ScannerScreen() {
 
       {/* Title */}
       <Text style={styles.screenTitle}>
-        {isPreview ? "Controlla Scansione" : isAnalyzing ? "Analisi in corso…" : "Carica Ricevuta"}
+        {isPreview ? t("scanner.title.preview") : isAnalyzing ? t("scanner.title.analyzing") : t("scanner.title.idle")}
       </Text>
       <Text style={styles.screenSub}>
         {isPreview
-          ? "I dati sono leggibili in modo nitido?"
+          ? t("scanner.subtitle.preview")
           : isAnalyzing
-          ? "Attendere, l'AI sta elaborando i dati."
-          : "Inquadra la ricevuta all'interno del riquadro."}
+          ? t("scanner.subtitle.analyzing")
+          : t("scanner.subtitle.idle")}
       </Text>
 
       {/* Camera / preview area */}
@@ -397,7 +399,7 @@ export default function ScannerScreen() {
           {/* Center hint label */}
           {scanState === "idle" && (
             <View style={styles.frameLabelBox}>
-              <Text style={styles.frameLabelTxt}>Allinea la ricevuta qui</Text>
+              <Text style={styles.frameLabelTxt}>{t("scanner.frame.label")}</Text>
             </View>
           )}
         </View>
@@ -408,8 +410,8 @@ export default function ScannerScreen() {
             <Animated.View style={[styles.analysisRing, { transform: [{ scale: pulseAnim }] }]}>
               <ActivityIndicator size="large" color={COLORS.accent} />
             </Animated.View>
-            <Text style={styles.analyzingTitle}>Lettura AI…</Text>
-            <Text style={styles.analyzingHint}>L'AI di Milo è a lavoro</Text>
+            <Text style={styles.analyzingTitle}>{t("scanner.analyzing.title")}</Text>
+            <Text style={styles.analyzingHint}>{t("scanner.analyzing.hint")}</Text>
           </View>
         )}
       </View>
@@ -426,10 +428,10 @@ export default function ScannerScreen() {
         {isPreview ? (
           <>
             <TouchableOpacity style={styles.secondaryBtn} onPress={handleReset} disabled={isAnalyzing}>
-              <Text style={styles.secondaryBtnTxt}>↩ Riscattare</Text>
+              <Text style={styles.secondaryBtnTxt}>{t("scanner.actions.preview_retry")}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.primaryBtn} onPress={handleAnalyze} disabled={isAnalyzing}>
-              <Text style={styles.primaryBtnTxt}>Usa Foto 📤</Text>
+              <Text style={styles.primaryBtnTxt}>{t("scanner.actions.use_photo")}</Text>
             </TouchableOpacity>
           </>
         ) : scanState === "idle" ? (

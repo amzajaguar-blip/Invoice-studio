@@ -1,5 +1,6 @@
 import React, { Component, type ErrorInfo, type ReactNode } from 'react';
 import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
+import { useLocale } from '@/components/LocaleProvider';
 
 interface Props {
   children: ReactNode;
@@ -30,20 +31,25 @@ export class StartupErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
-      return (
-        <View style={styles.container}>
-          <ScrollView contentContainerStyle={styles.scroll}>
-            <Text style={styles.title}>App failed to start</Text>
-            <Text style={styles.error}>{this.state.error?.message || 'Unknown error'}</Text>
-            <Text style={styles.stack}>{this.state.error?.stack}</Text>
-            <Text style={styles.stack}>{this.state.errorInfo?.componentStack}</Text>
-          </ScrollView>
-        </View>
-      );
+      return <StartupErrorView error={this.state.error} errorInfo={this.state.errorInfo} />;
     }
 
     return this.props.children;
   }
+}
+
+function StartupErrorView({ error, errorInfo }: { error?: Error; errorInfo?: ErrorInfo }) {
+  const { t } = useLocale();
+  return (
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <Text style={styles.title}>{t('error.startup_crash.title')}</Text>
+        <Text style={styles.error}>{error?.message ?? t('error.startup_crash.unknown')}</Text>
+        <Text style={styles.stack}>{error?.stack}</Text>
+        <Text style={styles.stack}>{errorInfo?.componentStack}</Text>
+      </ScrollView>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({

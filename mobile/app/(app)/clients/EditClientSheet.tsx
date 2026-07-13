@@ -72,28 +72,28 @@ function validate(data: ClientFormData): ValidationResult {
   // nome: min 2, max 100
   const name = data.name.trim();
   if (name.length < 2) {
-    errors.name = "Nome deve avere almeno 2 caratteri";
+    errors.name = t("form.client.field.name.error_min");
   } else if (name.length > 100) {
-    errors.name = "Nome troppo lungo (max 100 caratteri)";
+    errors.name = t("form.client.field.name.error_max");
   }
 
   // email: regex base dopo trim
   const email = data.email.trim();
   if (!/.+@.+\..+/.test(email)) {
-    errors.email = "Email non valida";
+    errors.email = t("form.client.field.email.error");
   }
 
   // P.IVA: opzionale — usa validatePartitaIVA
   if (data.vat_number.trim().length > 0) {
     const result = validatePartitaIVA(data.vat_number);
     if (!result.valid) {
-      errors.vat_number = result.error ?? "P.IVA non valida";
+      errors.vat_number = result.error ?? t("form.client.field.vat.error");
     }
   }
 
   // currency: deve essere nella lista chiusa
   if (!CURRENCIES.includes(data.currency)) {
-    errors.currency = "Valuta non valida";
+    errors.currency = t("form.client.field.currency.error");
   }
 
   return {
@@ -225,12 +225,12 @@ export default function EditClientSheet({
 
     if (error || !data) {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      showToast({ message: error ?? "Errore durante il salvataggio", type: "error" });
+      showToast({ message: error ?? t("form.client.toast.error_save"), type: "error" });
       return;
     }
 
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    showToast({ message: "Cliente aggiornato ✓", type: "success" });
+    showToast({ message: t("form.client.toast.updated"), type: "success" });
     onSaved(data);
     onClose();
   };
@@ -268,12 +268,12 @@ export default function EditClientSheet({
 
     if (error) {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      showToast({ message: error ?? "Errore durante l'eliminazione", type: "error" });
+      showToast({ message: error ?? t("form.client.toast.error_delete"), type: "error" });
       return;
     }
 
     onClose();
-    showToast({ message: "Cliente eliminato", type: "success" });
+    showToast({ message: t("form.client.toast.deleted"), type: "success" });
   };
 
   // ─── Render ──────────────────────────────────────────────────────────────
@@ -288,14 +288,14 @@ export default function EditClientSheet({
       animationType="none"
       onRequestClose={onClose}
       accessibilityViewIsModal
-      accessibilityLabel="Modifica cliente"
+      accessibilityLabel={t("form.client.modal_a11y")}
     >
       <Animated.View style={[s.overlay, { opacity: fadeAnim }]}>
         {/* Tap fuori per chiudere */}
         <TouchableOpacity
           style={StyleSheet.absoluteFill}
           onPress={onClose}
-          accessibilityLabel="Chiudi senza salvare"
+          accessibilityLabel={t("form.client.close_sheet_a11y")}
         />
 
         <Animated.View
@@ -305,7 +305,7 @@ export default function EditClientSheet({
           <View style={s.handle} />
 
           {/* Titolo */}
-          <Text style={s.title}>Modifica cliente</Text>
+          <Text style={s.title}>{t("form.client.title")}</Text>
 
           <ScrollView
             showsVerticalScrollIndicator={false}
@@ -313,10 +313,10 @@ export default function EditClientSheet({
           >
             {/* Campo Nome */}
             <View style={s.fieldGroup}>
-              <Text style={s.label}>Nome *</Text>
+              <Text style={s.label}>{t("form.client.field.name.label")}</Text>
               <TextInput
                 style={[s.input, errors.name ? s.inputError : null]}
-                placeholder="Es. Mario Rossi"
+                placeholder={t("form.client.field.name.placeholder")}
                 placeholderTextColor="#6b7280"
                 autoCapitalize="words"
                 value={form.name}
@@ -330,10 +330,10 @@ export default function EditClientSheet({
 
             {/* Campo Email */}
             <View style={s.fieldGroup}>
-              <Text style={s.label}>Email *</Text>
+              <Text style={s.label}>{t("form.client.field.email.label")}</Text>
               <TextInput
                 style={[s.input, errors.email ? s.inputError : null]}
-                placeholder="Es. mario@studio.it"
+                placeholder={t("form.client.field.email.placeholder")}
                 placeholderTextColor="#6b7280"
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -348,10 +348,10 @@ export default function EditClientSheet({
 
             {/* Campo P.IVA */}
             <View style={s.fieldGroup}>
-              <Text style={s.label}>Partita IVA</Text>
+              <Text style={s.label}>{t("form.client.field.vat.label")}</Text>
               <TextInput
                 style={[s.input, errors.vat_number ? s.inputError : null]}
-                placeholder="Es. 01234567890"
+                placeholder={t("form.client.field.vat.placeholder")}
                 placeholderTextColor="#6b7280"
                 autoCapitalize="characters"
                 keyboardType="default"
@@ -366,7 +366,7 @@ export default function EditClientSheet({
 
             {/* Picker Valuta */}
             <View style={s.fieldGroup}>
-              <Text style={s.label}>Valuta *</Text>
+              <Text style={s.label}>{t("form.client.field.currency.label")}</Text>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -383,7 +383,7 @@ export default function EditClientSheet({
                       ]}
                       onPress={() => updateField("currency", cur)}
                       accessibilityRole="button"
-                      accessibilityLabel={`Seleziona valuta ${cur}`}
+                      accessibilityLabel={t("form.client.field.currency.a11y").replace("{code}", cur)}
                       accessibilityState={{ selected: isActive }}
                       disabled={isBusy}
                     >
@@ -410,12 +410,12 @@ export default function EditClientSheet({
               onPress={handleSave}
               disabled={isBusy}
               accessibilityRole="button"
-              accessibilityLabel="Salva modifiche"
+              accessibilityLabel={t("form.client.save_a11y")}
             >
               {saving ? (
                 <ActivityIndicator color="#fff" size="small" />
               ) : (
-                <Text style={s.saveButtonText}>Salva modifiche</Text>
+                <Text style={s.saveButtonText}>{t("form.client.save_changes")}</Text>
               )}
             </TouchableOpacity>
 
@@ -425,12 +425,12 @@ export default function EditClientSheet({
               onPress={handleDelete}
               disabled={isBusy}
               accessibilityRole="button"
-              accessibilityLabel="Elimina cliente"
+              accessibilityLabel={t("form.client.delete_a11y")}
             >
               {deleting ? (
                 <ActivityIndicator color="#ef4444" size="small" />
               ) : (
-                <Text style={s.deleteButtonText}>Elimina cliente</Text>
+                <Text style={s.deleteButtonText}>{t("form.client.delete")}</Text>
               )}
             </TouchableOpacity>
           </ScrollView>
