@@ -37,6 +37,7 @@ export default function AuthLayout() {
       <Stack.Screen name="invoices/new" options={{ presentation: "card", animation: "slide_from_right" }} />
       <Stack.Screen name="quotes/new" options={{ presentation: "card", animation: "slide_from_right" }} />
       <Stack.Screen name="quotes/[id]" options={{ presentation: "card", animation: "slide_from_right" }} />
+      <Stack.Screen name="clients/[id]" options={{ presentation: "card", animation: "slide_from_right" }} />
       <Stack.Screen name="scanner" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
       <Stack.Screen name="[invoice]" options={{ presentation: "card", animation: "slide_from_right" }} />
     </Stack>

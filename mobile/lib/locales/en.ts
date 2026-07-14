@@ -525,6 +525,7 @@ export const en = {
   // ─── Startup Crash Error Boundary ────────────────────────────────────────
   "error.startup_crash.title": "App failed to start",
   "error.startup_crash.unknown": "Unknown error",
+  "error.startup_crash.go_home": "Go to Dashboard",
 
   // ─── Invoices New ────────────────────────────────────────────────────────
   "invoices.new.title": "New Invoice",

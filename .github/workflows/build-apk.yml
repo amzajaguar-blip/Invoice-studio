@@ -1,4 +1,4 @@
-name: Build APK Release v39
+name: Build APK Release v40
 
 on:
   push:
@@ -57,7 +57,7 @@ jobs:
       - name: Upload APK Debug
         uses: actions/upload-artifact@v4
         with:
-          name: VELA-v39-APK
+          name: VELA-v40-APK
           path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14

@@ -4,6 +4,8 @@ import {
   ActivityIndicator, Alert, Share,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+
+export type InvoiceDetailParams = { invoice: string };
 import * as MailComposer from "expo-mail-composer";
 import { apiFetch } from "@/lib/ai";
 import { useLocale } from "@/components/LocaleProvider";
@@ -57,9 +59,9 @@ const fmt = (n: number) =>
   new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(n);
 
 export default function InvoiceDetailScreen() {
-  const { invoice } = useLocalSearchParams();
+  const { invoice } = useLocalSearchParams<{ invoice: string }>();
   const router = useRouter();
-  const invoiceId = typeof invoice === "string" ? invoice : "";
+  const invoiceId = typeof invoice === "string" && invoice ? invoice : "";
   const localeCtx = useLocale();
   const t = typeof localeCtx?.t === 'function' ? localeCtx.t : ((key: string) => key);
 
@@ -69,7 +71,10 @@ export default function InvoiceDetailScreen() {
   const [sharing, setSharing] = useState(false);
 
   useEffect(() => {
-    if (!invoiceId) return;
+    if (!invoiceId) {
+      router.back();
+      return;
+    }
     apiFetch<InvoiceDetail>(`/api/invoices/${invoiceId}`)
       .then(({ data }) => setData(data))
       .finally(() => setLoading(false));

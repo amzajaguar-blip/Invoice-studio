@@ -51,9 +51,27 @@ function NotificationDeepLinkHandler() {
 
     const sub = Notifications.addNotificationResponseReceivedListener((response: any) => {
       const data = response.notification.request.content.data as any;
-      if (data?.deepLink) {
-        logBoot("Notification deep link", data.deepLink);
-        router.push(data.deepLink as any);
+      if (data?.deepLink && typeof data.deepLink === "string") {
+        const link = data.deepLink as string;
+        const ALLOWED_DEEP_LINK_PREFIXES = [
+          "/(app)/(tabs)",
+          "/(app)/invoices",
+          "/(app)/clients",
+          "/(app)/quotes",
+          "/(app)/scanner",
+          "/(app)/ProUpgrade",
+          "/(app)/PremiumPreview",
+        ];
+        const isAllowed = ALLOWED_DEEP_LINK_PREFIXES.some(
+          (prefix) => link === prefix || link.startsWith(prefix + "/")
+        );
+        if (isAllowed) {
+          logBoot("Notification deep link", link);
+          router.push(link as any);
+        } else {
+          logBootError("Deep link rejected — not in whitelist", link);
+          router.push("/(app)/(tabs)" as any);
+        }
       }
     });
 

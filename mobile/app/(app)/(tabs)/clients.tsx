@@ -239,7 +239,15 @@ export default function ClientsScreen() {
           />
         }
         renderItem={({ item }) => (
-          <TouchableOpacity style={s.card} onPress={() => setSelectedClient(item)}>
+          <TouchableOpacity
+            style={s.card}
+            onPress={() => router.push({
+              pathname: "/(app)/clients/[id]" as any,
+              params: { id: item.id },
+            })}
+            onLongPress={() => setSelectedClient(item)}
+            delayLongPress={400}
+          >
             <View style={s.row}>
               <Text style={s.name}>{item.name}</Text>
               <Text style={s.currency}>{item.currency}</Text>

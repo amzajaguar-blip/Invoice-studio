@@ -526,6 +526,7 @@ client_delete_msg: "Sei sicuro di voler eliminare \"{name}\"? Questa azione non 
   // ─── Startup Crash Error Boundary ────────────────────────────────────────
   "error.startup_crash.title": "App failed to start",
   "error.startup_crash.unknown": "Unknown error",
+  "error.startup_crash.go_home": "Go to Dashboard",
 
   // ─── Invoices New ────────────────────────────────────────────────────────
   "invoices.new.title": "Nuova Fattura",

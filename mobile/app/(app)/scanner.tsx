@@ -13,7 +13,6 @@ import {
 } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
-import { useIsFocused } from "@react-navigation/native";
 import { apiFetch } from "@/lib/ai";
 import { useLocale } from "@/components/LocaleProvider";
 import { COLORS, SIZES, SHADOWS } from "../../constants/theme";
@@ -47,7 +46,6 @@ const CORNER_R = SIZES.radiusSm;      // corner radius
 
 export default function ScannerScreen() {
   const router = useRouter();
-  const isFocused = useIsFocused();
   const isMounted = useRef(true);
   const { t } = useLocale();
   
@@ -74,8 +72,8 @@ export default function ScannerScreen() {
   }, []);
 
   useEffect(() => {
-    if (scanState === "idle" && isFocused) {
-      // Looping scan line
+    if (scanState === "idle") {
+      // Looping scan line — scanner is always focused when mounted (push screen)
       const loop = Animated.loop(
         Animated.sequence([
           Animated.timing(scanAnim, {
@@ -95,7 +93,7 @@ export default function ScannerScreen() {
       loop.start();
       return () => loop.stop();
     }
-  }, [scanState, scanAnim, isFocused]);
+  }, [scanState, scanAnim]);
 
   useEffect(() => {
     if (scanState === "analyzing") {
@@ -154,13 +152,17 @@ export default function ScannerScreen() {
       const timeoutPromise = new Promise<ApiFetchResult>((_, reject) =>
         setTimeout(() => reject(new Error(t("scanner.analyze.timeout"))), ANALYZE_TIMEOUT_MS)
       );
-      const { data, error: apiError } = await Promise.race<ApiFetchResult>([
+      const { data, error: apiError, status } = await Promise.race<ApiFetchResult>([
         fetchPromise,
         timeoutPromise,
       ]);
 
       if (isMounted.current) {
         if (apiError || !data) {
+          if (status === 401) {
+            router.replace("/(auth)/login" as any);
+            return;
+          }
           setError(t("scanner.analyze.extraction_failed"));
           setScanState("preview");
           return;
@@ -361,21 +363,17 @@ export default function ScannerScreen() {
           <View style={[styles.mask, { flex: 1 }]} />
         </View>
 
-        {/* Live camera or photo preview. Unmount camera when not focused to save resources */}
+        {/* Live camera or photo preview. Scanner is a push screen — always focused when mounted. */}
         {photoUri && scanState !== "idle" ? (
           <Image source={{ uri: photoUri }} style={[StyleSheet.absoluteFillObject, { zIndex: 0 }]} resizeMode="cover" />
         ) : (
-          isFocused ? (
-            <CameraView
-              ref={cameraRef}
-              style={[StyleSheet.absoluteFillObject, { zIndex: 0 }]}
-              facing="back"
-              enableTorch={torchOn}
-              flash="off"
-            />
-          ) : (
-             <View style={[StyleSheet.absoluteFillObject, { backgroundColor: COLORS.background, zIndex: 0 }]} />
-          )
+          <CameraView
+            ref={cameraRef}
+            style={[StyleSheet.absoluteFillObject, { zIndex: 0 }]}
+            facing="back"
+            enableTorch={torchOn}
+            flash="off"
+          />
         )}
 
         {/* Scanning frame — centered */}

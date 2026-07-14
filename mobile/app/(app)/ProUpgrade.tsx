@@ -78,7 +78,7 @@ export default function ProUpgradeScreen() {
 
     if (reduceMotion) {
       // Skip animation, just display the success card briefly then navigate
-      const t = setTimeout(() => router.back(), SUCCESS_DISPLAY_MS);
+      const t = setTimeout(() => router.replace("/(app)/(tabs)" as any), SUCCESS_DISPLAY_MS);
       return () => clearTimeout(t);
     }
 
@@ -99,7 +99,7 @@ export default function ProUpgradeScreen() {
       }),
     ]).start(() => {
       // After animation completes, brief pause then navigate
-      const t = setTimeout(() => router.back(), 200);
+      const t = setTimeout(() => router.replace("/(app)/(tabs)" as any), 200);
       return () => clearTimeout(t);
     });
   }, [purchaseState, reduceMotion]);
@@ -297,7 +297,7 @@ export default function ProUpgradeScreen() {
       <View style={s.footerLinks}>
         <TouchableOpacity
           style={s.cancelBtn}
-          onPress={() => router.back()}
+          onPress={() => router.replace("/(app)/(tabs)" as any)}
           accessibilityRole="button"
           accessibilityLabel={t("modal.pro_upgrade.cancel.text")}
         >

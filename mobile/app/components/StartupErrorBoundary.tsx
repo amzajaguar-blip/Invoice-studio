@@ -1,5 +1,6 @@
 import React, { Component, type ErrorInfo, type ReactNode } from 'react';
-import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Platform, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useLocale } from '@/components/LocaleProvider';
 
 interface Props {
@@ -31,15 +32,19 @@ export class StartupErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
-      return <StartupErrorView error={this.state.error} errorInfo={this.state.errorInfo} />;
+      return <StartupErrorView error={this.state.error} errorInfo={this.state.errorInfo} onReset={() => this.setState({ hasError: false, error: undefined, errorInfo: undefined })} />;
     }
-
     return this.props.children;
   }
 }
 
-function StartupErrorView({ error, errorInfo }: { error?: Error; errorInfo?: ErrorInfo }) {
+function StartupErrorView({ error, errorInfo, onReset }: { error?: Error; errorInfo?: ErrorInfo; onReset: () => void }) {
   const { t } = useLocale();
+  const router = useRouter();
+  const handleGoHome = () => {
+    onReset();
+    router.replace("/(app)/(tabs)" as any);
+  };
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -48,6 +53,9 @@ function StartupErrorView({ error, errorInfo }: { error?: Error; errorInfo?: Err
         <Text style={styles.stack}>{error?.stack}</Text>
         <Text style={styles.stack}>{errorInfo?.componentStack}</Text>
       </ScrollView>
+      <TouchableOpacity style={styles.resetBtn} onPress={handleGoHome}>
+        <Text style={styles.resetBtnText}>{t('error.startup_crash.go_home')}</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -58,4 +66,6 @@ const styles = StyleSheet.create({
   title: { color: '#fff', fontSize: 20, fontWeight: '700', marginBottom: 16 },
   error: { color: '#ff6b6b', fontSize: 14, marginBottom: 16 },
   stack: { color: '#aaa', fontSize: 11, fontFamily: Platform.select({ ios: 'Courier', android: 'monospace' }) },
+  resetBtn: { backgroundColor: '#6c63ff', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 16 },
+  resetBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 });
