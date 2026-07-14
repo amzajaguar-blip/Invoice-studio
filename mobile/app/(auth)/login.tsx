@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
+import { useRouter } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocale } from "@/components/LocaleProvider";
 
@@ -26,6 +27,7 @@ function GoogleIcon({ size = 20 }: { size?: number }) {
 }
 
 export default function LoginScreen() {
+  const router = useRouter();
   const { signInWithGoogle } = useAuth();
   const { t } = useLocale();
 
@@ -65,6 +67,15 @@ export default function LoginScreen() {
               <GoogleIcon size={20} />
             )}
             <Text style={styles.googleButtonText}>{t("login.button.text")}</Text>
+          </TouchableOpacity>
+
+          {/* Password dimenticata? — solo per account email/password */}
+          <TouchableOpacity
+            style={styles.forgotLink}
+            onPress={() => router.push("/(auth)/forgot-password" as any)}
+            disabled={loading}
+          >
+            <Text style={styles.forgotLinkText}>{t("login.forgot_password_link")}</Text>
           </TouchableOpacity>
 
           {error && (
@@ -129,6 +140,16 @@ const styles = StyleSheet.create({
   },
   disabled: {
     opacity: 0.5,
+  },
+  forgotLink: {
+    marginTop: 16,
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  forgotLinkText: {
+    color: "#6c63ff",
+    fontSize: 14,
+    fontWeight: "500",
   },
   errorBox: {
     backgroundColor: "rgba(239,68,68,0.08)",

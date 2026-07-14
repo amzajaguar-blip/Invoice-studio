@@ -601,6 +601,31 @@ export const it = {
   "invoices.detail.share_url": "https://invoicestudio.app",
   "invoices.detail.share_title_template": "Fattura #{n}",
   "invoices.detail.email_subject_template": "Fattura #{n} — {amount}",
+
+  // ─── Password Reset (forgot-password / reset-password) ─────────────────────
+  // Solo per utenti email/password — il flusso Google OAuth non prevede reset.
+  // La sessione di cambio password arriva come deep link
+  // 'vela://(auth)/reset-password#access_token=...&refresh_token=...&type=recovery'.
+  "reset.forgot.title": "Password dimenticata",
+  "reset.forgot.subtitle": "Inserisci la tua email per ricevere il link di reimpostazione.",
+  "reset.forgot.email_label": "Email",
+  "reset.forgot.email_placeholder": "nome@studio.it",
+  "reset.forgot.submit": "Invia link di reset",
+  "reset.forgot.submit_loading": "Invio in corso…",
+  "reset.forgot.error": "Errore nell'invio. Verifica l'email e riprova.",
+  "reset.forgot.success_title": "Controlla la tua email",
+  "reset.forgot.success_body": "Se esiste un account associato all'indirizzo {email}, riceverai a breve un link per reimpostare la password.",
+  "reset.forgot.back_to_login": "Torna al login",
+  "reset.passwords_mismatch": "Le password non coincidono.",
+  "reset.password_too_short": "La password deve contenere almeno 8 caratteri.",
+  "reset.success.title": "Password aggiornata",
+  "reset.success.body": "La tua password è stata reimpostata correttamente. Ora puoi accedere.",
+  "reset.success.go_to_login": "Vai al login",
+  "reset.invalid_link.title": "Link non valido o scaduto",
+  "reset.invalid_link.body": "Il link di reimpostazione non è più valido. Richiedine uno nuovo dalla schermata di login.",
+  "reset.invalid_link.back_to_login": "Torna alla richiesta",
+  // Link nel footer della schermata di login
+  "login.forgot_password_link": "Password dimenticata?",
 };
 
 export type TranslationKeys = keyof typeof it;

@@ -10,6 +10,7 @@ import {
   AccessibilityInfo,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "@/lib/haptics";
 import { apiFetch } from "@/lib/ai";
@@ -391,14 +392,18 @@ export default function DashboardScreen() {
               <View style={styles.onboardingContainer}>
                 <Text style={styles.onboardingTitle}>{t("tabs.dashboard.onboarding.title")}</Text>
                 {[
-                  { icon: '📄', label: t("tabs.dashboard.onboarding.first_invoice"), onPress: () => router.push('/(app)/invoices/new') },
-                  { icon: '👥', label: t("tabs.dashboard.onboarding.first_client"), onPress: () => router.push('/(app)/clients/add') },
-                  { icon: '⚙️', label: t("tabs.dashboard.onboarding.profile_setup"), onPress: () => router.push('/(app)/(tabs)/settings') },
+                  { icon: 'document-text-outline', label: t("tabs.dashboard.onboarding.first_invoice"), onPress: () => router.push('/(app)/invoices/new') },
+                  { icon: 'person-add-outline', label: t("tabs.dashboard.onboarding.first_client"), onPress: () => router.push('/(app)/clients/add') },
+                  { icon: 'settings-outline', label: t("tabs.dashboard.onboarding.profile_setup"), onPress: () => router.push('/(app)/(tabs)/settings') },
                 ].map((item) => (
                   <TouchableOpacity key={item.label} style={styles.onboardingCard} onPress={item.onPress} activeOpacity={0.8}>
-                    <Text style={styles.onboardingCardIcon}>{item.icon}</Text>
+                    <View style={styles.onboardingIconWrap}>
+                      <Ionicons name={item.icon as any} size={22} color="#6c63ff" />
+                    </View>
                     <Text style={styles.onboardingCardLabel}>{item.label}</Text>
-                    <Text style={styles.onboardingCardChevron}>{t("tabs.dashboard.onboarding.chevron")}</Text>
+                    <View style={styles.onboardingChevronWrap}>
+                      <Ionicons name="chevron-forward" size={18} color="#6c63ff" />
+                    </View>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -733,9 +738,9 @@ const styles = StyleSheet.create({
   onboardingContainer: { paddingHorizontal: 20, paddingTop: 8 },
   onboardingTitle: { fontSize: 16, fontWeight: '700', color: '#f0f0f2', marginBottom: 16 },
   onboardingCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#111318', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#1e2029', marginBottom: 10, gap: 12 },
-  onboardingCardIcon: { fontSize: 24 },
+  onboardingIconWrap: { width: 32, height: 32, borderRadius: 8, backgroundColor: '#6c63ff15', justifyContent: 'center', alignItems: 'center' },
   onboardingCardLabel: { flex: 1, fontSize: 14, fontWeight: '600', color: '#f0f0f2' },
-  onboardingCardChevron: { color: '#6c63ff', fontSize: 16, fontWeight: '700' },
+  onboardingChevronWrap: { width: 24, height: 24, justifyContent: 'center', alignItems: 'center' },
 
   // Near-limit warning
   nearLimitWarning: { marginHorizontal: 20, marginBottom: 12, backgroundColor: '#f59e0b18', borderRadius: 12, padding: 14, borderWidth: 1, borderLeftWidth: 4, borderColor: '#f59e0b44', borderLeftColor: '#f59e0b' },
