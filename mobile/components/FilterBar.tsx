@@ -28,11 +28,12 @@ export interface FilterBarProps {
 // ---------------------------------------------------------------------------
 
 const PILL_TRANSLATION_KEYS: Record<InvoiceStatus | 'all', string> = {
-  all:     'filter.pill.all',
-  draft:   'filter.pill.draft',
-  sent:    'filter.pill.sent',
-  paid:    'filter.pill.paid',
-  overdue: 'filter.pill.overdue',
+  all:       'filter.pill.all',
+  draft:     'filter.pill.draft',
+  sent:      'filter.pill.sent',
+  paid:      'filter.pill.paid',
+  overdue:   'filter.pill.overdue',
+  cancelled: 'filter.pill.cancelled',
 };
 
 // ---------------------------------------------------------------------------

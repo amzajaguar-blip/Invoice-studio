@@ -476,6 +476,7 @@ export const it = {
   "filter.pill.sent": "Inviate",
   "filter.pill.paid": "Pagate",
   "filter.pill.overdue": "Scadute",
+  "filter.pill.cancelled": "Annullate",
   "filter.pill.a11y": "Filtra per {label}",
 
   // ─── Search ──────────────────────────────────────────────────────────────

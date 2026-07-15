@@ -182,7 +182,6 @@ export const es = {
   // ─── Client Edit Alerts ───────────────────────────────────────────────────
   client_delete_title: "Eliminar cliente",
   client_delete_msg: "¿Estás seguro de que deseas eliminar \"{name}\"? Esta acción no se puede deshacer.",
-client_delete_msg: "Sei sicuro di voler eliminare \"{name}\"? Questa azione non può essere annullata.",
 
   // ─── Tab Dashboard ────────────────────────────────────────────────────────
   "tabs.dashboard.title": "Dashboard",
@@ -471,6 +470,7 @@ client_delete_msg: "Sei sicuro di voler eliminare \"{name}\"? Questa azione non 
   "filter.pill.sent": "Inviate",
   "filter.pill.paid": "Pagate",
   "filter.pill.overdue": "Scadute",
+  "filter.pill.cancelled": "Canceladas",
   "filter.pill.a11y": "Filtra per {label}",
 
   // ─── Search ──────────────────────────────────────────────────────────────

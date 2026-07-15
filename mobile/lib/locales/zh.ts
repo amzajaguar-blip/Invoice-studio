@@ -182,7 +182,6 @@ export const zh = {
   // ─── Client Edit Alerts ───────────────────────────────────────────────────
   client_delete_title: "删除客户",
   client_delete_msg: "您确定要删除\"{name}\"吗？此操作无法撤销。",
-client_delete_msg: "Sei sicuro di voler eliminare \"{name}\"? Questa azione non può essere annullata.",
 
   // ─── Tab Dashboard ────────────────────────────────────────────────────────
   "tabs.dashboard.title": "Dashboard",
@@ -471,6 +470,7 @@ client_delete_msg: "Sei sicuro di voler eliminare \"{name}\"? Questa azione non 
   "filter.pill.sent": "Inviate",
   "filter.pill.paid": "Pagate",
   "filter.pill.overdue": "Scadute",
+  "filter.pill.cancelled": "5df253d66d88",
   "filter.pill.a11y": "Filtra per {label}",
 
   // ─── Search ──────────────────────────────────────────────────────────────

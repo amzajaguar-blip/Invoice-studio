@@ -66,7 +66,7 @@ interface ValidationResult {
 
 // ─── Validazione sincrona (stessa logica di add.tsx) ─────────────────────────
 
-function validate(data: ClientFormData): ValidationResult {
+function validate(data: ClientFormData, t: (key: string) => string): ValidationResult {
   const errors: Partial<Record<keyof ClientFormData, string>> = {};
 
   // nome: min 2, max 100
@@ -203,7 +203,7 @@ export default function EditClientSheet({
   const handleSave = async () => {
     if (!client) return;
 
-    const { isValid, errors: validationErrors } = validate(form);
+    const { isValid, errors: validationErrors } = validate(form, t);
     if (!isValid) {
       setErrors(validationErrors);
       return;

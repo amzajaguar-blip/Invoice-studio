@@ -470,6 +470,7 @@ export const en = {
   "filter.pill.sent": "Sent",
   "filter.pill.paid": "Paid",
   "filter.pill.overdue": "Overdue",
+  "filter.pill.cancelled": "Cancelled",
   "filter.pill.a11y": "Filter by {label}",
 
   // ─── Search ──────────────────────────────────────────────────────────────

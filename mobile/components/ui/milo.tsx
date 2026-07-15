@@ -28,6 +28,7 @@ import {
   View,
 } from "react-native";
 import { useTheme } from "../../hooks/ThemeContext";
+import { useLocale } from "../LocaleProvider";
 
 // ── TYPES ──────────────────────────────────────────────────────────────────
 
