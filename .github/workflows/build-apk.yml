@@ -47,6 +47,39 @@ jobs:
       - name: Patch build.gradle to embed JS bundle in debug
         run: python3 scripts/patch_build_gradle.py
 
+      - name: Inject Gradle init script to block Sonatype snapshots
+        run: |
+          mkdir -p ~/.gradle/init.d
+          cat > ~/.gradle/init.d/remove-sonatype-snapshots.gradle <<'INITSCRIPT'
+          allprojects {
+              beforeEvaluate { project ->
+                  project.repositories.all { repo ->
+                      if (repo instanceof MavenArtifactRepository && repo.url.toString().contains('oss.sonatype.org')) {
+                          project.repositories.remove repo
+                      }
+                  }
+                  project.buildscript.repositories.all { repo ->
+                      if (repo instanceof MavenArtifactRepository && repo.url.toString().contains('oss.sonatype.org')) {
+                          project.buildscript.repositories.remove repo
+                      }
+                  }
+              }
+              afterEvaluate { project ->
+                  project.repositories.removeIf { repo ->
+                      repo instanceof MavenArtifactRepository && repo.url.toString().contains('oss.sonatype.org')
+                  }
+                  project.buildscript.repositories.removeIf { repo ->
+                      repo instanceof MavenArtifactRepository && repo.url.toString().contains('oss.sonatype.org')
+                  }
+              }
+          }
+          settingsEvaluated { settings ->
+              settings.dependencyResolutionManagement.repositories.removeIf { repo ->
+                  repo instanceof MavenArtifactRepository && repo.url.toString().contains('oss.sonatype.org')
+              }
+          }
+          INITSCRIPT
+
       - name: Build APK Debug
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon --stacktrace
 
