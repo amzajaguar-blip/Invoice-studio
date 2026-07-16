@@ -57,7 +57,26 @@ def patch_settings_gradle(path):
     content = remove_sonatype_repos(content)
 
     if 'dependencyResolutionManagement' not in content:
-        content = '''dependencyResolutionManagement {
+        # Gradle 8.13+ requires pluginManagement {} to be the FIRST block.
+        # Insert dependencyResolutionManagement AFTER pluginManagement, not before.
+        plugin_mgmt_match = re.search(r'pluginManagement\s*\{[^}]*\}', content, re.DOTALL)
+        if plugin_mgmt_match:
+            insert_pos = plugin_mgmt_match.end()
+            drm_block = '''
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+    repositories {
+        google()
+        mavenCentral()
+        maven { url = uri('https://www.jitpack.io') }
+    }
+}
+'''
+            content = content[:insert_pos] + drm_block + content[insert_pos:]
+        else:
+            # No pluginManagement — prepend as before (safe for older Gradle)
+            content = '''dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
     repositories {
         google()
