@@ -1,4 +1,4 @@
-name: Build APK Release v41
+name: Build APK Release v42
 
 on:
   push:
@@ -31,7 +31,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'platforms;android-35 build-tools;35.0.0 ndk;26.1.10909125'
+          packages: 'platforms;android-35 build-tools;35.0.0 ndk;27.2.12479018'
 
       - name: Install dependencies
         run: npm ci
@@ -57,7 +57,7 @@ jobs:
       - name: Upload APK Debug
         uses: actions/upload-artifact@v4
         with:
-          name: VELA-v41-APK
+          name: VELA-v42-APK
           path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14

@@ -2,7 +2,7 @@
   "expo": {
     "name": "VELA — Invoice & Quotes",
     "slug": "vela-invoice",
-    "version": "1.0.41",
+    "version": "1.0.42",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "vela",
@@ -24,12 +24,13 @@
         "backgroundColor": "#0a0b0f"
       },
       "package": "com.Invoice_Studio.myapp",
-      "versionCode": 41,
+      "versionCode": 42,
       "permissions": [
         "com.android.vending.BILLING",
         "android.permission.CAMERA",
         "android.permission.INTERNET",
-        "android.permission.VIBRATE"
+        "android.permission.VIBRATE",
+        "com.google.android.gms.permission.AD_ID"
       ],
       "intentFilters": [
         {
@@ -73,7 +74,8 @@
           "android": {
             "compileSdkVersion": 35,
             "targetSdkVersion": 35,
-            "buildToolsVersion": "35.0.0"
+            "buildToolsVersion": "35.0.0",
+            "ndkVersion": "27.2.12479018"
           }
         }
       ],
