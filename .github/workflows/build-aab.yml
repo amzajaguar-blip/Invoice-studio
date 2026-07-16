@@ -1,4 +1,4 @@
-name: Build AAB Release v42
+name: Build AAB Release v43
 
 on:
   workflow_dispatch:
@@ -109,7 +109,7 @@ jobs:
       - name: Upload AAB Release
         uses: actions/upload-artifact@v4
         with:
-          name: VELA-v42-AAB
+          name: VELA-v43-AAB
           path: mobile/android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 14
