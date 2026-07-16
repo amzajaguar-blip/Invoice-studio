@@ -63,7 +63,7 @@ const PENDING_PREMIUM_WRITE_KEY = 'pending_premium_supabase_write';
  *
  * Wrappa l'albero e:
  * 1. Usa usePlanLimits internamente per stale-while-revalidate + AppState refresh
- * 2. Registra listener RevenueCat: se entitlements.active['pro'] o ['com.Invoice_Studio.myapp Pro'] === true,
+ * 2. Registra listener RevenueCat: se entitlements.active['pro'] === true,
  *    chiama refreshLimits() e aggiorna user_plan.plan = 'premium' su Supabase
  * 3. Se la scrittura Supabase fallisce, imposta isPremium in locale e ritenta al mount
  * 4. Usa useMemo sul context value per evitare re-render inutili
@@ -196,14 +196,11 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
      *   - Subito dopo il mount con il valore corrente
      *   - Ogni volta che cambia lo stato dell'abbonamento (acquisto, rinnovo, scadenza)
      *
-     * Requirement 3.5: se entitlements.active['pro'] o ['com.Invoice_Studio.myapp Pro'] === true → refreshLimits() + write Supabase
+     * Requirement 3.5: se entitlements.active['pro'] === true → refreshLimits() + write Supabase
      * Requirement 10.7: chiamare refreshLimits() dopo EARNED_REWARD e dopo pro purchase
      */
     const customerInfoListener = (customerInfo: CustomerInfo) => {
-      const hasPro = !!(
-        customerInfo.entitlements.active['pro'] || 
-        customerInfo.entitlements.active['com.Invoice_Studio.myapp Pro']
-      );
+      const hasPro = !!customerInfo.entitlements.active['pro'];
 
       if (hasPro && !isPremium) {
         // Attivazione premium rilevata

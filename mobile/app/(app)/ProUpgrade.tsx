@@ -14,9 +14,11 @@ const PURCHASE_TIMEOUT_MS = 15_000;
 const SUCCESS_ANIM_DURATION_MS = 400;
 const SUCCESS_DISPLAY_MS = 500;
 
+// IDs MUST match the RevenueCat / Google Play Console products exactly
+// (see REVENUECAT_IDS.md): `mensile` / `annuale`.
 const PRODUCT_IDS = {
-  monthly: 'vela-premium-monthly',
-  yearly: 'vela-premium-yearly',
+  monthly: 'mensile',
+  yearly: 'annuale',
 } as const;
 
 /**
@@ -138,7 +140,7 @@ export default function ProUpgradeScreen() {
       const { customerInfo } = await Purchases.purchasePackage(pkg);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
-      if (customerInfo.entitlements.active['pro'] || customerInfo.entitlements.active['com.Invoice_Studio.myapp Pro']) {
+      if (customerInfo.entitlements.active['pro']) {
         setPurchaseState("success");
       } else {
         setPurchaseState("error");
@@ -166,7 +168,7 @@ export default function ProUpgradeScreen() {
     setErrorMessage("");
     try {
       const customerInfo = await Purchases.restorePurchases();
-      if (customerInfo.entitlements.active['pro'] || customerInfo.entitlements.active['com.Invoice_Studio.myapp Pro']) {
+      if (customerInfo.entitlements.active['pro']) {
         setPurchaseState("success");
       } else {
         setPurchaseState("error");

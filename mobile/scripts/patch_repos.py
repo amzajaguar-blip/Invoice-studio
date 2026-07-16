@@ -67,34 +67,21 @@ dependencyResolutionManagement {
     }
 }
 '''
-    # Find the insertion point: after pluginManagement, but before rootProject.name
-    # Or, if pluginManagement is missing, before rootProject.name
-    plugin_mgmt_pattern = r'(pluginManagement\s*\{[^}]*\})'
-    root_project_pattern = r'(rootProject\.name\s*=.*)'
+    # Insert the DRM block as a top-level block, just BEFORE the first
+    # `rootProject.name = ...` line. Gradle 8.13 requires pluginManagement {}
+    # to be the first statement; inserting before rootProject.name keeps it
+    # first while placing DRM as a valid sibling (never nested inside
+    # pluginManagement). We match the line, not braces, to avoid the
+    # [^}]* pitfall where the regex stops at the inner repositories {} close.
+    root_project_match = re.search(r'^\s*rootProject\.name\s*=', content, re.MULTILINE)
 
-    plugin_mgmt_match = re.search(plugin_mgmt_pattern, content, re.DOTALL)
-    root_project_match = re.search(root_project_pattern, content)
-
-    if plugin_mgmt_match:
-        # Insert DRM block right after pluginManagement
-        insert_pos = plugin_mgmt_match.end()
-        # Ensure we don't duplicate if already present after pluginManagement
-        if drm_block.strip() not in content[insert_pos:].strip():
-            content = content[:insert_pos] + drm_block + content[insert_pos:]
-            write(path, content)
-            print(f'✅ Added dependencyResolutionManagement after pluginManagement in {path}')
-        else:
-            print(f'ℹ️ dependencyResolutionManagement already present after pluginManagement in {path}')
-    elif root_project_match:
-        # If pluginManagement is missing, insert DRM block before rootProject.name
+    if root_project_match and drm_block.strip() not in content:
         insert_pos = root_project_match.start()
-        # Ensure we don't duplicate if already present before rootProject.name
-        if drm_block.strip() not in content[:insert_pos].strip():
-            content = drm_block + content
-            write(path, content)
-            print(f'✅ Added dependencyResolutionManagement before rootProject.name in {path}')
-        else:
-            print(f'ℹ️ dependencyResolutionManagement already present before rootProject.name in {path}')
+        content = content[:insert_pos] + drm_block + content[insert_pos:]
+        write(path, content)
+        print(f'✅ Added dependencyResolutionManagement before rootProject.name in {path}')
+    elif drm_block.strip() in content:
+        print(f'ℹ️ dependencyResolutionManagement already present in {path}')
     else:
         # Fallback: prepend if neither is found
         if drm_block.strip() not in content.strip():
