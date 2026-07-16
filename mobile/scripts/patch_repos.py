@@ -56,13 +56,7 @@ def patch_settings_gradle(path):
     content = read(path)
     content = remove_sonatype_repos(content)
 
-    if 'dependencyResolutionManagement' not in content:
-        # Gradle 8.13+ requires pluginManagement {} to be the FIRST block.
-        # Insert dependencyResolutionManagement AFTER pluginManagement, not before.
-        plugin_mgmt_match = re.search(r'pluginManagement\s*\{[^}]*\}', content, re.DOTALL)
-        if plugin_mgmt_match:
-            insert_pos = plugin_mgmt_match.end()
-            drm_block = '''
+    drm_block = '''
 
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
@@ -73,23 +67,42 @@ dependencyResolutionManagement {
     }
 }
 '''
-            content = content[:insert_pos] + drm_block + content[insert_pos:]
-        else:
-            # No pluginManagement — prepend as before (safe for older Gradle)
-            content = '''dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
-    repositories {
-        google()
-        mavenCentral()
-        maven { url = uri('https://www.jitpack.io') }
-    }
-}
+    # Find the insertion point: after pluginManagement, but before rootProject.name
+    # Or, if pluginManagement is missing, before rootProject.name
+    plugin_mgmt_pattern = r'(pluginManagement\s*\{[^}]*\})'
+    root_project_pattern = r'(rootProject\.name\s*=.*)'
 
-''' + content
-        write(path, content)
-        print(f'✅ Added dependencyResolutionManagement to {path}')
+    plugin_mgmt_match = re.search(plugin_mgmt_pattern, content, re.DOTALL)
+    root_project_match = re.search(root_project_pattern, content)
+
+    if plugin_mgmt_match:
+        # Insert DRM block right after pluginManagement
+        insert_pos = plugin_mgmt_match.end()
+        # Ensure we don't duplicate if already present after pluginManagement
+        if drm_block.strip() not in content[insert_pos:].strip():
+            content = content[:insert_pos] + drm_block + content[insert_pos:]
+            write(path, content)
+            print(f'✅ Added dependencyResolutionManagement after pluginManagement in {path}')
+        else:
+            print(f'ℹ️ dependencyResolutionManagement already present after pluginManagement in {path}')
+    elif root_project_match:
+        # If pluginManagement is missing, insert DRM block before rootProject.name
+        insert_pos = root_project_match.start()
+        # Ensure we don't duplicate if already present before rootProject.name
+        if drm_block.strip() not in content[:insert_pos].strip():
+            content = drm_block + content
+            write(path, content)
+            print(f'✅ Added dependencyResolutionManagement before rootProject.name in {path}')
+        else:
+            print(f'ℹ️ dependencyResolutionManagement already present before rootProject.name in {path}')
     else:
-        print(f'�️  dependencyResolutionManagement already present in {path}')
+        # Fallback: prepend if neither is found
+        if drm_block.strip() not in content.strip():
+            content = drm_block + content
+            write(path, content)
+            print(f'✅ Prepended dependencyResolutionManagement to {path}')
+        else:
+            print(f'ℹ️ dependencyResolutionManagement already prepended to {path}')
 
 
 def main():
