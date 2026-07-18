@@ -7,6 +7,7 @@ dist/
 *.key
 *.mobileprovision
 *.orig.*
+*.tsbuildinfo
 android/
 ios/
 

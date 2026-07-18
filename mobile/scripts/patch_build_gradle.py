@@ -33,17 +33,29 @@ release_block = '''
             keyPassword kPass
         }'''
 
-# Insert release block after the closing brace of the debug signingConfig
+# Insert release block after the closing brace of the debug signingConfig.
+# Expo SDK 53 (RN 0.79) generates:
+#   signingConfigs {
+#       debug {
+#           storeFile file('debug.keystore')
+#           storePassword 'android'
+#           keyAlias 'androiddebugkey'
+#           keyPassword 'android'
+#       }
+#   }
+# We insert the release block right after the debug block's closing brace.
 content = re.sub(
-    r"(keyPassword 'android'\n        \})\n    \}\n    buildTypes",
+    r"(keyPassword 'android'\n\s+})\n\s+}\n\s+buildTypes",
     r"\g<1>" + release_block + "\n    }\n    buildTypes",
     content
 )
 
-# Switch release buildType to use release signingConfig
-content = content.replace(
-    "signingConfig signingConfigs.debug\n            shrinkResources",
-    "signingConfig signingConfigs.release\n            shrinkResources"
+# Switch release buildType to use release signingConfig.
+# Expo 53 generates: signingConfig signingConfigs.debug (no shrinkResources on same line)
+content = re.sub(
+    r"(signingConfig signingConfigs\.)debug",
+    r"\1release",
+    content
 )
 
 # ── Force JS bundle to be embedded in debug builds ───────────────────────────
@@ -86,7 +98,8 @@ else:
     print('⚠️  android/gradle.properties not found, skipping ProGuard enable')
 
 # ── Copy proguard-rules.pro into android/app/ ─────────────────────────────────
-proguard_src = os.path.join('..', 'proguard-rules.pro')
+# Script runs from mobile/ (CI working dir), so proguard-rules.pro is in cwd.
+proguard_src = os.path.join('.', 'proguard-rules.pro')
 proguard_dst = os.path.join('android', 'app', 'proguard-rules.pro')
 if os.path.exists(proguard_src):
     shutil.copy(proguard_src, proguard_dst)

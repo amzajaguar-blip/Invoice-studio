@@ -29,15 +29,26 @@ export async function DELETE(req: NextRequest) {
     // All deletions go through the service-role client so RLS cannot block
     // them and every referencing row is actually removed.
 
-    // Organizations owned by the user. CASCADE handles child tables
-    // (invoices, invoice_items, clients, quotes, quote_items, subscriptions).
-    const { data: orgs } = await admin
+    // Organizations owned by the user. Only delete an org if the user is the
+    // SOLE remaining member — otherwise other members would lose their shared
+    // data (clients, quotes, invoices). CASCADE handles child tables.
+    const { data: ownedOrgs } = await admin
       .from('organizations')
       .select('id')
       .eq('owner_id', userId);
-    const orgIds = orgs?.map((o) => o.id) ?? [];
-    if (orgIds.length > 0) {
-      await admin.from('organizations').delete().in('id', orgIds);
+    const ownedOrgIds = ownedOrgs?.map((o) => o.id) ?? [];
+
+    for (const orgId of ownedOrgIds) {
+      const { count } = await admin
+        .from('org_members')
+        .select('id', { count: 'exact', head: true })
+        .eq('org_id', orgId);
+
+      if ((count ?? 0) <= 1) {
+        // Sole member — safe to delete the org (CASCADE removes all data)
+        await admin.from('organizations').delete().eq('id', orgId);
+      }
+      // If other members exist, do NOT delete the org — only remove membership.
     }
 
     // Membership in any org the user does not own (cleaned separately so we
