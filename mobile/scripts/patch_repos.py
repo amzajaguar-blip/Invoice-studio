@@ -43,6 +43,8 @@ def patch_build_gradle(path):
         google()
         mavenCentral()
         maven { url = uri('https://www.jitpack.io') }
+        maven { url = uri('https://maven.expo.dev') }
+        maven { url = uri('https://dl.google.com/dl/android/maven2') }
     }
 }''',
         content,
@@ -59,11 +61,13 @@ def patch_settings_gradle(path):
     drm_block = '''
 
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+    repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)
     repositories {
         google()
         mavenCentral()
         maven { url = uri('https://www.jitpack.io') }
+        maven { url = uri('https://maven.expo.dev') }
+        maven { url = uri('https://dl.google.com/dl/android/maven2') }
     }
 }
 '''
