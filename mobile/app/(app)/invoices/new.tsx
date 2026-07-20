@@ -8,6 +8,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { apiFetch } from "@/lib/ai";
 import { useLocale } from "@/components/LocaleProvider";
 import { QuickAddClientModal } from "@/components/QuickAddClientModal";
+import {
+  maybeShowInterstitial,
+  shouldShowInterstitialForInvoice,
+} from "@/lib/ads";
 
 interface Client {
   id: string;
@@ -124,12 +128,47 @@ export default function NewInvoiceScreen() {
       return;
     }
 
+    // Post-save: maybe show an interstitial (every Nth invoice of the month).
+    // We don't wait for the ad to finish before acknowledging the save — the
+    // user's success alert is already on screen. When the user dismisses the
+    // alert, we attempt the interstitial; failure is silent (no fill, throttled,
+    // or SDK not ready) and the user is routed back regardless.
+    const postSaveAndDismiss = async () => {
+      try {
+        // Count invoices this month (including the one just saved) via the API.
+        const now = new Date();
+        const periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
+        const { data: countResp } = await apiFetch<{ count?: number; data?: { id: string }[] }>('/api/invoices?status=all', {
+          method: 'GET',
+        });
+        // Best-effort count — if the API shape isn't what we expect we skip the ad.
+        let monthCount = 0;
+        if (Array.isArray((countResp as any)?.data)) {
+          monthCount = (countResp as any).data.filter((inv: any) => {
+            const created = new Date(inv.created_at ?? inv.date ?? now);
+            return created >= new Date(periodStart) && created <= new Date(periodEnd);
+          }).length;
+        } else if (typeof (countResp as any)?.count === 'number') {
+          monthCount = (countResp as any).count;
+        }
+        monthCount = monthCount > 0 ? monthCount : 1; // assume at least the one we just saved
+        if (shouldShowInterstitialForInvoice(monthCount)) {
+          // Fire-and-forget: don't block the back navigation on the ad.
+          maybeShowInterstitial().catch(() => {});
+        }
+      } catch {
+        // Ad logic must never break the invoice save flow.
+      }
+      router.back();
+    };
+
     Alert.alert(
       status === "draft" ? t("invoice_draft_saved_title") : t("invoice_created_title"),
       status === "draft"
         ? t("invoice_draft_saved_msg")
         : t("invoice_created_msg"),
-      [{ text: "OK", onPress: () => router.back() }]
+      [{ text: "OK", onPress: postSaveAndDismiss }]
     );
   };
 

@@ -44,6 +44,13 @@
 -dontwarn com.google.android.gms.ads.**
 -keep class com.google.ads.** { *; }
 -dontwarn com.google.ads.**
+-keep class com.google.android.gms.ads.sdk.** { *; }
+-dontwarn com.google.android.gms.ads.sdk.**
+# Keep ad unit ID strings (referenced via reflection by AdMob SDK)
+-keepclassmembers class * {
+  public static volatile *** ADMOB_*;
+  public static volatile *** AD_UNIT_*;
+}
 
 # ── RevenueCat ────────────────────────────────────────────────────────────────
 -keep class com.revenuecat.** { *; }

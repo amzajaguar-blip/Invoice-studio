@@ -21,6 +21,7 @@ import Purchases from "react-native-purchases";
 import * as Notifications from "expo-notifications";
 import * as Linking from "expo-linking";
 import { initializePushNotifications } from "@/lib/notifications-service";
+import { initAds } from "@/lib/ads";
 
 const logBoot = (msg: string, data?: any) => {
   if (__DEV__) {
@@ -187,6 +188,11 @@ export default function RootLayout() {
     } catch (err) {
       logBootError("RevenueCat init failed (non-fatal)", err);
     }
+
+    // Initialize Google Mobile Ads SDK (AdMob interstitial for free tier).
+    initAds()
+      .then(() => logBoot("BOOT_002b AdMob Google Mobile Ads SDK initialized"))
+      .catch((err) => logBootError("AdMob init failed (non-fatal)", err));
   }, []);
 
   return (
