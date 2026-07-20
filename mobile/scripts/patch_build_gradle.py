@@ -51,11 +51,18 @@ content = re.sub(
 )
 
 # Switch release buildType to use release signingConfig.
-# Expo 53 generates: signingConfig signingConfigs.debug (no shrinkResources on same line)
+# CRITICAL: only patch inside the `release { }` block, NOT the `debug { }` block.
+# Expo 53 generates both:
+#   debug   { signingConfig signingConfigs.debug }
+#   release { signingConfig signingConfigs.debug }
+# A global replace would change debug's signing config to .release, which then
+# tries to read key alias 'invoicestudio' from Expo's default debug.keystore
+# (which only has 'androiddebugkey'). DOTALL lets the pattern span lines.
 content = re.sub(
-    r"(signingConfig signingConfigs\.)debug",
+    r"(release\s*\{[^}]*?signingConfig\s+signingConfigs\.)debug",
     r"\1release",
-    content
+    content,
+    flags=re.DOTALL
 )
 
 # ── Force JS bundle to be embedded in debug builds ───────────────────────────
