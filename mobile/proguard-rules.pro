@@ -77,3 +77,14 @@
 -keepattributes Exceptions,InnerClasses,Signature,Deprecated,SourceFile,LineNumberTable,*Annotation*,EnclosingMethod
 -keepclassmembers class *  { @com.facebook.react.uimanager.annotations.ReactProp <methods>; }
 -dontwarn java.lang.invoke.StringConcatFactory
+
+# ── Tink / Google HTTP client / Joda-Time ────────────────────────────────────
+# R8 was stripping com.google.crypto.tink.KeysDownloader transitively; it pulls
+# class refs from com.google.api.client.http.* and org.joda.time.* that have no
+# static call chain from app code → "Missing class" R8 errors at release build.
+-keep class com.google.crypto.tink.** { *; }
+-keep class com.google.api.client.http.** { *; }
+-keep class org.joda.time.** { *; }
+-dontwarn com.google.crypto.tink.**
+-dontwarn com.google.api.client.**
+-dontwarn org.joda.time.**
