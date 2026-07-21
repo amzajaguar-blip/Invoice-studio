@@ -57,8 +57,6 @@
 # ── Main Activity / Application (referenced from AndroidManifest only) ────────
 -keep class com.Invoice_Studio.myapp.MainActivity { *; }
 -keep class com.Invoice_Studio.myapp.MainApplication { *; }
--keep class com.vela.mobile.MainActivity { *; }
--keep class com.vela.mobile.MainApplication { *; }
 
 # ── Expo-specific: keep all expo modules by interface ─────────────────────────
 -keep class * extends com.facebook.react.bridge.NativeModule { *; }

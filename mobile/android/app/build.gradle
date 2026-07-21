@@ -87,9 +87,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.vela.mobile'
+    namespace 'com.Invoice_Studio.myapp'
     defaultConfig {
-        applicationId 'com.vela.mobile'
+        applicationId 'com.Invoice_Studio.myapp'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 44
