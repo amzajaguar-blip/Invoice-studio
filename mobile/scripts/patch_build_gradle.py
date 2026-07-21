@@ -44,11 +44,34 @@ release_block = '''
 #       }
 #   }
 # We insert the release block right after the debug block's closing brace.
-content = re.sub(
-    r"(keyPassword 'android'\n\s+})\n\s+}\n\s+buildTypes",
-    r"\g<1>" + release_block + "\n    }\n    buildTypes",
-    content
-)
+# Use a simpler approach: replace the entire signingConfigs block.
+old_signing_configs = '''    signingConfigs {
+        debug {
+            storeFile file('debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+    }'''
+new_signing_configs = '''    signingConfigs {
+        debug {
+            storeFile file('debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+        release {
+            def ksPath = System.getenv("ANDROID_KEYSTORE_PATH") ?: "debug.keystore"
+            def ksPass = System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: "android"
+            def kAlias = System.getenv("ANDROID_KEY_ALIAS") ?: "invoicestudio"
+            def kPass  = System.getenv("ANDROID_KEY_PASSWORD") ?: "android"
+            storeFile file(ksPath)
+            storePassword ksPass
+            keyAlias kAlias
+            keyPassword kPass
+        }
+    }'''
+content = content.replace(old_signing_configs, new_signing_configs)
 
 # Switch release buildType to use release signingConfig.
 # CRITICAL: only patch inside the `release { }` block, NOT the `debug { }` block.

@@ -41,6 +41,25 @@ jobs:
           echo "EXPO_PUBLIC_REVENUECAT_API_KEY=${{ secrets.REVENUECAT_API_KEY }}" > .env
           echo ".env file created for production build"
 
+      - name: Decode and set up keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > keystore.jks
+          mv keystore.jks android/app/
+          echo "ANDROID_KEYSTORE_PATH=$GITHUB_WORKSPACE/android/app/keystore.jks" >> $GITHUB_ENV
+          echo "ANDROID_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> $GITHUB_ENV
+          echo "ANDROID_KEY_ALIAS=$KEY_ALIAS" >> $GITHUB_ENV
+          echo "ANDROID_KEY_PASSWORD=$KEY_PASSWORD" >> $GITHUB_ENV
+
+      - name: Set Gradle properties for release signing and minification
+        run: |
+          echo "android.enableProguardInReleaseBuilds=true" >> android/gradle.properties
+          echo "android.enableShrinkResourcesInReleaseBuilds=true" >> android/gradle.properties
+
       - name: Expo prebuild (genera cartella android/)
         run: npx expo prebuild --platform android --no-install --clean
 

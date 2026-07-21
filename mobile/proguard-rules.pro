@@ -36,8 +36,41 @@
 
 # ── Expo Modules ──────────────────────────────────────────────────────────────
 -keep class expo.modules.** { *; }
+-keep interface expo.modules.** { *; }
 -dontwarn expo.modules.**
 -keep class abi**.expo.modules.** { *; }
+-keep class com.facebook.react.bridge.** { *; }
+-keep class com.facebook.react.turbomodule.** { *; }
+
+# ── React Native Screens (native fragments) ───────────────────────────────────
+-keep class com.swmansion.rnscreens.** { *; }
+-dontwarn com.swmansion.rnscreens.**
+
+# ── React Native Safe Area Context ────────────────────────────────────────────
+-keep class com.th3rdwave.safeareacontext.** { *; }
+-dontwarn com.th3rdwave.safeareacontext.**
+
+# ── React Native SVG ─────────────────────────────────────────────────────────
+-keep class com.horcrux.svg.** { *; }
+-dontwarn com.horcrux.svg.**
+
+# ── Main Activity / Application (referenced from AndroidManifest only) ────────
+-keep class com.Invoice_Studio.myapp.MainActivity { *; }
+-keep class com.Invoice_Studio.myapp.MainApplication { *; }
+-keep class com.vela.mobile.MainActivity { *; }
+-keep class com.vela.mobile.MainApplication { *; }
+
+# ── Expo-specific: keep all expo modules by interface ─────────────────────────
+-keep class * extends com.facebook.react.bridge.NativeModule { *; }
+-keep class * extends com.facebook.react.bridge.ReactContextBaseJavaModule { *; }
+-keep class * implements expo.modules.core.interfaces.InternalModule { *; }
+
+# ── Kotlin coroutines (if used by expo modules) ───────────────────────────────
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
+-keepclassmembers class kotlinx.** {
+    volatile <fields>;
+}
 
 # ── Google Mobile Ads ─────────────────────────────────────────────────────────
 -keep class com.google.android.gms.ads.** { *; }

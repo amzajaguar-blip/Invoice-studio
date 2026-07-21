@@ -7,7 +7,6 @@
     "icon": "./assets/icon.png",
     "scheme": "vela",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
@@ -23,8 +22,9 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0a0b0f"
       },
-      "package": "com.Invoice_Studio.myapp",
+      "package": "com.vela.mobile",
       "versionCode": 44,
+      "versionName": "1.0.44",
       "permissions": [
         "com.android.vending.BILLING",
         "android.permission.CAMERA",
