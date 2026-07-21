@@ -42,6 +42,16 @@
 -keep class com.facebook.react.bridge.** { *; }
 -keep class com.facebook.react.turbomodule.** { *; }
 
+# ── Expo Camera (also keeps Kotlin companions used via reflection) ────────────
+-keep class expo.modules.camera.** { *; }
+-keep class expo.modules.cameraview.** { *; }
+-keep class **.CameraViewModuleKt { *; }
+-keep class **.CameraView { *; }
+-keep class **ExpoCameraView { *; }
+-keepclassmembers class expo.modules.camera.** { *; }
+-dontwarn expo.modules.camera.**
+-dontwarn com.google.mlkit.**
+
 # ── React Native Screens (native fragments) ───────────────────────────────────
 -keep class com.swmansion.rnscreens.** { *; }
 -dontwarn com.swmansion.rnscreens.**
@@ -82,6 +92,14 @@
   public static volatile *** ADMOB_*;
   public static volatile *** AD_UNIT_*;
 }
+
+# ── Glide / Fresco / ImagePipeline (used by Expo Notifications rich images) ──
+-keep class com.bumptech.glide.** { *; }
+-dontwarn com.bumptech.glide.**
+-keep class com.facebook.imagepipeline.** { *; }
+-dontwarn com.facebook.imagepipeline.**
+-keep public class * extends com.facebook.imagepipeline.producers.NetworkFetcher { *; }
+-keep class * implements com.facebook.imagepipeline.producers.NetworkFetcher { *; }
 
 # ── RevenueCat ────────────────────────────────────────────────────────────────
 -keep class com.revenuecat.** { *; }
