@@ -102,6 +102,22 @@ if not re.search(r'(?m)^(?!\s*//).*debuggableVariants\s*=', content):
 else:
     print('ℹ️  debuggableVariants already set, skipping')
 
+# ── 16 KB page alignment for native libraries ──────────────────────────────
+# Play Console requires .so libraries to be aligned to 16 KB page size for
+# Android 15+ compatibility. Without this, the AAB is rejected.
+if 'useLegacyPackaging' in content:
+    content = content.replace(
+        "useLegacyPackaging (findProperty('expo.useLegacyPackaging')?.toBoolean() ?: false)",
+        "useLegacyPackaging true"
+    )
+else:
+    content = re.sub(
+        r'(packagingOptions\s*\{\s*jniLibs\s*\{)',
+        r'\1\n            useLegacyPackaging true',
+        content
+    )
+print('✅ build.gradle patched: useLegacyPackaging = true (16 KB alignment)')
+
 with open(gradle_path, 'w') as f:
     f.write(content)
 
@@ -118,6 +134,32 @@ if os.path.exists(props_path):
         'android.enableProguardInReleaseBuilds=true',
         props
     )
+    # Enable R8 full mode + shrinkResources
+    if 'android.enableR8.fullMode' not in props:
+        props += '\nandroid.enableR8.fullMode=true\n'
+    else:
+        props = re.sub(
+            r'android\.enableR8\.fullMode\s*=\s*.*',
+            'android.enableR8.fullMode=true',
+            props
+        )
+    if 'android.enableShrinkResourcesInReleaseBuilds' not in props:
+        props += '\nandroid.enableShrinkResourcesInReleaseBuilds=true\n'
+    else:
+        props = re.sub(
+            r'android\.enableShrinkResourcesInReleaseBuilds\s*=\s*.*',
+            'android.enableShrinkResourcesInReleaseBuilds=true',
+            props
+        )
+    # Force useLegacyPackaging=true for 16 KB page alignment
+    if 'expo.useLegacyPackaging' not in props:
+        props += '\nexpo.useLegacyPackaging=true\n'
+    else:
+        props = re.sub(
+            r'expo\.useLegacyPackaging\s*=\s*.*',
+            'expo.useLegacyPackaging=true',
+            props
+        )
     # If the line doesn't exist, append it
     if 'android.enableProguardInReleaseBuilds' not in props:
         props += '\nandroid.enableProguardInReleaseBuilds=true\n'
