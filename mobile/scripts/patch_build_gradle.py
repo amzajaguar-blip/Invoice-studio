@@ -106,8 +106,8 @@ else:
 # Play Console requires .so libraries to be aligned to 16 KB page size for
 # Android 15+ compatibility. Without this, the AAB is rejected.
 content = re.sub(
-    r'useLegacyPackaging\s*\([^)]*\)',
-    'useLegacyPackaging true',
+    r'useLegacyPackaging\s*\([^)]*\)\s*\}',
+    'useLegacyPackaging true\}',
     content
 )
 print('✅ build.gradle patched: useLegacyPackaging = true (16 KB alignment)')
