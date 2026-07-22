@@ -29,7 +29,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'platforms;android-35 build-tools;35.0.0 ndk;27.2.12479018'
+          packages: 'platforms;android-36 build-tools;35.0.0 ndk;27.2.12479018'
 
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
@@ -86,6 +86,17 @@ jobs:
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/release.keystore
 
+      - name: Force 16 KB alignment in gradle.properties BEFORE Gradle tasks
+        run: |
+          cat >> android/gradle.properties <<'PROPS'
+          # ── 16 KB alignment mandatory for Play Console ─ injected post-prebuild ────
+          expo.useLegacyPackaging=true
+          android.enableR8.fullMode=true
+          android.enableProguardInReleaseBuilds=true
+          android.enableShrinkResourcesInReleaseBuilds=true
+          PROPS
+          echo "✅ gradle.properties patched with 16 KB alignment"
+
       - name: Patch build.gradle for release signing
         run: python3 scripts/patch_build_gradle.py
         env:
@@ -93,6 +104,20 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: Force gradle.properties for Play Console compliance
+        run: |
+          cat >> android/gradle.properties <<'PROPS'
+          # ── Play Console compliance (injected post-prebuild) ──────────────
+          android.enableProguardInReleaseBuilds=true
+          android.enableR8.fullMode=true
+          android.enableShrinkResourcesInReleaseBuilds=true
+          expo.useLegacyPackaging=true
+          android.compileSdkVersion=36
+          android.targetSdkVersion=36
+          android.buildToolsVersion=35.0.0
+          PROPS
+          echo "✅ gradle.properties patched post-prebuild"
 
       - name: Build AAB Release
         run: cd android && chmod +x gradlew && ./gradlew bundleRelease --no-daemon --stacktrace

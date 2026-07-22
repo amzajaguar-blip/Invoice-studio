@@ -2,7 +2,7 @@
   "expo": {
     "name": "VELA — Invoice & Quotes",
     "slug": "vela-invoice",
-    "version": "1.0.50",
+    "version": "1.0.51",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "vela",
@@ -23,8 +23,8 @@
         "backgroundColor": "#0a0b0f"
       },
       "package": "com.Invoice_Studio.myapp",
-      "versionCode": 50,
-      "versionName": "1.0.50",
+      "versionCode": 51,
+      "versionName": "1.0.51",
       "permissions": [
         "com.android.vending.BILLING",
         "android.permission.CAMERA",

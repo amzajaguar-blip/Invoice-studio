@@ -105,17 +105,11 @@ else:
 # ── 16 KB page alignment for native libraries ──────────────────────────────
 # Play Console requires .so libraries to be aligned to 16 KB page size for
 # Android 15+ compatibility. Without this, the AAB is rejected.
-if 'useLegacyPackaging' in content:
-    content = content.replace(
-        "useLegacyPackaging (findProperty('expo.useLegacyPackaging')?.toBoolean() ?: false)",
-        "useLegacyPackaging true"
-    )
-else:
-    content = re.sub(
-        r'(packagingOptions\s*\{\s*jniLibs\s*\{)',
-        r'\1\n            useLegacyPackaging true',
-        content
-    )
+content = re.sub(
+    r'useLegacyPackaging\s*\([^)]*\)',
+    'useLegacyPackaging true',
+    content
+)
 print('✅ build.gradle patched: useLegacyPackaging = true (16 KB alignment)')
 
 with open(gradle_path, 'w') as f:
