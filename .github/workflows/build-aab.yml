@@ -1,4 +1,4 @@
-name: Build AAB Release v43
+name: Build AAB Release v52
 
 on:
   workflow_dispatch:
@@ -82,42 +82,24 @@ jobs:
           }
           INITSCRIPT
 
-      - name: Decode release keystore from secret
+      - name: Decode release keystore from secret (with size assertion + chmod 600)
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/release.keystore
+          ls -la android/app/release.keystore
+          if [ ! -s android/app/release.keystore ]; then
+            echo "❌ Keystore file is empty — ANDROID_KEYSTORE_BASE64 secret missing or malformed"
+            exit 1
+          fi
+          chmod 600 android/app/release.keystore
+          echo "✅ Keystore decoded and secured (mode 600)"
 
-      - name: Force 16 KB alignment in gradle.properties BEFORE Gradle tasks
-        run: |
-          cat >> android/gradle.properties <<'PROPS'
-          # ── 16 KB alignment mandatory for Play Console ─ injected post-prebuild ────
-          expo.useLegacyPackaging=true
-          android.enableR8.fullMode=true
-          android.enableProguardInReleaseBuilds=true
-          android.enableShrinkResourcesInReleaseBuilds=true
-          PROPS
-          echo "✅ gradle.properties patched with 16 KB alignment"
-
-      - name: Patch build.gradle for release signing
+      - name: Patch build.gradle + gradle.properties (idempotent, asserts at end)
         run: python3 scripts/patch_build_gradle.py
         env:
           ANDROID_KEYSTORE_PATH: release.keystore
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-
-      - name: Force gradle.properties for Play Console compliance
-        run: |
-          cat >> android/gradle.properties <<'PROPS'
-          # ── Play Console compliance (injected post-prebuild) ──────────────
-          android.enableProguardInReleaseBuilds=true
-          android.enableR8.fullMode=true
-          android.enableShrinkResourcesInReleaseBuilds=true
-          expo.useLegacyPackaging=true
-          android.compileSdkVersion=36
-          android.targetSdkVersion=36
-          android.buildToolsVersion=35.0.0
-          PROPS
-          echo "✅ gradle.properties patched post-prebuild"
 
       - name: Build AAB Release
         run: cd android && chmod +x gradlew && ./gradlew bundleRelease --no-daemon --stacktrace
@@ -131,10 +113,41 @@ jobs:
         if: always()
         run: find android -name "*.aab" 2>/dev/null || echo "AAB non trovato"
 
+      - name: Verify AAB versionCode / package matches app.json
+        if: always()
+        run: |
+          AAB=$(find android -name "*.aab" 2>/dev/null | head -1)
+          if [ -z "$AAB" ]; then
+            echo "❌ AAB not found — bundleRelease failed"
+            exit 1
+          fi
+          echo "AAB found at: $AAB"
+          AAPT2=$(find $ANDROID_HOME/build-tools -name aapt2 -type f 2>/dev/null | sort | tail -1)
+          echo "Using aapt2: $AAPT2"
+          # Extract versionCode, versionName, package from the bundle
+          $AAPT2 dump badging "$AAB" 2>&1 | head -25
+          # Compare with app.json (read from $GITHUB_WORKSPACE)
+          EXPECTED_VC=$(python3 -c "import json; print(json.load(open('app.json'))['expo']['android']['versionCode'])")
+          EXPECTED_PKG=$(python3 -c "import json; print(json.load(open('app.json'))['expo']['android']['package'])")
+          ACTUAL_VC=$($AAPT2 dump badging "$AAB" 2>/dev/null | grep -oP 'versionCode=\K[0-9]+' | head -1)
+          ACTUAL_PKG=$($AAPT2 dump badging "$AAB" 2>/dev/null | grep -oP "package: name=\K'[^']+'" | head -1 | tr -d "'")
+          echo ""
+          echo "Expected: versionCode=$EXPECTED_VC, package=$EXPECTED_PKG"
+          echo "Actual:   versionCode=$ACTUAL_VC, package=$ACTUAL_PKG"
+          if [ "$ACTUAL_VC" != "$EXPECTED_VC" ]; then
+            echo "❌ Version code mismatch — would be SHADOWED on Play Console!"
+            exit 1
+          fi
+          if [ "$ACTUAL_PKG" != "$EXPECTED_PKG" ]; then
+            echo "❌ Package name mismatch — Play Console will REJECT!"
+            exit 1
+          fi
+          echo "✅ AAB verified: versionCode=$ACTUAL_VC, package=$ACTUAL_PKG matches app.json"
+
       - name: Upload AAB Release
         uses: actions/upload-artifact@v4
         with:
-          name: VELA-v43-AAB
+          name: VELA-v52-AAB
           path: mobile/android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 14
