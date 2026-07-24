@@ -122,28 +122,37 @@ jobs:
             exit 1
           fi
           echo "AAB found at: $AAB"
-          # Cross-bundle (.aab) badging: aapt2 dump badging only works on APK.
-          # Use the SDK's apkanalyzer which understands AAB and reads the
-          # versionCode / package / versionName straight off the manifest.
-          APKANALYZER=$(find $ANDROID_HOME/cmdline-tools -name apkanalyzer -type f 2>/dev/null | sort | tail -1)
-          if [ -z "$APKANALYZER" ]; then
-            APKANALYZER=$(which apkanalyzer 2>/dev/null || true)
-          fi
-          if [ -z "$APKANALYZER" ]; then
-            echo "❌ apkanalyzer not found — cannot verify AAB"
+          AAPT2=$(find $ANDROID_HOME/build-tools -name aapt2 -type f 2>/dev/null | sort | tail -1)
+          if [ -z "$AAPT2" ]; then
+            echo "❌ aapt2 not found in SDK build-tools"
             exit 1
           fi
-          echo "Using apkanalyzer: $APKANALYZER"
+          echo "Using aapt2: $AAPT2"
+          # Extract AndroidManifest.xml out of the .aab (it's a zip) and run
+          # aapt2 dump xmltree on it. apkanalyzer manifest gave a
+          # NoSuchFileException for v52 because it expects an unpacked module
+          # tree; aapt2 over the unzipped manifest works directly on .aab.
+          WORKDIR=$(mktemp -d)
+          trap "rm -rf $WORKDIR" EXIT
+          unzip -o -q "$AAB" "AndroidManifest.xml" "resources.arsc" -d "$WORKDIR" || true
+          MANIFEST="$WORKDIR/AndroidManifest.xml"
+          if [ ! -s "$MANIFEST" ]; then
+            echo "❌ AndroidManifest.xml not present in AAB — bundle is malformed"
+            exit 1
+          fi
+          XMLTREE_OUT=$("$AAPT2" dump xmltree --file AndroidManifest.xml "$WORKDIR" 2>&1)
+          echo "$XMLTREE_OUT" | head -40
           # Compare with app.json (read from $GITHUB_WORKSPACE)
           EXPECTED_VC=$(python3 -c "import json; print(json.load(open('app.json'))['expo']['android']['versionCode'])")
           EXPECTED_PKG=$(python3 -c "import json; print(json.load(open('app.json'))['expo']['android']['package'])")
-          # apkanalyzer prints:
-          #   application-id=… version-code=… version-name=…
-          # Use awk to split on whitespace and '=' so we get clean fields.
-          APKA_OUT=$("$APKANALYZER" manifest application-id "$AAB" 2>&1 | head -25)
-          echo "$APKA_OUT"
-          ACTUAL_PKG=$(echo "$APKA_OUT" | awk -F= '/^application-id=/{gsub(/[\r\n]/,"",$2); print $2; exit}')
-          ACTUAL_VC=$("$APKANALYZER" manifest version-code "$AAB" 2>/dev/null | awk 'NR==1{gsub(/[\r\n]/,""); print; exit}')
+          ACTUAL_PKG=$(echo "$XMLTREE_OUT" | grep -oP 'package=\K"[^"]+"' | head -1 | tr -d '"')
+          # versionCode is in attributes as android:versionCode="N" — grep the
+          # value out of the manifest dump.
+          ACTUAL_VC=$(echo "$XMLTREE_OUT" | grep -oE 'A: android:versionCode[^=]*='\''[0-9]+'\''' | head -1 | grep -oE '[0-9]+' | head -1)
+          if [ -z "$ACTUAL_VC" ]; then
+            # fallback: look for versionCode(0x...) attribute as raw integer
+            ACTUAL_VC=$(echo "$XMLTREE_OUT" | grep -oE 'android:versionCode[^"]*"[0-9]+' | head -1 | grep -oE '[0-9]+' | head -1)
+          fi
           echo ""
           echo "Expected: versionCode=$EXPECTED_VC, package=$EXPECTED_PKG"
           echo "Actual:   versionCode=$ACTUAL_VC, package=$ACTUAL_PKG"
