@@ -29,7 +29,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'platforms;android-36 build-tools;35.0.0 ndk;27.2.12479018'
+          packages: 'platforms;android-36 build-tools;35.0.0 ndk;27.2.12479018 cmdline-tools;latest'
 
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
@@ -122,15 +122,28 @@ jobs:
             exit 1
           fi
           echo "AAB found at: $AAB"
-          AAPT2=$(find $ANDROID_HOME/build-tools -name aapt2 -type f 2>/dev/null | sort | tail -1)
-          echo "Using aapt2: $AAPT2"
-          # Extract versionCode, versionName, package from the bundle
-          $AAPT2 dump badging "$AAB" 2>&1 | head -25
+          # Cross-bundle (.aab) badging: aapt2 dump badging only works on APK.
+          # Use the SDK's apkanalyzer which understands AAB and reads the
+          # versionCode / package / versionName straight off the manifest.
+          APKANALYZER=$(find $ANDROID_HOME/cmdline-tools -name apkanalyzer -type f 2>/dev/null | sort | tail -1)
+          if [ -z "$APKANALYZER" ]; then
+            APKANALYZER=$(which apkanalyzer 2>/dev/null || true)
+          fi
+          if [ -z "$APKANALYZER" ]; then
+            echo "❌ apkanalyzer not found — cannot verify AAB"
+            exit 1
+          fi
+          echo "Using apkanalyzer: $APKANALYZER"
           # Compare with app.json (read from $GITHUB_WORKSPACE)
           EXPECTED_VC=$(python3 -c "import json; print(json.load(open('app.json'))['expo']['android']['versionCode'])")
           EXPECTED_PKG=$(python3 -c "import json; print(json.load(open('app.json'))['expo']['android']['package'])")
-          ACTUAL_VC=$($AAPT2 dump badging "$AAB" 2>/dev/null | grep -oP 'versionCode=\K[0-9]+' | head -1)
-          ACTUAL_PKG=$($AAPT2 dump badging "$AAB" 2>/dev/null | grep -oP "package: name=\K'[^']+'" | head -1 | tr -d "'")
+          # apkanalyzer prints:
+          #   application-id=… version-code=… version-name=…
+          # Use awk to split on whitespace and '=' so we get clean fields.
+          APKA_OUT=$("$APKANALYZER" manifest application-id "$AAB" 2>&1 | head -25)
+          echo "$APKA_OUT"
+          ACTUAL_PKG=$(echo "$APKA_OUT" | awk -F= '/^application-id=/{gsub(/[\r\n]/,"",$2); print $2; exit}')
+          ACTUAL_VC=$("$APKANALYZER" manifest version-code "$AAB" 2>/dev/null | awk 'NR==1{gsub(/[\r\n]/,""); print; exit}')
           echo ""
           echo "Expected: versionCode=$EXPECTED_VC, package=$EXPECTED_PKG"
           echo "Actual:   versionCode=$ACTUAL_VC, package=$ACTUAL_PKG"
