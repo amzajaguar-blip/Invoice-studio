@@ -179,31 +179,33 @@ else:
 # Play Console requires .so libraries to be aligned to 16 KB page size for
 # Android 15+ compatibility. Without this, the AAB is rejected.
 #
-# BUG FIX: the OLD regex `r'useLegacyPackaging\s*\([^)]*\)\s*\}'` was BROKEN.
-# Expo's generated Groovy expression contains 5 nested `)`:
-#   useLegacyPackaging (findProperty('expo.useLegacyPackaging')?.toBoolean() ?: false)
-# `[^)]*` stops at the FIRST `)` (the one closing `findProperty(...)`), so the
-# pattern NEVER matched and the script silently did nothing despite the
-# "✅ patched" print. This is why v48/49/50 STILL failed 16 kB alignment.
+# HOWEVER: useLegacyPackaging=true was the FORMER hypothesis (back when
+# Android 7 days assumed "compressed" = "pagesize-flexible"). The official
+# Play Console 16 KB readiness checklist (Aug 2025+) actually requires
+# useLegacyPackaging=false because we need .so uncompressed in the .aab so
+# the system page loader can mmap them aligned to 16 KB pages on devices
+# that opted into the 16 KB kernel page size (Pixel 8+, Pixel 9, S24, etc.).
+# The previous v48/v49/v50/v52 runs shipped useLegacyPackaging=true exactly
+# as this script enforced and got rejected by Play Console for that reason.
 #
-# NEW line-anchored regex captures the ENTIRE useLegacyPackaging line
-# (regardless of nested parens) and replaces it with literal `true`.
+# NEW FIX: useLegacyPackaging false + android.bundle.enableUncompressedNativeLibs
+# in gradle.properties (added to REQUIRED below).
 content, n_ulp = re.subn(
     r'^[ \t]*useLegacyPackaging[^\n]*$',
-    '            useLegacyPackaging true',
+    '            useLegacyPackaging false',
     content,
     flags=re.MULTILINE,
 )
 if n_ulp:
-    ok(f'FIX 2 — useLegacyPackaging = true (16 kB alignment), {n_ulp} line(s) rewritten')
+    ok(f'FIX 2 — useLegacyPackaging = false (16 KB alignment), {n_ulp} line(s) rewritten')
 else:
     warn('FIX 2 — useLegacyPackaging line not found; will insert fallback')
     m_ins = re.search(r'(packagingOptions\s*\{\s*jniLibs\s*\{)', content)
     if m_ins:
         content = (content[:m_ins.end()]
-                   + '\n            useLegacyPackaging true'
+                   + '\n            useLegacyPackaging false'
                    + content[m_ins.end():])
-        ok('FIX 2 (fallback) — useLegacyPackaging = true inserted')
+        ok('FIX 2 (fallback) — useLegacyPackaging = false inserted')
 
 with open(gradle_path, 'w') as f:
     f.write(content)
@@ -223,7 +225,8 @@ if os.path.exists(props_path):
         'android.enableProguardInReleaseBuilds':        'true',
         'android.enableShrinkResourcesInReleaseBuilds': 'true',
         'android.enableR8.fullMode':                    'true',
-        'expo.useLegacyPackaging':                      'true',
+        'expo.useLegacyPackaging':                      'false',
+        'android.bundle.enableUncompressedNativeLibs':  'true',
     }
     for key, val in REQUIRED.items():
         before = len(re.findall(rf'^{re.escape(key)}\s*=', props, re.MULTILINE))
@@ -269,18 +272,21 @@ checks = [
     ('build.gradle versionName == app.json',
      m_vn and m_vn.group(1) == target_vn,
      f'build.gradle="{m_vn.group(1) if m_vn else "MISSING"}" expected="{target_vn}"'),
-    ('build.gradle useLegacyPackaging = true (literal)',
-     re.search(r'^[ \t]*useLegacyPackaging\s+true[ \t]*$', final_gradle, re.MULTILINE) is not None,
-     '`useLegacyPackaging true` line not present in build.gradle'),
+    ('build.gradle useLegacyPackaging = false (literal, 16 KB readiness)',
+     re.search(r'^[ \t]*useLegacyPackaging\s+false[ \t]*$', final_gradle, re.MULTILINE) is not None,
+     '`useLegacyPackaging false` line not present in build.gradle'),
     ('release signingConfig present (with storeFile file(ksPath))',
      re.search(r'storeFile\s+file\(ksPath\)', final_gradle) is not None,
      '`storeFile file(ksPath)` not found — release signing config missing'),
     ('gradle.properties expo.useLegacyPackaging (count=1)',
      count('expo.useLegacyPackaging', final_props) == 1,
      f'count={count("expo.useLegacyPackaging", final_props)}, expected 1'),
-    ('gradle.properties NO stale expo.useLegacyPackaging=false',
-     'expo.useLegacyPackaging=false' not in final_props,
-     'stale `=false` line still present (would shadow =true in some Gradle versions)'),
+    ('gradle.properties expo.useLegacyPackaging == false (16 KB readiness)',
+     re.search(r'^expo\.useLegacyPackaging\s*=\s*false\s*$', final_props, re.MULTILINE) is not None,
+     '`expo.useLegacyPackaging=false` not present in gradle.properties'),
+    ('gradle.properties android.bundle.enableUncompressedNativeLibs == true',
+     re.search(r'^android\.bundle\.enableUncompressedNativeLibs\s*=\s*true\s*$', final_props, re.MULTILINE) is not None,
+     '`android.bundle.enableUncompressedNativeLibs=true` not present in gradle.properties'),
     ('gradle.properties android.enableR8.fullMode (count=1)',
      count('android.enableR8.fullMode', final_props) == 1,
      'expected exactly 1 occurrence'),
