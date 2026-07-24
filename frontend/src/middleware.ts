@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 // Paths that do NOT require authentication
-const publicPaths = ["/", "/login", "/signup", "/forgot-password", "/reset-password", "/auth/callback", "/auth/confirm", "/pay", "/privacy", "/terms", "/en/privacy", "/en/terms", "/delete-account", "/api/webhooks", "/manifest.json", "/manifest.webmanifest", "/robots.txt", "/sitemap.xml"];
+const publicPaths = ["/", "/login", "/signup", "/forgot-password", "/reset-password", "/auth/callback", "/auth/confirm", "/pay", "/privacy", "/terms", "/en/privacy", "/en/terms", "/delete-account", "/api/webhooks", "/manifest.json", "/manifest.webmanifest", "/robots.txt", "/sitemap.xml", "/app-ads.txt"];
 
 // Paths that redirect to /dashboard if user is already authenticated
 const authPaths = ["/login", "/signup"];
@@ -98,6 +98,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public files (images, SVGs, etc.)
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|json)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|json|txt)$).*)",
   ],
 };
