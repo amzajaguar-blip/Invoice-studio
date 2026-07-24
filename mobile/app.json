@@ -23,8 +23,8 @@
         "backgroundColor": "#0a0b0f"
       },
       "package": "com.Invoice_Studio.myapp",
-      "versionCode": 52,
-      "versionName": "1.0.52",
+      "versionCode": 53,
+      "versionName": "1.0.53",
       "permissions": [
         "com.android.vending.BILLING",
         "android.permission.CAMERA",
