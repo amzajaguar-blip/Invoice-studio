@@ -14,11 +14,15 @@ const PURCHASE_TIMEOUT_MS = 15_000;
 const SUCCESS_ANIM_DURATION_MS = 400;
 const SUCCESS_DISPLAY_MS = 500;
 
-// IDs MUST match the RevenueCat / Google Play Console products exactly
-// (see REVENUECAT_IDS.md): `mensile` / `annuale`.
+// IDs MUST match the RevenueCat / Google Play Console products exactly.
+// Configured on Play Console + RevenueCat as base plans:
+//   monthly → "vela.premium.monthly"
+//   yearly  → "vela_premium_yearly"  (base plan "vela-premium-yearly-base")
+// Match uses startsWith() to be robust against qualified base plan identifiers
+// (e.g. "vela_premium_yearly:vela-premium-yearly-base").
 const PRODUCT_IDS = {
-  monthly: 'mensile',
-  yearly: 'annuale',
+  monthly: 'vela.premium.monthly',
+  yearly: 'vela_premium_yearly',
 } as const;
 
 /**
@@ -28,7 +32,7 @@ const PRODUCT_IDS = {
  * mostriamo. Ritorna { hasTrial:false } quando l'offering non è disponibile.
  */
 function trialFor(offering: PurchasesOffering | null, productId: string, t: (key: string) => string): { hasTrial: boolean; text: string } {
-  const pkg = offering?.availablePackages?.find((p) => p.product.identifier === productId);
+  const pkg = offering?.availablePackages?.find((p) => p.product.identifier?.startsWith(productId));
   const intro = pkg?.product?.introPrice;
   if (!intro || Number(intro.price) !== 0) return { hasTrial: false, text: "" };
 
@@ -127,10 +131,12 @@ export default function ProUpgradeScreen() {
         throw new Error(t("modal.pro_upgrade.error.loading_prices"));
       }
 
-      // Mappiamo il piano selezionato all'ID prodotto RevenueCat/Google Play
+      // Mappiamo il piano selezionato all'ID prodotto RevenueCat/Google Play.
+      // Usa startsWith() per coprire sia l'identifier semplice sia il qualified
+      // base plan (es. "vela_premium_yearly:vela-premium-yearly-base").
       const targetId = PRODUCT_IDS[selectedPlan];
       const pkg = offerings.current.availablePackages.find(
-        (p: PurchasesPackage) => p.product.identifier === targetId
+        (p: PurchasesPackage) => !!p.product.identifier?.startsWith(targetId)
       );
 
       if (!pkg) {
