@@ -1,3 +1,24 @@
+// ⚠️ ARCHIVED FILE — DO NOT IMPORT ⚠️
+//
+// This file used Stripe + PayPal + bank transfer as payment options for
+// invoices and was imported by nothing in this codebase as of 2026-07-25
+// (verified via `grep -RIE "payment-service" mobile --include=*.ts`
+// returning no active imports — only this archived copy).
+//
+// It was moved out of the live graph because its unbounded use of the
+// Stripe / PayPal SDKs and direct /api/payments/* fetch paths violates
+// Google Play payments policy for digital purchases on Android. The
+// payment provider for the app is now RevenueCat (see
+// mobile/app/(app)/ProUpgrade.tsx), which routes the Acquista Premium
+// flow through Google Play Billing in compliance with Play Store rules.
+//
+// Kept here as a historical reference. The .DISABLED.ts extension
+// prevents TypeScript from picking it up via the @/lib/* path alias
+// (tsconfig include paths do not walk into mobile/archived/).
+//
+// DO NOT re-introduce this file's exports back into mobile/lib/.
+// If regenerated, it must use RevenueCat APIs only.
+
 import { Invoice } from '@/shared/types';
 
 export type PaymentMethod = 'stripe' | 'paypal' | 'bank_transfer' | 'cash';
