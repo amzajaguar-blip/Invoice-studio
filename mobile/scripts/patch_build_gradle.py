@@ -243,6 +243,11 @@ GROOVY_BLOCK = '''
 // aligned (readelf shows max LOAD align >= 0x4000) the task short-circuits.
 tasks.register('alignExpoModulesCoreTo16K') {
     description = 'Re-align libexpo-modules-core.so segment LOAD to 16 KB for Play Console.'
+    // Make Gradle resolve the merge task under its real name before this task
+    // even attempts to inspect the directory. Without this, dependsOn
+    // linking the merge step never happens and the directory may not exist
+    // at task-graph execution time, yielding FileNotFoundException.
+    dependsOn tasks.matching { it.name == 'mergeReleaseNativeLibs' }
     doLast {
         def ndkRoot = android.ndkDirectory.absolutePath
         def llvmObjcopy = new File(ndkRoot, 'toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-objcopy')
@@ -338,6 +343,21 @@ afterEvaluate {
 existing = content
 if 'tasks.register(\'alignExpoModulesCoreTo16K\')' in existing:
     ok('XVI — alignExpoModulesCoreTo16K task already injected; skipping')
+    # Patch in-place if the task exists but lacks the dependsOn clause
+    # (v1 of the task deferred dependsOn to afterEvaluate, which was a
+    # race condition because the merged_native_libs directory did not
+    # always exist by then → FileNotFoundException).
+    patched = False
+    if "dependsOn tasks.matching { it.name == 'mergeReleaseNativeLibs' }" not in existing:
+        existing = existing.replace(
+            "tasks.register('alignExpoModulesCoreTo16K') {\n    description = 'Re-align libexpo-modules-core.so segment LOAD to 16 KB for Play Console.'",
+            "tasks.register('alignExpoModulesCoreTo16K') {\n    description = 'Re-align libexpo-modules-core.so segment LOAD to 16 KB for Play Console.'\n    dependsOn tasks.matching { it.name == 'mergeReleaseNativeLibs' }"
+        )
+        patched = True
+        ok('XVI (in-place) — added dependsOn mergeReleaseNativeLibs')
+    if patched:
+        with open(gradle_path, 'w') as f:
+            f.write(existing)
 else:
     existing = existing + GROOVY_BLOCK
     with open(gradle_path, 'w') as f:
