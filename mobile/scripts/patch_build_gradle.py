@@ -212,6 +212,138 @@ with open(gradle_path, 'w') as f:
 
 print('✅ build.gradle patched for release signing')
 
+# ──  XVI ─────────────────────────────────────────────────────────────────────
+# Inject a Gradle task that post-processes `libexpo-modules-core.so` to
+# realign its PT_LOAD segments to 16 KB (Play Console requirement).
+#
+# Why: app.json `expo.useLegacyPackaging=false` and
+# `gradle.properties android.bundle.enableUncompressedNativeLibs=true` are
+# necessary but not sufficient. The factored Expo SDK 52 ships
+# libexpo-modules-core.so with PT_LOAD alignment of 0x1000 (4 KB); Play
+# Console refuses to publish apps whose arm64-v8a native libs are NOT
+# aligned to >=16 KB. We previously observed 19/20 native libs already at
+# 16 KB; only libexpo-modules-core.so is the offender (verified via
+# `readelf -lW`).
+#
+# Strategy: register `alignExpoModulesCoreTo16K` as a Gradle task that
+#   1. depends on mergeReleaseNativeLibs (so the merged .so is on disk)
+#   2. finds every libexpo-modules-core.so under build/intermediates/merged_native_libs
+#   3. runs llvm-objcopy from the NDK toolchain with --section-alignment=16384
+#      on each .so (atomic .so → .so.tmp → mv)
+#   4. prints BEFORE/AFTER alignment as evidence (readelf -lW | grep LOAD)
+#
+# We attach via afterEvaluate so the dependency runs against the configured
+# bundleRelease task — which is the name used by `assembleRelease` and
+# (importantly) by the GitHub Actions `Build AAB Release` gradle step.
+GROOVY_BLOCK = '''
+
+// ── Injected by mobile/scripts/patch_build_gradle.py (commit 7e91b4a) ──
+// Forces libexpo-modules-core.so to 16 KB page alignment to satisfy
+// Play Console readiness checks. Idempotent: if the .so is already 16 KB
+// aligned (readelf shows max LOAD align >= 0x4000) the task short-circuits.
+tasks.register('alignExpoModulesCoreTo16K') {
+    description = 'Re-align libexpo-modules-core.so segment LOAD to 16 KB for Play Console.'
+    doLast {
+        def ndkRoot = android.ndkDirectory.absolutePath
+        def llvmObjcopy = new File(ndkRoot, 'toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-objcopy')
+        if (!llvmObjcopy.exists()) {
+            // Apple Silicon / Windows runners: try alternate subpaths.
+            def candidates = [
+                new File(ndkRoot, 'toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-objcopy'),
+                new File(ndkRoot, 'toolchains/llvm/prebuilt/darwin-arm64/bin/llvm-objcopy'),
+                new File(ndkRoot, 'toolchains/llvm/prebuilt/windows-x86_64/bin/llvm-objcopy.exe'),
+            ]
+            llvmObjcopy = candidates.find { it.exists() } as File
+        }
+        if (llvmObjcopy == null || !llvmObjcopy.exists()) {
+            throw new GradleException("llvm-objcopy not found under NDK at ${ndkRoot}; cannot realign libexpo-modules-core.so to 16 KB.")
+        }
+        def projectRootDir = project.projectDir.absoluteFile.parentFile // android/app -> android
+        def mergedNativeRoot = new File(projectRootDir, 'app/build/intermediates/merged_native_libs')
+        def readelfBin = new File(ndkRoot, 'toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf')
+        if (!readelfBin.exists()) readelfBin = llvmObjcopy.parentFile.toPath().resolve('llvm-readelf').toFile()
+
+        def countPatched = 0
+        def countAlreadyOk = 0
+        mergedNativeRoot.eachFileRecurse(groovy.io.FileType.DIRECTORIES) { dir ->
+            if (!dir.absolutePath.contains('/out/lib/')) return
+            dir.eachFileMatch(~/.*libexpo-modules-core\\.so/) { so ->
+                def tmp = new File(so.absolutePath + '.aligned')
+                // BEFORE
+                def alignBefore = 0
+                if (readelfBin.exists()) {
+                    def out = readelfBin.execute(['-lW', so.absolutePath], null).text
+                    out.eachLine { line ->
+                        if (line.trim().startsWith('LOAD')) {
+                            def tok = line.trim().split()
+                            if (tok.length >= 8) {
+                                try { alignBefore = Math.max(alignBefore, Integer.parseInt(tok[7], 16)) } catch (ignored) {}
+                            }
+                        }
+                    }
+                }
+                println "  alignExpoModulesCoreTo16K  ${so.name}  BEFORE align=${alignBefore == 0 ? '?' : '0x' + Integer.toHexString(alignBefore)}"
+                if (alignBefore >= 0x4000) {
+                    countAlreadyOk++
+                    return
+                }
+                // Run llvm-objcopy --section-alignment 16384
+                exec {
+                    commandLine llvmObjcopy.absolutePath,
+                        '--section-alignment', '16384',
+                        so.absolutePath,
+                        tmp.absolutePath
+                }
+                if (!tmp.exists() || tmp.length() == 0) {
+                    throw new GradleException("llvm-objcopy failed to produce ${tmp}")
+                }
+                // Atomic move (Copy + Delete) so the file path stays the same for downstream tooling.
+                java.nio.file.Files.move(
+                    tmp.toPath(),
+                    so.toPath(),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                    java.nio.file.StandardCopyOption.ATOMIC_MOVE
+                )
+                // AFTER
+                def alignAfter = 0
+                if (readelfBin.exists()) {
+                    def out2 = readelfBin.execute(['-lW', so.absolutePath], null).text
+                    out2.eachLine { line ->
+                        if (line.trim().startsWith('LOAD')) {
+                            def tok = line.trim().split()
+                            if (tok.length >= 8) {
+                                try { alignAfter = Math.max(alignAfter, Integer.parseInt(tok[7], 16)) } catch (ignored) {}
+                            }
+                        }
+                    }
+                }
+                println "  alignExpoModulesCoreTo16K  ${so.name}  AFTER  align=${alignAfter == 0 ? '?' : '0x' + Integer.toHexString(alignAfter)}"
+                if (alignAfter < 0x4000) {
+                    throw new GradleException("libexpo-modules-core.so still under-aligned after objcopy: ${so} (align=0x${Integer.toHexString(alignAfter)})")
+                }
+                countPatched++
+            }
+        }
+        println "  alignExpoModulesCoreTo16K  patched=${countPatched}  already-16K=${countAlreadyOk}"
+    }
+}
+afterEvaluate {
+    tasks.named('bundleRelease').configure { dependsOn 'alignExpoModulesCoreTo16K' }
+    tasks.named('assembleRelease').configure { dependsOn 'alignExpoModulesCoreTo16K' }
+}
+'''
+
+# Append idempotently (so re-running patch_build_gradle.py on top of an
+# already patched build.gradle doesn't stack the Gradle block).
+existing = content
+if 'tasks.register(\'alignExpoModulesCoreTo16K\')' in existing:
+    ok('XVI — alignExpoModulesCoreTo16K task already injected; skipping')
+else:
+    existing = existing + GROOVY_BLOCK
+    with open(gradle_path, 'w') as f:
+        f.write(existing)
+    ok('XVI — alignExpoModulesCoreTo16K task injected into build.gradle')
+
 # ── gradle.properties: idempotent R8 / ProGuard / 16 KB enforcement ─────────
 # Removes ALL existing occurrences of each required key, then injects
 # exactly ONE line with the correct value. Eliminates duplicate-key ambiguity
@@ -275,6 +407,12 @@ checks = [
     ('build.gradle useLegacyPackaging = false (literal, 16 KB readiness)',
      re.search(r'^[ \t]*useLegacyPackaging\s+false[ \t]*$', final_gradle, re.MULTILINE) is not None,
      '`useLegacyPackaging false` line not present in build.gradle'),
+    ('build.gradle alignExpoModulesCoreTo16K task registered (FILTER-SELECTIVE 16 KB fix)',
+     "tasks.register('alignExpoModulesCoreTo16K')" in final_gradle,
+     'alignExpoModulesCoreTo16K Gradle task not injected — libexpo-modules-core.so will stay 4 KB aligned and Play Console will still reject the AAB.'),
+    ('build.gradle alignExpoModulesCoreTo16K wired into bundleRelease',
+     "tasks.named('bundleRelease').configure { dependsOn 'alignExpoModulesCoreTo16K' }" in final_gradle,
+     'alignExpoModulesCoreTo16K is not wired to bundleRelease — the post-link fix will not run before the AAB is built.'),
     ('release signingConfig present (with storeFile file(ksPath))',
      re.search(r'storeFile\s+file\(ksPath\)', final_gradle) is not None,
      '`storeFile file(ksPath)` not found — release signing config missing'),
