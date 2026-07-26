@@ -1,4 +1,4 @@
-name: Build AAB Release v52
+name: Build AAB Release v57
 
 on:
   workflow_dispatch:
@@ -109,6 +109,45 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
+      - name: Align native libraries to 16KB page size (patchelf)
+        run: |
+          set -euo pipefail
+          AAB=$(find android -name "*.aab" 2>/dev/null | head -1)
+          if [ -z "$AAB" ]; then
+            echo "❌ AAB not found"
+            exit 1
+          fi
+          echo "Found AAB: $AAB"
+          
+          # Install patchelf
+          apt-get update -qq && apt-get install -y -qq patchelf >/dev/null 2>&1
+          
+          # Work in a temp directory
+          WORKDIR=$(mktemp -d)
+          trap "rm -rf $WORKDIR" EXIT
+          
+          # Extract AAB
+          unzip -o -q "$AAB" -d "$WORKDIR/aab_extracted"
+          
+          # Find and patch all .so files
+          echo "Patching .so files to 16KB page alignment..."
+          for so in $(find "$WORKDIR/aab_extracted" -name "*.so" -type f); do
+            echo "  Patching: $so"
+            # Check current alignment
+            readelf -l "$so" 2>/dev/null | grep LOAD | head -1
+            # Set page size to 16384 (16KB = 0x4000)
+            patchelf --set-page-size 16384 "$so"
+            # Verify
+            readelf -l "$so" 2>/dev/null | grep LOAD | head -1
+          done
+          
+          # Repackage AAB
+          cd "$WORKDIR/aab_extracted"
+          zip -r -X -q "$AAB" .
+          cd - >/dev/null
+          
+          echo "✅ All .so files patched to 16KB page alignment"
+
       - name: Locate AAB
         if: always()
         run: find android -name "*.aab" 2>/dev/null || echo "AAB non trovato"
@@ -184,7 +223,7 @@ jobs:
       - name: Upload AAB Release
         uses: actions/upload-artifact@v4
         with:
-          name: VELA-v52-AAB
+          name: VELA-v57-AAB-16kb
           path: mobile/android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 14
