@@ -113,11 +113,13 @@ jobs:
         run: |
           set -euo pipefail
           # Find AAB FIRST before changing directories (working-directory is mobile)
-          AAB=$(find android -name "*.aab" 2>/dev/null | head -1)
-          if [ -z "$AAB" ]; then
+          # Use absolute path since we'll cd to /tmp later
+          AAB_REL=$(find android -name "*.aab" 2>/dev/null | head -1)
+          if [ -z "$AAB_REL" ]; then
             echo "❌ AAB not found"
             exit 1
           fi
+          AAB="$(pwd)/$AAB_REL"
           echo "Found AAB: $AAB"
 
           # Install patchelf 0.18+ from pre-built binary (no apt-get needed)
