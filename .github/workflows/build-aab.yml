@@ -119,17 +119,12 @@ jobs:
           fi
           echo "Found AAB: $AAB"
 
-          # Install patchelf from source (v0.18+ supports --set-page-size)
-          echo "Installing patchelf 0.18 from source..."
-          apt-get update -qq && apt-get install -y -qq autoconf automake libtool g++ >/dev/null 2>&1
+          # Install patchelf 0.18+ from pre-built binary (no apt-get needed)
+          echo "Installing patchelf 0.18 from pre-built binary..."
+          PATCHELF_URL="https://github.com/NixOS/patchelf/releases/download/0.18.0/patchelf-0.18.0-x86_64.tar.gz"
           cd /tmp
-          git clone --depth 1 --branch 0.18.0 https://github.com/NixOS/patchelf.git 2>/dev/null
-          cd patchelf
-          ./bootstrap.sh >/dev/null 2>&1
-          ./configure >/dev/null 2>&1
-          make -j$(nproc) >/dev/null 2>&1
-          make install >/dev/null 2>&1
-          cd - >/dev/null
+          curl -sL "$PATCHELF_URL" | tar -xz
+          export PATH="/tmp/patchelf-0.18.0-x86_64/bin:$PATH"
           echo "patchelf version: $(patchelf --version)"
 
           # Work in a temp directory
