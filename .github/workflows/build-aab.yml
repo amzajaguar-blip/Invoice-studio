@@ -122,9 +122,11 @@ jobs:
           # Install patchelf 0.18+ from pre-built binary (no apt-get needed)
           echo "Installing patchelf 0.18 from pre-built binary..."
           PATCHELF_URL="https://github.com/NixOS/patchelf/releases/download/0.18.0/patchelf-0.18.0-x86_64.tar.gz"
-          cd /tmp
-          curl -sL "$PATCHELF_URL" | tar -xz
-          export PATH="/tmp/patchelf-0.18.0-x86_64/bin:$PATH"
+          PATCHELF_DIR="/tmp/patchelf-0.18.0"
+          mkdir -p "$PATCHELF_DIR"
+          cd "$PATCHELF_DIR"
+          curl -sL "$PATCHELF_URL" | tar -xz --no-same-owner --no-same-permissions
+          export PATH="$PATCHELF_DIR/bin:$PATH"
           echo "patchelf version: $(patchelf --version)"
 
           # Work in a temp directory
