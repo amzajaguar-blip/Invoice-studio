@@ -110,6 +110,15 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
       - name: Align native libraries to 16KB page size (patchelf)
+        # Disabled 2026-07-27: this step called patchelf --set-page-size
+        # which doesn't exist in patchelf 0.19.1 ("getting info about
+        # '--set-page-size': No such file or directory"). It is also
+        # redundant — the Python step
+        # 'Patch libexpo-modules-core.so to 16 KB segment alignment'
+        # further down does the actual 16 KB alignment rewrite with
+        # zipfile + struct.pack on p_align. Kept in place as a no-op for
+        # future re-enable once patchelf upstream supports the flag.
+        if: false
         run: |
           set -euo pipefail
           # Find AAB FIRST before changing directories (working-directory is mobile)
