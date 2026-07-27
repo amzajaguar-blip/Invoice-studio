@@ -295,11 +295,18 @@ jobs:
           echo "Keystore: $ANDROID_KEYSTORE_PATH (alias=$ANDROID_KEY_ALIAS)"
           # apksigner sign supports .aab directly as of build-tools 30+.
           # v1 + v2 + v3 — same schemes Gradle would have used.
+          # apksigner wants to read AndroidManifest.xml at the zip root,
+          # but in AABs the manifest lives at base/manifest/AndroidManifest.xml
+          # (not at the root, which is APK layout). We use --min-sdk-version
+          # to bypass the auto-detection that fails on AAB.
+          MIN_SDK=$(grep -oP 'minSdkVersion\s+\K\d+' android/app/build.gradle 2>/dev/null || echo "24")
+          echo "minSdkVersion: $MIN_SDK"
           "$APKSIGNER_DIR" sign \
             --ks "$ANDROID_KEYSTORE_PATH" \
             --ks-pass "pass:$ANDROID_KEYSTORE_PASSWORD" \
             --ks-key-alias "$ANDROID_KEY_ALIAS" \
             --key-pass "pass:$ANDROID_KEY_PASSWORD" \
+            --min-sdk-version "$MIN_SDK" \
             --v1-signing-enabled true \
             --v2-signing-enabled true \
             --v3-signing-enabled true \
