@@ -266,10 +266,67 @@ jobs:
           fi
           echo "✅ 16 KB post-patch completed"
 
+      - name: Re-sign AAB with v1+v2+v3 (apksigner)
+        # The 16 KB post-patch step above re-zips the AAB with Python's
+        # zipfile, which destroys Gradle's APK Signature Scheme v2/v3
+        # blocks (those live in a separate zip entry after the central
+        # directory, so re-zipping leaves only v1 / META-INF/MANIFEST.MF).
+        # Play Console rejects v1-only AABs as "Android App Bundle ha una
+        # firma non valida". We must re-sign with v2+v3 (and keep v1 for
+        # old clients) using apksigner, which understands the .aab format.
+        if: always()
+        env:
+          ANDROID_KEYSTORE_PATH: android/app/release.keystore
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          AAB="${GITHUB_WORKSPACE}/mobile/android/app/build/outputs/bundle/release/app-release.aab"
+          if [ ! -f "$AAB" ]; then
+            echo "❌ AAB not found at $AAB — skipping re-sign"
+            exit 0
+          fi
+          APKSIGNER_DIR="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          if [ ! -x "$APKSIGNER_DIR" ]; then
+            APKSIGNER_DIR=$(find "$ANDROID_HOME" -name apksigner -type f 2>/dev/null | head -1)
+          fi
+          echo "Using apksigner: $APKSIGNER_DIR"
+          echo "Keystore: $ANDROID_KEYSTORE_PATH (alias=$ANDROID_KEY_ALIAS)"
+          # apksigner sign supports .aab directly as of build-tools 30+.
+          # v1 + v2 + v3 — same schemes Gradle would have used.
+          "$APKSIGNER_DIR" sign \
+            --ks "$ANDROID_KEYSTORE_PATH" \
+            --ks-pass "pass:$ANDROID_KEYSTORE_PASSWORD" \
+            --ks-key-alias "$ANDROID_KEY_ALIAS" \
+            --key-pass "pass:$ANDROID_KEY_PASSWORD" \
+            --v1-signing-enabled true \
+            --v2-signing-enabled true \
+            --v3-signing-enabled true \
+            --v4-signing-enabled false \
+            "$AAB"
+          echo "✅ AAB re-signed with v1+v2+v3"
+
+      - name: Verify AAB signature (apksigner verify)
+        if: always()
+        run: |
+          set +e
+          AAB="${GITHUB_WORKSPACE}/mobile/android/app/build/outputs/bundle/release/app-release.aab"
+          if [ ! -f "$AAB" ]; then
+            echo "❌ AAB not found — skipping verify"
+            exit 0
+          fi
+          APKSIGNER_DIR=$(find "$ANDROID_HOME" -name apksigner -type f 2>/dev/null | head -1)
+          echo "Verifying: $AAB"
+          "$APKSIGNER_DIR" verify --print-certs --verbose "$AAB" 2>&1 | head -40
+          echo "---"
+          "$APKSIGNER_DIR" verify "$AAB"
+          echo "Verify exit: $?"
+
       - name: Upload AAB Release
         uses: actions/upload-artifact@v4
         with:
-          name: VELA-v60-AAB-16kb
+          name: VELA-v61-AAB-16kb-signed
           path: mobile/android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 14
