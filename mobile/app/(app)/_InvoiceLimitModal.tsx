@@ -21,6 +21,7 @@ import {
 } from 'react-native';
 import type { InvoiceQuota } from '@/lib/useRewardedInvoice';
 import { useLocale } from '@/components/LocaleProvider';
+import { Ionicons } from '@expo/vector-icons';
 
 interface InvoiceLimitModalProps {
   visible: boolean;
@@ -179,13 +180,11 @@ export default function InvoiceLimitModal({
 
           {/* Icon */}
           <View style={s.iconWrap}>
-            <Text style={s.icon} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-              📄
-            </Text>
+            <View style={s.iconCircle}>
+              <Ionicons name="document-text-outline" size={32} color="#6c63ff" />
+            </View>
             <View style={s.badgeWrap}>
-              <Text style={s.badgeIcon} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                🔒
-              </Text>
+              <Ionicons name="lock-closed" size={12} color="#9ca3af" />
             </View>
           </View>
 
@@ -204,26 +203,27 @@ export default function InvoiceLimitModal({
             accessibilityLabel={t("modal.invoice_limit.pro_a11y_prefix") + " " + t("modal.invoice_limit.pro_a11y_body")}
             accessibilityHint={t("modal.invoice_limit.pro_a11y_hint")}
           >
-            <Text
-              style={s.proBtnIcon}
+            <Ionicons
+              name="rocket"
+              size={28}
+              color="#f59e0b"
+              style={{ marginTop: 2 }}
               accessibilityElementsHidden
               importantForAccessibility="no-hide-descendants"
-            >
-              🚀
-            </Text>
+            />
             <View style={s.proBtnText}>
               <Text style={s.proBtnTitle}>{t("modal.invoice_limit.pro_button_title")}</Text>
               <View style={s.proFeatureList}>
                 <View style={s.proFeatureRow}>
-                  <Text style={s.proFeatureCheck}>✓</Text>
+                  <Ionicons name="checkmark" size={14} color="#f59e0b" />
                   <Text style={s.proFeatureItem}>{t("modal.invoice_limit.pro_feature.unlimited")}</Text>
                 </View>
                 <View style={s.proFeatureRow}>
-                  <Text style={s.proFeatureCheck}>✓</Text>
+                  <Ionicons name="checkmark" size={14} color="#f59e0b" />
                   <Text style={s.proFeatureItem}>{t("modal.invoice_limit.pro_feature.email_pdf")}</Text>
                 </View>
                 <View style={s.proFeatureRow}>
-                  <Text style={s.proFeatureCheck}>✓</Text>
+                  <Ionicons name="checkmark" size={14} color="#f59e0b" />
                   <Text style={s.proFeatureItem}>{t("modal.invoice_limit.pro_feature.cancel_anytime")}</Text>
                 </View>
               </View>
@@ -261,13 +261,13 @@ export default function InvoiceLimitModal({
           >
             <View style={s.adBtnContent}>
               <View style={s.adBtnLeft}>
-                <Text
-                  style={s.adBtnIcon}
+                <Ionicons
+                  name="play-circle-outline"
+                  size={28}
+                  color="#6c63ff"
                   accessibilityElementsHidden
                   importantForAccessibility="no-hide-descendants"
-                >
-                  🎬
-                </Text>
+                />
                 <View>
                   <Text style={s.adBtnTitle}>{t("modal.invoice_limit.ad.title")}</Text>
                   {isDailyLimitHit ? (
@@ -335,16 +335,26 @@ const s = StyleSheet.create({
     marginBottom: 16,
     position: 'relative',
   },
-  icon: { fontSize: 52 },
+  iconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#6c63ff18',
+    borderWidth: 1,
+    borderColor: '#6c63ff33',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   badgeWrap: {
     position: 'absolute',
     bottom: -4,
     right: -8,
     backgroundColor: '#1e2029',
     borderRadius: 12,
-    padding: 2,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: '#2d2f3a',
   },
-  badgeIcon: { fontSize: 18 },
   title: {
     fontSize: 20,
     fontWeight: '700',
@@ -377,7 +387,6 @@ const s = StyleSheet.create({
     gap: 12,
     marginBottom: 12,
   },
-  proBtnIcon: { fontSize: 28, marginTop: 2 },
   proBtnText: { flex: 1 },
   proBtnTitle: {
     fontSize: 15,
@@ -392,11 +401,6 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-  },
-  proFeatureCheck: {
-    fontSize: 13,
-    color: '#f59e0b',
-    fontWeight: '600',
   },
   proFeatureItem: {
     fontSize: 13,
@@ -426,7 +430,6 @@ const s = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  adBtnIcon: { fontSize: 28 },
   adBtnTitle: {
     fontSize: 15,
     fontWeight: '600',

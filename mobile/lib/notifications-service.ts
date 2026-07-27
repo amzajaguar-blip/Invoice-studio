@@ -397,7 +397,7 @@ export async function notifyInvoiceSent(invoice: any): Promise<void> {
     invoiceNumber: invoice.invoice_number ?? invoice.invoiceNumber,
     clientName: invoice.clients?.name ?? invoice.client?.name,
     amount: invoice.total,
-    message: `📤 Fattura #${invoice.invoice_number ?? invoice.invoiceNumber} inviata a ${invoice.clients?.name ?? invoice.client?.name ?? 'cliente'}`,
+    message: `Fattura #${invoice.invoice_number ?? invoice.invoiceNumber} inviata a ${invoice.clients?.name ?? invoice.client?.name ?? 'cliente'}`,
     deepLink: `/(app)/${invoice.id}`,
     timestamp: new Date(),
   });
@@ -423,13 +423,18 @@ export async function notifyInvoiceViewed(invoice: any): Promise<void> {
  */
 function getTitleForType(type: NotificationType): string {
   const titles: Record<NotificationType, string> = {
-    payment_received: '💰 Payment Received',
-    invoice_sent: '📤 Invoice Sent',
-    invoice_overdue: '⚠️ Invoice Overdue',
-    payment_reminder: '📋 Payment Reminder',
-    invoice_viewed: '👁️ Invoice Viewed',
+    payment_received: 'Payment Received',
+    invoice_sent: 'Invoice Sent',
+    invoice_overdue: 'Invoice Overdue',
+    payment_reminder: 'Payment Reminder',
+    invoice_viewed: 'Invoice Viewed',
+    daily_summary: 'Daily Summary',
+    system_alert: 'System Alert',
+    business_boost: 'Business Boost',
+    subscription_expired: 'Subscription Expired',
+    smart_insight: 'Smart Insight'
   };
-  return titles[type] || 'Notification';
+  return titles[type];
 }
 
 /**

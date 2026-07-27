@@ -130,7 +130,7 @@ export default function AddClientScreen() {
     }
 
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    showToast({ message: "Cliente aggiunto ✓", type: "success" });
+    showToast({ message: "Cliente aggiunto", type: "success" });
     router.back();
   };
 

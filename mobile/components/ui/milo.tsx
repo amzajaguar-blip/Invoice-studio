@@ -29,6 +29,7 @@ import {
 } from "react-native";
 import { useTheme } from "../../hooks/ThemeContext";
 import { useLocale } from "../LocaleProvider";
+import { Ionicons } from "@expo/vector-icons";
 
 // ── TYPES ──────────────────────────────────────────────────────────────────
 
@@ -317,7 +318,7 @@ interface MiloEmptyStateProps {
 }
 
 export function MiloEmptyState({
-  icon = "📄",
+  icon = "document-text-outline",
   title,
   description,
   action,
@@ -353,7 +354,7 @@ export function MiloEmptyState({
         }}
         accessibilityElementsHidden
       >
-        <Text style={{ fontSize: 32 }}>{icon}</Text>
+        <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={32} color={colors.textPrimary} />
       </View>
 
       <Text

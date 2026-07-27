@@ -9,6 +9,7 @@ export type InvoiceDetailParams = { invoice: string };
 import * as MailComposer from "expo-mail-composer";
 import { apiFetch } from "@/lib/ai";
 import { useLocale } from "@/components/LocaleProvider";
+import { Ionicons } from "@expo/vector-icons";
 
 interface LineItem {
   description: string;
@@ -51,8 +52,8 @@ const NEXT_STATUS: Record<string, string> = {
 };
 const NEXT_STATUS_LABEL: Record<string, string> = {
   draft: "Segna come Inviata",
-  sent: "Segna come Pagata ✓",
-  overdue: "Segna come Pagata ✓",
+  sent: "Segna come Pagata",
+  overdue: "Segna come Pagata",
 };
 
 const fmt = (n: number) =>
@@ -110,7 +111,7 @@ export default function InvoiceDetailScreen() {
   // ─── Condivisione nativa ──────────────────────────────────────────────────
   const buildShareText = () => {
     const lines = [
-      `📄 Fattura #${invoiceNum}`,
+      `Fattura #${invoiceNum}`,
       `Cliente: ${data?.client_name ?? "—"}`,
       `Importo: ${fmt(data?.total ?? 0)}`,
       `Scadenza: ${data?.due_date ? new Date(data.due_date).toLocaleDateString("it-IT") : "—"}`,
@@ -286,16 +287,16 @@ export default function InvoiceDetailScreen() {
       {/* Condivisione */}
       <Text style={s.sectionLabel}>CONDIVIDI</Text>
       <View style={s.shareRow}>
-        <TouchableOpacity style={s.shareBtn} onPress={handleShare} disabled={sharing}>
-          <Text style={s.shareBtnIcon}>📤</Text>
+        <TouchableOpacity style={s.shareBtn} onPress={handleShare} disabled={sharing} accessibilityRole="button" accessibilityLabel="Condividi">
+          <Ionicons name="share-social-outline" size={22} color="#6c63ff" />
           <Text style={s.shareBtnText}>Condividi</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={s.shareBtn} onPress={handleEmail}>
-          <Text style={s.shareBtnIcon}>✉️</Text>
+        <TouchableOpacity style={s.shareBtn} onPress={handleEmail} accessibilityRole="button" accessibilityLabel="Email">
+          <Ionicons name="mail-outline" size={22} color="#6c63ff" />
           <Text style={s.shareBtnText}>Email</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={s.shareBtn} onPress={handleWhatsApp}>
-          <Text style={s.shareBtnIcon}>💬</Text>
+        <TouchableOpacity style={s.shareBtn} onPress={handleWhatsApp} accessibilityRole="button" accessibilityLabel="WhatsApp">
+          <Ionicons name="logo-whatsapp" size={22} color="#25D366" />
           <Text style={s.shareBtnText}>WhatsApp</Text>
         </TouchableOpacity>
       </View>
@@ -357,9 +358,8 @@ const s = StyleSheet.create({
   shareRow: { flexDirection: "row", gap: 10 },
   shareBtn: {
     flex: 1, backgroundColor: "#111318", borderRadius: 12, padding: 14,
-    alignItems: "center", borderWidth: 1, borderColor: "#1e2029",
+    alignItems: "center", borderWidth: 1, borderColor: "#1e2029", gap: 6,
   },
-  shareBtnIcon: { fontSize: 22, marginBottom: 4 },
   shareBtnText: { fontSize: 12, color: "#9ca3af", fontWeight: "600" },
 
   deleteBtn: {

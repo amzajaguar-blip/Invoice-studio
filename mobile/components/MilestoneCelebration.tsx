@@ -27,6 +27,7 @@ import {
 import type { MilestoneEvent, MilestoneType } from '@/lib/engagement-engine';
 import { ImpactFeedbackStyle, impactAsync } from '@/lib/haptics';
 import { useLocale } from '@/components/LocaleProvider';
+import { Ionicons } from '@expo/vector-icons';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -47,50 +48,59 @@ export interface MilestoneCelebrationProps {
  */
 export const MILESTONE_COPY: Record<
   MilestoneType,
-  { emoji: string; title: string; body: string }
+  { iconName: keyof typeof Ionicons.glyphMap; iconColor: string; title: string; body: string }
 > = {
   first_invoice: {
-    emoji: '🎉',
+    iconName: 'checkmark-circle',
+    iconColor: '#22c55e',
     title: 'Prima fattura creata!',
     body:  'Hai fatto il primo passo. Il tuo business è ufficialmente partito!',
   },
   invoices_10: {
-    emoji: '🏆',
+    iconName: 'trophy',
+    iconColor: '#f59e0b',
     title: '10 fatture create!',
     body:  'Stai costruendo una solida base clienti. Continua così!',
   },
   invoices_25: {
-    emoji: '🏆',
+    iconName: 'trophy',
+    iconColor: '#f59e0b',
     title: '25 fatture create!',
     body:  'Un traguardo importante. Stai crescendo!',
   },
   invoices_50: {
-    emoji: '🚀',
+    iconName: 'rocket',
+    iconColor: '#6c63ff',
     title: '50 fatture create!',
     body:  'Sei un professionista in piena attività. Impressionante!',
   },
   invoices_100: {
-    emoji: '💎',
+    iconName: 'diamond',
+    iconColor: '#a78bfa',
     title: '100 fatture create!',
     body:  'Un professionista affermato. Straordinario!',
   },
   invoices_500: {
-    emoji: '🌟',
+    iconName: 'star',
+    iconColor: '#f59e0b',
     title: '500 fatture create!',
     body:  'Sei una leggenda del freelancing. Incredibile!',
   },
   invoices_1000: {
-    emoji: '🏆',
+    iconName: 'trophy',
+    iconColor: '#f59e0b',
     title: '1000 fatture create!',
     body:  'Un risultato epico. Complimenti!',
   },
   clients_100: {
-    emoji: '💼',
+    iconName: 'briefcase',
+    iconColor: '#22c55e',
     title: '100 clienti aggiunti!',
     body:  'Un network straordinario. Il tuo business sta crescendo forte!',
   },
   review_ask: {
-    emoji: '⭐',
+    iconName: 'star',
+    iconColor: '#f59e0b',
     title: 'Ti piace VELA?',
     body:  'Lascia una recensione e aiuta altri freelancer a scoprirci!',
   },
@@ -98,11 +108,11 @@ export const MILESTONE_COPY: Record<
 
 // ─── Particelle confetti ───────────────────────────────────────────────────────
 
-/** Emoji confetti semplici da animare */
-const CONFETTI_PARTICLES = ['🎊', '✨', '🌟', '💫', '🎈', '🎉'];
+/** Colori confetti — pure View dots, zero emoji, zero tofu */
+const CONFETTI_COLORS = ['#6c63ff', '#f59e0b', '#22c55e', '#ef4444', '#a78bfa', '#3b82f6'];
 
-/** Posizioni orizzontali casuali (statiche — generate una volta) per evitare layout shift */
-const CONFETTI_POSITIONS = [8, 22, 38, 52, 68, 80]; // % da sinistra
+/** Posizioni orizzontali (%) */
+const CONFETTI_POSITIONS = [8, 22, 38, 52, 68, 80];
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 
@@ -257,13 +267,20 @@ function MilestoneCelebrationInner({
           accessibilityElementsHidden
           importantForAccessibility="no-hide-descendants"
         >
-          {CONFETTI_PARTICLES.map((emoji, i) => (
-            <Text
+          {CONFETTI_COLORS.map((color, i) => (
+            <View
               key={i}
-              style={[s.confettiEmoji, { left: `${CONFETTI_POSITIONS[i]}%` as any }]}
-            >
-              {emoji}
-            </Text>
+              style={[
+                s.confettiDot,
+                {
+                  left: `${CONFETTI_POSITIONS[i]}%` as any,
+                  backgroundColor: color,
+                  borderRadius: i % 2 === 0 ? 4 : 2,
+                  width: i % 3 === 0 ? 8 : 6,
+                  height: i % 3 === 0 ? 8 : 10,
+                },
+              ]}
+            />
           ))}
         </Animated.View>
       )}
@@ -278,15 +295,22 @@ function MilestoneCelebrationInner({
           },
         ]}
       >
-        {/* ── Emoji + titolo ─────────────────────────────────────────── */}
+        {/* ── Icon + titolo ─────────────────────────────────────────── */}
         <View style={s.headerRow}>
-          <Text
-            style={s.emojiLarge}
+          <View
+            style={[
+              s.milestoneIconWrap,
+              { backgroundColor: ((milestone as any).iconColor ?? '#6c63ff') + '18' },
+            ]}
             accessibilityElementsHidden
             importantForAccessibility="no-hide-descendants"
           >
-            {milestone.emoji}
-          </Text>
+            <Ionicons
+              name={(milestone as any).iconName ?? 'star'}
+              size={24}
+              color={(milestone as any).iconColor ?? '#f59e0b'}
+            />
+          </View>
           <View style={s.headerTexts}>
             <Text style={s.title} numberOfLines={1}>
               {milestone.title}
@@ -304,7 +328,7 @@ function MilestoneCelebrationInner({
             accessibilityRole="button"
             accessibilityLabel={t('milestone.close.a11y')}
           >
-            <Text style={s.closeBtnText}>✕</Text>
+            <Ionicons name="close" size={14} color="#6b7280" />
           </TouchableOpacity>
         </View>
 
@@ -351,10 +375,9 @@ const s = StyleSheet.create({
     height:   80,
     flexDirection: 'row',
   },
-  confettiEmoji: {
+  confettiDot: {
     position: 'absolute',
-    fontSize: 22,
-    top:      8,
+    top: 8,
   },
 
   // ── Card ───────────────────────────────────────────────────────────────────
@@ -381,9 +404,12 @@ const s = StyleSheet.create({
     alignItems:    'center',
     gap:           12,
   },
-  emojiLarge: {
-    fontSize: 32,
-    lineHeight: 38,
+  milestoneIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTexts: {
     flex: 1,
@@ -407,11 +433,6 @@ const s = StyleSheet.create({
     backgroundColor: '#1e2029',
     alignItems:      'center',
     justifyContent:  'center',
-  },
-  closeBtnText: {
-    fontSize:   12,
-    color:      '#6b7280',
-    lineHeight: 16,
   },
 
   // ── CTA Premium ───────────────────────────────────────────────────────────

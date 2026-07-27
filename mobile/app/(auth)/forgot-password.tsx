@@ -14,6 +14,7 @@ import { useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { useLocale } from "@/components/LocaleProvider";
 import { useToast } from "@/lib/toast";
+import { Ionicons } from "@expo/vector-icons";
 
 /**
  * Forgot password screen — passo 1 del flusso di reset.
@@ -79,7 +80,9 @@ export default function ForgotPasswordScreen() {
         >
           <View style={styles.card}>
             <View style={styles.header}>
-              <Text style={styles.successIcon}>📧</Text>
+              <View style={styles.successIconWrap}>
+                <Ionicons name="mail-outline" size={32} color="#6c63ff" />
+              </View>
               <Text style={styles.title}>{t("reset.forgot.success_title")}</Text>
               <Text style={styles.subtitle}>{successBody}</Text>
             </View>
@@ -185,8 +188,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 24,
   },
-  successIcon: {
-    fontSize: 48,
+  successIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: "#6c63ff18",
+    borderWidth: 1,
+    borderColor: "#6c63ff33",
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 12,
   },
   title: {

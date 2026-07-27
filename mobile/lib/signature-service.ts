@@ -176,7 +176,7 @@ export async function exportSignedInvoice(invoiceId: string): Promise<string | n
     </div>
     
     <div class="verification">
-      <p class="verified">✓ Signature Verified</p>
+      <p class="verified">Signature Verified</p>
       <p><strong>Verification Hash:</strong> ${signature.verificationHash}</p>
       <p>This document has been digitally signed and verified.</p>
     </div>

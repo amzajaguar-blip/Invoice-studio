@@ -28,7 +28,8 @@ import { useRouter } from 'expo-router';
 import { trackEvent } from '@/lib/analytics-events';
 import type { BoostSession } from '@/lib/business-boost';
 import type { ResourceType } from '@/lib/rate-limit-engine';
-import { useLocale } from '@/components/LocaleProvider'; // Import useLocale
+import { useLocale } from '@/components/LocaleProvider';
+import { Ionicons } from '@expo/vector-icons';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -171,12 +172,12 @@ export default function BusinessBoostModal({
     }
   };
 
-  const getResourceIcon = () => {
+  const getResourceIcon = (): keyof typeof Ionicons.glyphMap => {
     switch (resource) {
-      case 'invoice': return '📄';
-      case 'customer': return '👥';
-      case 'quote': return '📝';
-      default: return '';
+      case 'invoice': return 'document-text-outline';
+      case 'customer': return 'people-outline';
+      case 'quote': return 'create-outline';
+      default: return 'document-outline';
     }
   };
 
@@ -205,21 +206,23 @@ export default function BusinessBoostModal({
 
           {/* Icona risorsa */}
           <View style={s.iconWrap}>
-            <Text
-              style={s.icon}
-              accessibilityElementsHidden
-              importantForAccessibility="no-hide-descendants"
-            >
-              {getResourceIcon()}
-            </Text>
-            <View style={s.badgeWrap}>
-              <Text
-                style={s.badgeIcon}
+            <View style={s.iconCircle}>
+              <Ionicons
+                name={getResourceIcon()}
+                size={36}
+                color="#6c63ff"
                 accessibilityElementsHidden
                 importantForAccessibility="no-hide-descendants"
-              >
-                🔒
-              </Text>
+              />
+            </View>
+            <View style={s.badgeWrap}>
+              <Ionicons
+                name="lock-closed"
+                size={12}
+                color="#9ca3af"
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+              />
             </View>
           </View>
 
@@ -240,10 +243,11 @@ export default function BusinessBoostModal({
             />
           )}
 
-          {/* ── Se video non disponibile (state === 'unavailable') ──────── */}
+          {/* Se video non disponibile (state === 'unavailable') */}
           {state === 'unavailable' && (
             <View style={s.unavailableBox}>
-              <Text style={s.unavailableText}>📵 {t('boost_unavailable_video_text')}</Text>
+              <Ionicons name="videocam-off-outline" size={16} color="#9ca3af" />
+              <Text style={s.unavailableText}>{t('boost_unavailable_video_text')}</Text>
               <Text style={s.unavailableHint}>
                 {t('boost_unavailable_video_hint')}
               </Text>
@@ -259,13 +263,14 @@ export default function BusinessBoostModal({
             accessibilityLabel={t('upgrade_premium_cta')}
             accessibilityHint={t('upgrade_premium_hint')}
           >
-            <Text
-              style={s.upgradeBtnIcon}
+            <Ionicons
+              name="rocket-outline"
+              size={26}
+              color="#f59e0b"
+              style={{ marginTop: 2 }}
               accessibilityElementsHidden
               importantForAccessibility="no-hide-descendants"
-            >
-              🚀
-            </Text>
+            />
             <View style={s.upgradeBtnText}>
               <Text style={s.upgradeBtnTitle}>{t('upgrade_premium')}</Text>
               <View style={s.upgradeFeatureList}>
@@ -321,19 +326,20 @@ function BoostCTA({ state, errorMsg, boostLabel, onShowAd, t }: BoostCTAProps) {
   if (isError) {
     // Stato errore: mostra "Riprova" (Req 2.12)
     return (
-      <View style={s.boostErrorBox}>
-        <Text style={s.boostErrorText}>
-          {t(errorMsg ?? 'boost_error_loading_video')}
-        </Text>
-        <TouchableOpacity
-          style={s.retryBtn}
-          onPress={onShowAd}
-          accessibilityRole="button"
-          accessibilityLabel={t('boost_retry_ad_load')}
-        >
-          <Text style={s.retryBtnText}>🔄 {t('retry')}</Text>
-        </TouchableOpacity>
-      </View>
+        <View style={s.boostErrorBox}>
+          <Text style={s.boostErrorText}>
+            {t(errorMsg ?? 'boost_error_loading_video')}
+          </Text>
+          <TouchableOpacity
+            style={s.retryBtn}
+            onPress={onShowAd}
+            accessibilityRole="button"
+            accessibilityLabel={t('boost_retry_ad_load')}
+          >
+            <Ionicons name="refresh-outline" size={14} color="#6c63ff" />
+            <Text style={s.retryBtnText}>{t('retry')}</Text>
+          </TouchableOpacity>
+        </View>
     );
   }
 
@@ -355,14 +361,14 @@ function BoostCTA({ state, errorMsg, boostLabel, onShowAd, t }: BoostCTAProps) {
     >
       <View style={s.boostBtnContent}>
         <View style={s.boostBtnLeft}>
-          <Text
-            style={s.boostBtnIcon}
-            accessibilityElementsHidden
-            importantForAccessibility="no-hide-descendants"
-          >
-            🎬
-          </Text>
-          <View>
+            <Ionicons
+              name="play-circle-outline"
+              size={28}
+              color="#6c63ff"
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+            />
+            <View>
             <Text style={s.boostBtnTitle}>{t('boost_watch_video_title')}</Text>
             <Text style={s.boostBtnSub}>{boostLabel}</Text>
           </View>
@@ -390,7 +396,7 @@ function BoostCTA({ state, errorMsg, boostLabel, onShowAd, t }: BoostCTAProps) {
 function FeatureRow({ label }: { label: string }) {
   return (
     <View style={s.featureRow}>
-      <Text style={s.featureCheck}>✓</Text>
+      <Ionicons name="checkmark" size={14} color="#f59e0b" />
       <Text style={s.featureItem}>{label}</Text>
     </View>
   );
@@ -423,22 +429,31 @@ const s = StyleSheet.create({
     marginBottom: 20,
   },
 
-  // ── Icona ─────────────────────────────────────────────────────────────
   iconWrap: {
     alignSelf: 'center',
     marginBottom: 16,
     position: 'relative',
   },
-  icon: { fontSize: 52 },
+  iconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#6c63ff18',
+    borderWidth: 1,
+    borderColor: '#6c63ff33',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   badgeWrap: {
     position: 'absolute',
     bottom: -4,
     right: -8,
     backgroundColor: '#1e2029',
     borderRadius: 12,
-    padding: 2,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: '#2d2f3a',
   },
-  badgeIcon: { fontSize: 18 },
 
   // ── Titolo / sottotitolo ──────────────────────────────────────────────
   title: {
@@ -484,7 +499,6 @@ const s = StyleSheet.create({
     gap: 12,
     flex: 1,
   },
-  boostBtnIcon: { fontSize: 28 },
   boostBtnTitle: {
     fontSize: 15,
     fontWeight: '600',
@@ -537,6 +551,9 @@ const s = StyleSheet.create({
     textAlign: 'center',
   },
   retryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     backgroundColor: '#6c63ff22',
     borderRadius: 8,
     paddingHorizontal: 14,
@@ -556,8 +573,9 @@ const s = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
     marginBottom: 12,
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 8,
   },
   unavailableText: {
     fontSize: 14,
@@ -582,7 +600,7 @@ const s = StyleSheet.create({
     gap: 12,
     marginBottom: 10,
   },
-  upgradeBtnIcon: { fontSize: 28, marginTop: 2 },
+  upgradeBtnIcon: { marginTop: 2 },
   upgradeBtnText: { flex: 1 },
   upgradeBtnTitle: {
     fontSize: 15,
@@ -590,17 +608,12 @@ const s = StyleSheet.create({
     color: '#f59e0b',
     marginBottom: 10,
   },
-  upgradeFeatureList: { gap: 6 },
   featureRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
-  featureCheck: {
-    fontSize: 13,
-    color: '#f59e0b',
-    fontWeight: '600',
-  },
+  featureCheck: { fontSize: 13, color: '#f59e0b', fontWeight: '600' },
   featureItem: {
     fontSize: 13,
     color: '#9ca3af',

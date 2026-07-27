@@ -101,7 +101,7 @@ export async function scheduleRetentionNotifications(): Promise<void> {
     const schedules: Array<{ seconds: number; body: string }> = [
       {
         seconds: 60 * 60 * 24,         // 1 day
-        body: "Pronto a fatturare? Crea la fattura in pochi secondi. 📄",
+        body: "Pronto a fatturare? Crea la fattura in pochi secondi.",
       },
       {
         seconds: 60 * 60 * 24 * 3,     // 3 days
@@ -109,7 +109,7 @@ export async function scheduleRetentionNotifications(): Promise<void> {
       },
       {
         seconds: 60 * 60 * 24 * 7,     // 7 days
-        body: "La tua ricevuta scansionata ti aspetta. Fattura in un tap. ⚡",
+        body: "La tua ricevuta scansionata ti aspetta. Fattura in un tap.",
       },
     ];
 

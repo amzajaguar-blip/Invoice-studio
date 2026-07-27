@@ -16,6 +16,7 @@ import { useToast } from "@/lib/toast";
 import { validatePartitaIVA } from "@/lib/validatePartitaIVA";
 import { apiFetch } from "@/lib/ai";
 import { useLocale } from "@/components/LocaleProvider";
+import { Ionicons } from "@expo/vector-icons";
 
 interface QuickAddClientModalProps {
   visible: boolean;
@@ -123,7 +124,7 @@ export function QuickAddClientModal({
           <View style={styles.header}>
             <Text style={styles.title}>{t("form.client.add_label")}</Text>
             <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
-              <Text style={styles.closeBtnText}>✕</Text>
+              <Ionicons name="close" size={20} color="#6b7280" />
             </TouchableOpacity>
           </View>
 
@@ -221,10 +222,6 @@ const styles = StyleSheet.create({
   },
   closeBtn: {
     padding: 8,
-  },
-  closeBtnText: {
-    fontSize: 20,
-    color: "#6b7280",
   },
   form: {
     flexGrow: 0,

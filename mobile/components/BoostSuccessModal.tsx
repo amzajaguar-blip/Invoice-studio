@@ -29,6 +29,7 @@ import {
 } from 'react-native';
 import type { ResourceType } from '@/lib/rate-limit-engine';
 import { useLocale } from '@/components/LocaleProvider';
+import { Ionicons } from '@expo/vector-icons';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -102,10 +103,10 @@ export default function BoostSuccessModal({
   }, [visible, reduceMotion]);
 
   // ─── Risorse sbloccate ────────────────────────────────────────────────────────
-  const UNLOCKED_RESOURCES: Array<{ emoji: string; labelKey: string }> = [
-    { emoji: '📄', labelKey: 'boost_success_resource_invoices' },
-    { emoji: '👤', labelKey: 'boost_success_resource_clients' },
-    { emoji: '📝', labelKey: 'boost_success_resource_quotes' },
+  const UNLOCKED_RESOURCES: Array<{ iconName: keyof typeof Ionicons.glyphMap; labelKey: string }> = [
+    { iconName: 'document-text-outline', labelKey: 'boost_success_resource_invoices' },
+    { iconName: 'person-outline',        labelKey: 'boost_success_resource_clients' },
+    { iconName: 'create-outline',        labelKey: 'boost_success_resource_quotes' },
   ];
 
   return (
@@ -153,13 +154,13 @@ export default function BoostSuccessModal({
           <View style={s.resourcesRow}>
             {UNLOCKED_RESOURCES.map((r) => (
               <View key={r.labelKey} style={s.resourceChip}>
-                <Text
-                  style={s.resourceEmoji}
+                <Ionicons
+                  name={r.iconName}
+                  size={16}
+                  color="#c4bcff"
                   accessibilityElementsHidden
                   importantForAccessibility="no-hide-descendants"
-                >
-                  {r.emoji}
-                </Text>
+                />
                 <Text style={s.resourceLabel}>{t(r.labelKey)}</Text>
               </View>
             ))}
@@ -167,13 +168,13 @@ export default function BoostSuccessModal({
 
           {/* ── Countdown scadenza ──────────────────────────────────── */}
           <View style={s.expiryRow}>
-            <Text
-              style={s.expiryIcon}
+            <Ionicons
+              name="timer-outline"
+              size={14}
+              color="#6b7280"
               accessibilityElementsHidden
               importantForAccessibility="no-hide-descendants"
-            >
-              ⏳
-            </Text>
+            />
             <Text style={s.expiryText}>
               {t('boost_success_expiry_label')}{' '}
               <Text style={s.expiryHighlight}>{expiresIn}</Text>
@@ -288,7 +289,7 @@ const s = StyleSheet.create({
     borderColor: '#2d2f4a',
   },
   resourceEmoji: {
-    fontSize: 16,
+    // kept for layout, no longer used
   },
   resourceLabel: {
     fontSize: 13,

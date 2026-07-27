@@ -16,6 +16,7 @@ import { useRouter } from "expo-router";
 import { apiFetch } from "@/lib/ai";
 import { useLocale } from "@/components/LocaleProvider";
 import { COLORS, SIZES, SHADOWS } from "../../constants/theme";
+import { Ionicons } from "@expo/vector-icons";
 import {
   incrementScanCount,
   SCAN_LIMIT,
@@ -219,11 +220,11 @@ export default function ScannerScreen() {
     return (
       <View style={styles.container}>
         <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
-          <Text style={styles.closeTxt}>✕</Text>
+          <Ionicons name="close" size={16} color={COLORS.textMuted} />
         </TouchableOpacity>
         <View style={styles.permissionBox}>
           <View style={styles.permissionIconWrap}>
-            <Text style={styles.permissionEmoji}>📷</Text>
+            <Ionicons name="camera-outline" size={40} color="#6c63ff" />
           </View>
           <Text style={styles.permTitle}>{t("scanner.permission.title")}</Text>
           <Text style={styles.permSubtitle}>
@@ -248,10 +249,10 @@ export default function ScannerScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
-            <Text style={styles.closeTxt}>✕</Text>
+            <Ionicons name="close" size={16} color={COLORS.textMuted} />
           </TouchableOpacity>
           <View style={styles.successBadge}>
-            <Text style={styles.successDot}>✓</Text>
+            <Ionicons name="checkmark" size={14} color="#22c55e" />
             <Text style={styles.successLabel}>{t("scanner.result.success_badge")}</Text>
           </View>
         </View>
@@ -324,7 +325,7 @@ export default function ScannerScreen() {
       {/* Top bar */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn} disabled={isCapturing || isAnalyzing}>
-          <Text style={styles.closeTxt}>✕</Text>
+          <Ionicons name="close" size={16} color={COLORS.textMuted} />
         </TouchableOpacity>
         {/* Torch — idle only */}
         {scanState === "idle" && (
@@ -333,7 +334,11 @@ export default function ScannerScreen() {
             onPress={() => setTorchOn((v) => !v)}
             disabled={isCapturing || isAnalyzing}
           >
-            <Text style={[styles.torchIcon, torchOn && { color: COLORS.accent }]}>⚡</Text>
+            <Ionicons
+              name={torchOn ? "flash" : "flash-outline"}
+              size={18}
+              color={torchOn ? COLORS.accent : COLORS.textMuted}
+            />
           </TouchableOpacity>
         )}
       </View>
@@ -525,7 +530,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  closeTxt: { color: COLORS.textMuted, fontSize: 16, fontWeight: "600" },
 
   // ── Torch
   torchBtn: {
@@ -536,12 +540,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  torchBtnOn: { 
-    backgroundColor: COLORS.accentGlow, 
-    borderWidth: 1, 
-    borderColor: COLORS.accent 
+  torchBtnOn: {
+    backgroundColor: COLORS.accentGlow,
+    borderWidth: 1,
+    borderColor: COLORS.accent
   },
-  torchIcon: { fontSize: 16, color: COLORS.textMuted },
 
   // ── Titles
   screenTitle: {
@@ -762,14 +765,13 @@ const styles = StyleSheet.create({
     width: 88,
     height: 88,
     borderRadius: 44,
-    backgroundColor: COLORS.accentGlow,
+    backgroundColor: '#6c63ff18',
     borderWidth: 2,
     borderColor: COLORS.accent,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 8,
   },
-  permissionEmoji: { fontSize: 40 },
   permTitle: {
     fontSize: 22,
     fontWeight: "700",

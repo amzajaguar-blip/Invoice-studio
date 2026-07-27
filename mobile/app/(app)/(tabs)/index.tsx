@@ -326,13 +326,13 @@ export default function DashboardScreen() {
 
   const QUICK_ACTIONS = useMemo(() => [
     {
-      icon: "📄",
+      icon: "document-text-outline" as const,
       label: t("tabs.dashboard.quick_actions.new_invoice.label"),
       onPress: handleNewInvoice,
       accessibilityLabel: t("tabs.dashboard.quick_actions.new_invoice.a11y"),
     },
     {
-      icon: "👤",
+      icon: "person-add-outline" as const,
       label: t("tabs.dashboard.quick_actions.new_client.label"),
       onPress: () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -341,7 +341,7 @@ export default function DashboardScreen() {
       accessibilityLabel: t("tabs.dashboard.quick_actions.new_client.a11y"),
     },
     {
-      icon: "📷",
+      icon: "camera-outline" as const,
       label: t("tabs.dashboard.quick_actions.scan.label"),
       onPress: () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -568,7 +568,7 @@ export default function DashboardScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={action.accessibilityLabel}
               >
-                <Text style={styles.quickActionIcon}>{action.icon}</Text>
+                <Ionicons name={action.icon} size={26} color="#6c63ff" />
                 <Text style={styles.quickActionLabel}>{action.label}</Text>
               </TouchableOpacity>
             ))}
@@ -726,7 +726,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#2d2f3a",
   },
-  quickActionIcon: { fontSize: 28 },
+  quickActionIconWrap: { height: 28, justifyContent: 'center', alignItems: 'center' },
   quickActionLabel: {
     fontSize: 11,
     color: "#9ca3af",

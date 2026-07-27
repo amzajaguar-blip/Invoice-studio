@@ -50,7 +50,8 @@ export type MilestoneType =
 
 export interface MilestoneEvent {
   type:  MilestoneType;
-  emoji: string;
+  iconName: string;
+  iconColor: string;
   title: string;
   body:  string;
 }
@@ -59,47 +60,56 @@ export interface MilestoneEvent {
 
 const MILESTONE_COPY: Record<MilestoneType, Omit<MilestoneEvent, 'type'>> = {
   first_invoice: {
-    emoji: '🎉',
+    iconName: 'document-text-outline',
+    iconColor: '#22c55e',
     title: 'Prima fattura creata!',
     body:  'Hai fatto il primo passo. Il tuo business è ufficialmente partito!',
   },
   invoices_10: {
-    emoji: '🏆',
+    iconName: 'trophy-outline',
+    iconColor: '#f59e0b',
     title: '10 fatture create!',
     body:  'Stai costruendo una solida base clienti. Continua così!',
   },
   invoices_25: {
-    emoji: '🏆',
+    iconName: 'trophy-outline',
+    iconColor: '#f59e0b',
     title: '25 fatture create!',
     body:  'Un traguardo importante. Stai crescendo!',
   },
   invoices_50: {
-    emoji: '🚀',
+    iconName: 'rocket-outline',
+    iconColor: '#6c63ff',
     title: '50 fatture create!',
     body:  'Sei un professionista in piena attività. Impressionante!',
   },
   invoices_100: {
-    emoji: '💎',
+    iconName: 'diamond-outline',
+    iconColor: '#06b6d4',
     title: '100 fatture create!',
     body:  'Un professionista affermato. Straordinario!',
   },
   invoices_500: {
-    emoji: '🌟',
+    iconName: 'star-outline',
+    iconColor: '#f59e0b',
     title: '500 fatture create!',
     body:  'Sei una leggenda del freelancing. Incredibile!',
   },
   invoices_1000: {
-    emoji: '🏆',
+    iconName: 'trophy-outline',
+    iconColor: '#f59e0b',
     title: '1000 fatture create!',
     body:  'Un risultato epico. Complimenti!',
   },
   clients_100: {
-    emoji: '💼',
+    iconName: 'briefcase-outline',
+    iconColor: '#3b82f6',
     title: '100 clienti aggiunti!',
     body:  'Un network straordinario. Il tuo business sta crescendo forte!',
   },
   review_ask: {
-    emoji: '⭐',
+    iconName: 'star-outline',
+    iconColor: '#f59e0b',
     title: 'Ti piace VELA?',
     body:  'Lascia una recensione e aiuta altri freelancer a scoprirci!',
   },

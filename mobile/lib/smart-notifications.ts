@@ -390,7 +390,7 @@ export async function maybeNotifyProductivity(
     if (!data) {
       return sendSmartNotification(orgId, {
         category: 'productivity',
-        title:    '🎉 Prima fattura creata!',
+        title:    'Prima fattura creata!',
         body:     'Hai fatto il primo passo — first invoice! Il tuo business è ufficialmente partito!',
       });
     }
@@ -420,7 +420,7 @@ export async function maybeNotifyBusinessBoost(
   if (boostExpired && opts.dailyAdsLeft > 0) {
     return sendSmartNotification(orgId, {
       category: 'business_boost',
-      title:    '🚀 Business Boost disponibile!',
+      title:    'Business Boost disponibile!',
       body:     'Guarda un breve video per sbloccare risorse extra per 24 ore.',
     });
   }
@@ -451,7 +451,7 @@ export async function maybeNotifyRevenue(
 
     return sendSmartNotification(orgId, {
       category: 'revenue',
-      title:    '📊 Riepilogo settimanale',
+      title:    'Riepilogo settimanale',
       body:     `Questa settimana hai generato ${formattedRevenue}. Ottimo lavoro!`,
     });
   }
@@ -522,7 +522,7 @@ export async function maybeNotifyPremium(
 
   return sendSmartNotification(orgId, {
     category: 'premium',
-    title:    '✨ Potenzia il tuo business',
+    title:    'Potenzia il tuo business',
     body:     'Passa a Premium: fatture illimitate, clienti illimitati, zero pubblicità.',
   });
 }

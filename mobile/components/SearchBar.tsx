@@ -1,4 +1,5 @@
-import { View, TextInput, TouchableOpacity, StyleSheet, Text } from "react-native";
+import { View, TextInput, TouchableOpacity, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocale } from "@/components/LocaleProvider";
 
 export interface SearchBarProps {
@@ -17,9 +18,13 @@ export function SearchBar({
   const placeholder = t("search.placeholder_default");
   return (
     <View style={styles.container}>
-      <Text style={styles.searchIcon} accessibilityElementsHidden>
-        🔍
-      </Text>
+      <Ionicons
+        name="search-outline"
+        size={16}
+        color="#6b7280"
+        style={styles.searchIcon}
+        accessibilityElementsHidden
+      />
       <TextInput
         style={styles.input}
         value={value}
@@ -39,7 +44,7 @@ export function SearchBar({
           accessibilityRole="button"
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text style={styles.clearIcon}>✕</Text>
+          <Ionicons name="close-circle" size={16} color="#6b7280" />
         </TouchableOpacity>
       )}
     </View>
@@ -58,22 +63,17 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   searchIcon: {
-    fontSize: 16,
     marginRight: 8,
   },
   input: {
     flex: 1,
     fontSize: 15,
     color: "#f0f0f2",
-    paddingVertical: 0, // neutralizza padding verticale nativo su Android
+    paddingVertical: 0,
   },
   clearButton: {
     marginLeft: 8,
     justifyContent: "center",
     alignItems: "center",
-  },
-  clearIcon: {
-    fontSize: 14,
-    color: "#6b7280",
   },
 });

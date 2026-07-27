@@ -122,10 +122,10 @@ jobs:
           AAB="$(pwd)/$AAB_REL"
           echo "Found AAB: $AAB"
 
-          # Install patchelf 0.18+ from pre-built binary (no apt-get needed)
-          echo "Installing patchelf 0.18 from pre-built binary..."
-          PATCHELF_URL="https://github.com/NixOS/patchelf/releases/download/0.18.0/patchelf-0.18.0-x86_64.tar.gz"
-          PATCHELF_DIR="/tmp/patchelf-0.18.0"
+          # Install patchelf 0.19+ from pre-built binary (no apt-get needed)
+          echo "Installing patchelf 0.19.1 from pre-built binary..."
+          PATCHELF_URL="https://github.com/NixOS/patchelf/releases/download/0.19.1/patchelf-0.19.1-x86_64.tar.gz"
+          PATCHELF_DIR="/tmp/patchelf-0.19.1"
           mkdir -p "$PATCHELF_DIR"
           cd "$PATCHELF_DIR"
           curl -sL "$PATCHELF_URL" | tar -xz --no-same-owner --no-same-permissions
@@ -230,10 +230,37 @@ jobs:
           echo "✅ AAB verified: versionCode=$ACTUAL_VC, package=$ACTUAL_PKG matches app.json"
           exit 0
 
+      - name: Patch libexpo-modules-core.so to 16 KB segment alignment
+        # Play Console requires arm64-v8a native libraries to have PT_LOAD
+        # alignment >= 16 KB. expo-modules-core@2.5.0 ships
+        # libexpo-modules-core.so with p_align=0x1000 (4 KB) on every ABI.
+        # This step rewrites p_align to 0x4000 directly in the AAB.
+        #
+        # Implementation: see mobile/scripts/patch_libexpo_16kb.py.
+        # Pure Python (stdlib only), uses zipfile to unzip and rezip in
+        # place. ~80 s on the GH Actions runner, ~60-70 MB output
+        # (DEFLATE-compressed, close to original size).
+        if: always()
+        run: |
+          set +e
+          AAB="${GITHUB_WORKSPACE}/mobile/android/app/build/outputs/bundle/release/app-release.aab"
+          if [ ! -f "$AAB" ]; then
+            echo "❌ AAB not found at $AAB — skipping 16 KB post-patch"
+            exit 0
+          fi
+          cd "${GITHUB_WORKSPACE}/mobile"
+          python3 scripts/patch_libexpo_16kb.py "$AAB"
+          PATCH_EXIT=$?
+          if [ "$PATCH_EXIT" -ne 0 ]; then
+            echo "❌ 16 KB patch FAILED with exit $PATCH_EXIT — uploading un-patched AAB (will still fail Play Console 16 KB check)"
+            exit 0
+          fi
+          echo "✅ 16 KB post-patch completed"
+
       - name: Upload AAB Release
         uses: actions/upload-artifact@v4
         with:
-          name: VELA-v57-AAB-16kb
+          name: VELA-v58-AAB-16kb
           path: mobile/android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 14

@@ -26,7 +26,7 @@ export const ToastContext = createContext<ToastContextValue>({
  *
  * @example
  * const { showToast } = useToast();
- * showToast({ message: "Cliente aggiunto ✓", type: "success" });
+ * showToast({ message: "Cliente aggiunto", type: "success" });
  */
 export function useToast(): ToastContextValue {
   return useContext(ToastContext);

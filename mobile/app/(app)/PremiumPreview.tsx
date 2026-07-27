@@ -26,6 +26,7 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trackEvent } from "@/lib/analytics-events";
 import { useLocale } from "@/components/LocaleProvider";
+import { Ionicons } from "@expo/vector-icons";
 
 // ─── Dati benefici Premium ────────────────────────────────────────────────────
 
@@ -51,16 +52,20 @@ function BenefitRow({ benefit, a11yLabel }: { benefit: Benefit; a11yLabel: strin
       accessibilityRole="text"
       accessibilityLabel={a11yLabel}
     >
-      <View style={s.benefitIconContainer}>
-        <Text style={s.benefitEmoji}>{benefit.emoji}</Text>
+      <View style={[s.benefitIconContainer, { backgroundColor: (benefit.iconColor ?? '#1e2029') + '22' }]}>
+        <Ionicons name={benefit.iconName} size={18} color={benefit.iconColor ?? '#6c63ff'} />
       </View>
       <View style={s.benefitTextContainer}>
         <Text style={s.benefitTitle}>{benefit.title}</Text>
         <Text style={s.benefitDescription}>{benefit.description}</Text>
       </View>
-      <Text style={s.checkMark} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        ✓
-      </Text>
+      <Ionicons
+        name="checkmark-circle"
+        size={20}
+        color="#a78bfa"
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      />
     </View>
   );
 }
@@ -70,12 +75,12 @@ function LockedFeatureCard({ feature, a11yLabel }: { feature: LockedFeature; a11
     <View style={s.lockedCard} accessibilityLabel={a11yLabel}>
       {/* Contenuto della card (sfumato/dimmed) */}
       <View style={s.lockedCardContent}>
-        <Text style={s.lockedEmoji}>{feature.emoji}</Text>
+        <Ionicons name={feature.iconName} size={20} color="#f0f0f2" style={{ marginRight: 8 }} />
         <Text style={s.lockedLabel}>{feature.label}</Text>
       </View>
       {/* Overlay dim */}
       <View style={s.lockedOverlay} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        <Text style={s.lockIcon}>🔒</Text>
+        <Ionicons name="lock-closed" size={20} color="#a78bfa" />
       </View>
     </View>
   );
@@ -90,47 +95,54 @@ export default function PremiumPreviewScreen() {
 
   const PREMIUM_BENEFITS: Benefit[] = [
     {
-      emoji: "📄",
+      iconName: 'document-text-outline',
+      iconColor: '#6c63ff',
       title: t("modal.premium_preview.benefit.unlimited_invoices.title"),
       description: t("modal.premium_preview.benefit.unlimited_invoices.desc"),
     },
     {
-      emoji: "👥",
+      iconName: 'people-outline',
+      iconColor: '#3b82f6',
       title: t("modal.premium_preview.benefit.unlimited_clients.title"),
       description: t("modal.premium_preview.benefit.unlimited_clients.desc"),
     },
     {
-      emoji: "📝",
+      iconName: 'create-outline',
+      iconColor: '#22c55e',
       title: t("modal.premium_preview.benefit.unlimited_quotes.title"),
       description: t("modal.premium_preview.benefit.unlimited_quotes.desc"),
     },
     {
-      emoji: "🎨",
+      iconName: 'color-palette-outline',
+      iconColor: '#f59e0b',
       title: t("modal.premium_preview.benefit.pdf_templates.title"),
       description: t("modal.premium_preview.benefit.pdf_templates.desc"),
     },
     {
-      emoji: "☁️",
+      iconName: 'cloud-upload-outline',
+      iconColor: '#06b6d4',
       title: t("modal.premium_preview.benefit.cloud_sync.title"),
       description: t("modal.premium_preview.benefit.cloud_sync.desc"),
     },
     {
-      emoji: "🎯",
+      iconName: 'headset-outline',
+      iconColor: '#a78bfa',
       title: t("modal.premium_preview.benefit.support.title"),
       description: t("modal.premium_preview.benefit.support.desc"),
     },
     {
-      emoji: "🚫",
+      iconName: 'ban-outline',
+      iconColor: '#ef4444',
       title: t("modal.premium_preview.benefit.no_ads.title"),
       description: t("modal.premium_preview.benefit.no_ads.desc"),
     },
   ];
 
   const LOCKED_FEATURES: LockedFeature[] = [
-    { emoji: "📊", label: t("modal.premium_preview.locked.analytics") },
-    { emoji: "🔄", label: t("modal.premium_preview.locked.export") },
-    { emoji: "📬", label: t("modal.premium_preview.locked.email") },
-    { emoji: "🏷️", label: t("modal.premium_preview.locked.templates") },
+    { iconName: 'bar-chart-outline',   label: t("modal.premium_preview.locked.analytics") },
+    { iconName: 'sync-outline',        label: t("modal.premium_preview.locked.export") },
+    { iconName: 'mail-outline',        label: t("modal.premium_preview.locked.email") },
+    { iconName: 'pricetag-outline',    label: t("modal.premium_preview.locked.templates") },
   ];
 
   // Nessun tracking al mount — questa schermata è informativa, non aggressiva.
@@ -163,7 +175,7 @@ export default function PremiumPreviewScreen() {
           accessibilityLabel={t("modal.premium_preview.close.a11y")}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Text style={s.closeButtonText}>✕</Text>
+          <Ionicons name="close" size={16} color="#9ca3af" />
         </TouchableOpacity>
       </View>
 
@@ -174,7 +186,9 @@ export default function PremiumPreviewScreen() {
       >
         {/* Hero */}
         <View style={s.heroSection}>
-          <Text style={s.heroEmoji}>{t("modal.premium_preview.hero.emoji")}</Text>
+          <View style={s.heroIconCircle}>
+            <Ionicons name="rocket" size={40} color="#a78bfa" />
+          </View>
           <Text style={s.heroTitle}>{t("modal.premium_preview.hero.title")}</Text>
           <Text style={s.heroSubtitle}>
             {t("modal.premium_preview.hero.subtitle")}
@@ -289,11 +303,6 @@ const s = StyleSheet.create({
     backgroundColor: "#1e2029",
     borderRadius: 16,
   },
-  closeButtonText: {
-    color: "#9ca3af",
-    fontSize: 14,
-    fontWeight: "600",
-  },
 
   // ScrollView
   scrollView: {
@@ -309,8 +318,15 @@ const s = StyleSheet.create({
     alignItems: "center",
     marginBottom: 32,
   },
-  heroEmoji: {
-    fontSize: 48,
+  heroIconCircle: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: '#6c63ff18',
+    borderWidth: 1,
+    borderColor: '#6c63ff33',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 16,
   },
   heroTitle: {
@@ -365,26 +381,10 @@ const s = StyleSheet.create({
     opacity: 0.25, // Effetto dim — contenuto bloccato
   },
   lockedEmoji: {
-    fontSize: 20,
-    marginRight: 8,
-  },
-  lockedLabel: {
-    fontSize: 13,
-    color: "#f0f0f2",
-    fontWeight: "600",
-    flex: 1,
-  },
-  lockedOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    alignItems: "center",
-    justifyContent: "center",
+    // no longer used — replaced by Ionicons
   },
   lockIcon: {
-    fontSize: 22,
+    // no longer used — replaced by Ionicons
   },
 
   // Benefits list
@@ -408,33 +408,15 @@ const s = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: "#1e2029",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 14,
   },
   benefitEmoji: {
-    fontSize: 18,
-  },
-  benefitTextContainer: {
-    flex: 1,
-  },
-  benefitTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#f0f0f2",
-    marginBottom: 2,
-  },
-  benefitDescription: {
-    fontSize: 12,
-    color: "#9ca3af",
-    lineHeight: 17,
+    // no longer used — replaced by Ionicons
   },
   checkMark: {
-    color: "#a78bfa",
-    fontSize: 18,
-    fontWeight: "bold",
-    marginLeft: 10,
+    // no longer used — replaced by Ionicons
   },
   benefitDivider: {
     height: 1,

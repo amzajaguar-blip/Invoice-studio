@@ -122,7 +122,7 @@ export default function InAppContextualCard({
         accessibilityLabel={t('cancel') ?? 'Chiudi'}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        <Text style={s.dismissIcon}>✕</Text>
+        <Ionicons name="close" size={14} color="#6b7280" />
       </TouchableOpacity>
     </View>
   );
@@ -199,10 +199,5 @@ const s = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical:   4,
     flexShrink:        0,
-  },
-  dismissIcon: {
-    fontSize:   13,
-    color:      '#6b7280',
-    lineHeight: 16,
   },
 });

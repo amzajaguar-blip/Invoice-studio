@@ -148,7 +148,7 @@ function DiagnosticScreen({ error }: { error: Error }): React.JSX.Element {
           </Text>
           {bootSteps.slice(-5).map((s, i) => (
             <Text key={i} style={{ color: "#22c55e", fontSize: 11 }}>
-              ✓ {s}
+              {s}
             </Text>
           ))}
           {bootSteps.length > 5 && (
