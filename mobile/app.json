@@ -2,7 +2,7 @@
   "expo": {
     "name": "Milo Office",
     "slug": "vela-invoice",
-    "version": "1.0.58",
+    "version": "1.0.60",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "vela",
@@ -15,16 +15,16 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.vela.mobile",
-      "buildNumber": "37"
+      "buildNumber": "39"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0a0b0f"
       },
-      "package": "com.Invoice_Studio.myapp",
-      "versionCode": 58,
-      "versionName": "1.0.58",
+      "package": "com.vela.mobile",
+      "versionCode": 60,
+      "versionName": "1.0.60",
       "permissions": [
         "com.android.vending.BILLING",
         "android.permission.CAMERA",
