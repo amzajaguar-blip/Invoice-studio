@@ -349,20 +349,24 @@ jobs:
           # v1 + v2 + v3 — same schemes Gradle would have used.
           # apksigner wants to read AndroidManifest.xml at the zip root,
           # but in AABs the manifest lives at base/manifest/AndroidManifest.xml
-          # (not at the root, which is APK layout). build-tools 36 auto-detects
-          # this correctly; no --min-sdk-version override needed.
+          # (not at the root, which is APK layout). We use --min-sdk-version
+          # to tell apksigner the min SDK and bypass the manifest auto-detect.
           MIN_SDK=$(grep -oP 'minSdkVersion\s+\K\d+' android/app/build.gradle 2>/dev/null || echo "24")
           echo "minSdkVersion: $MIN_SDK"
-          # NOTE: --min-sdk-version is NOT needed with build-tools 36 — apksigner
-          # auto-detects the manifest location at base/manifest/AndroidManifest.xml
-          # for AABs and embeds v2/v3 blocks correctly. Passing it explicitly was
-          # causing manifest validation drift in v62 (crash "ClassNotFoundException"
-          # at MainActivity load on real device).
+          # NOTE: --min-sdk-version IS REQUIRED even on build-tools 36.
+          # AABs put AndroidManifest.xml at base/manifest/AndroidManifest.xml
+          # (not at the zip root, which is APK layout). Without --min-sdk-version
+          # apksigner 36 fails with "Missing AndroidManifest.xml" because the
+          # auto-detect heuristic still expects the APK layout. The earlier
+          # "crash on real device" was caused by the proguard-rules.pro keep
+          # rule targeting the wrong package (com.vela.mobile instead of
+          # com.Invoice_Studio.myapp), NOT by --min-sdk-version.
           "$APKSIGNER_DIR" sign \
             --ks "$ANDROID_KEYSTORE_PATH" \
             --ks-pass "pass:$ANDROID_KEYSTORE_PASSWORD" \
             --ks-key-alias "$ANDROID_KEY_ALIAS" \
             --key-pass "pass:$ANDROID_KEY_PASSWORD" \
+            --min-sdk-version "$MIN_SDK" \
             --v1-signing-enabled true \
             --v2-signing-enabled true \
             --v3-signing-enabled true \
