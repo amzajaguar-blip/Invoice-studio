@@ -65,8 +65,18 @@
 -dontwarn com.horcrux.svg.**
 
 # ── Main Activity / Application (referenced from AndroidManifest only) ────────
--keep class com.vela.mobile.MainActivity { *; }
--keep class com.vela.mobile.MainApplication { *; }
+# CRITICAL: must match the actual package declared in app/build.gradle
+# namespace 'com.Invoice_Studio.myapp' → these classes live under that package.
+# Stripping them = crash "ClassNotFoundException: MainActivity" on launch.
+-keep class com.Invoice_Studio.myapp.MainActivity { *; }
+-keep class com.Invoice_Studio.myapp.MainApplication { *; }
+# Belt-and-braces: keep ANY MainActivity/MainApplication that the manifest might
+# point to after a future package rename, since these names are referenced via
+# the manifest's android:name="...MainActivity" attribute (string-only).
+-keep class **.MainActivity { *; }
+-keep class **.MainApplication { *; }
+-keep class **.MainActivityKt { *; }
+-keep class **.MainApplicationKt { *; }
 
 # ── Expo-specific: keep all expo modules by interface ─────────────────────────
 -keep class * extends com.facebook.react.bridge.NativeModule { *; }
@@ -144,3 +154,35 @@
 -dontwarn com.google.crypto.tink.**
 -dontwarn com.google.api.client.**
 -dontwarn org.joda.time.**
+
+# ── Supabase + OkHttp/Okio transitive (real-device crash in v62#1) ───────────
+# Supabase JS client uses Java reflection on response objects + kotlin
+# companion objects. Stripping these breaks auth callback handling.
+-keep class kotlin.Metadata { *; }
+-keepattributes RuntimeVisibleAnnotations,RuntimeVisibleParameterAnnotations
+-keep class kotlinx.serialization.** { *; }
+-dontwarn kotlinx.serialization.**
+-keep,includedescriptorclasses class kotlin.coroutines.Continuation
+-keepclassmembers class kotlinx.coroutines.** { volatile <fields>; }
+
+# ── RevenueCat — PurchasesAndroid (reflection on offerings/periods) ──────────
+# Purchases SDK calls com.revenuecat.purchases.Purchases via reflection; the
+# default SDK ProGuard rules cover most cases but offer ID parsing hits
+# kotlin.Result which R8 strips unless explicitly kept.
+-keep class kotlin.Result { *; }
+-keep class com.revenuecat.purchases.common.** { *; }
+-keep class com.revenuecat.purchases.models.** { *; }
+
+# ── React Native CLI runtime (Java reflection for turbomodules + new arch) ───
+# Without these, newArchitectureEnabled causes ABI-safety crashes on first JS
+# bridge call.
+-keep class com.facebook.react.runtime.** { *; }
+-keep class com.facebook.react.modules.core.DeviceEventManagerModule** { *; }
+-keep class * implements com.facebook.react.turbomodule.core.interfaces.TurboModule { *; }
+
+# ── WebView / Reanimated / Gesture Handler ───────────────────────────────────
+-keep class com.reactnativecommunity.webview.** { *; }
+-keep class com.swmansion.reanimated.** { *; }
+-keep class com.swmansion.gesturehandler.** { *; }
+-dontwarn com.swmansion.**
+-dontwarn com.reactnativecommunity.**

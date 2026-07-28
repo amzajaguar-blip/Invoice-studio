@@ -240,6 +240,57 @@ jobs:
           echo "✅ AAB verified: versionCode=$ACTUAL_VC, package=$ACTUAL_PKG matches app.json"
           exit 0
 
+      - name: Verify R8 did not strip MainActivity / MainApplication
+        # CRITICAL GUARD: if R8/ProGuard removes com.Invoice_Studio.myapp.MainActivity
+        # (because proguard-rules.pro had the wrong package — historical bug fixed
+        # in v62+), the AAB installs but the app crashes immediately on launch with
+        # "ClassNotFoundException: MainActivity". Stop the build here with a clear
+        # message instead of letting it pass and finding out from a user report.
+        if: always()
+        run: |
+          set +e
+          AAB="${GITHUB_WORKSPACE}/mobile/android/app/build/outputs/bundle/release/app-release.aab"
+          if [ ! -f "$AAB" ]; then
+            echo "⚠️ AAB not found — skipping MainActivity check"
+            exit 0
+          fi
+          DEXDUMP=/home/locoomo/android-sdk/build-tools/36.0.0/dexdump
+          if [ ! -x "$DEXDUMP" ]; then
+            DEXDUMP=$(find "$ANDROID_HOME" -name dexdump -type f 2>/dev/null | head -1)
+          fi
+          if [ -z "$DEXDUMP" ]; then
+            echo "⚠️ dexdump not available — skipping MainActivity check"
+            exit 0
+          fi
+          # Find each base/dex/classes*.dex inside the AAB
+          WORKDIR=$(mktemp -d)
+          trap "rm -rf $WORKDIR" EXIT
+          unzip -o -q "$AAB" "base/dex/*" -d "$WORKDIR" 2>&1 | head -3
+          HAS_MAIN_ACTIVITY=0
+          HAS_MAIN_APPLICATION=0
+          for dex in "$WORKDIR"/base/dex/classes*.dex; do
+            [ -f "$dex" ] || continue
+            DUMP=$("$DEXDUMP" "$dex" 2>/dev/null)
+            if echo "$DUMP" | grep -q "Lcom/Invoice_Studio/myapp/MainActivity"; then
+              HAS_MAIN_ACTIVITY=1
+            fi
+            if echo "$DUMP" | grep -q "Lcom/Invoice_Studio/myapp/MainApplication"; then
+              HAS_MAIN_APPLICATION=1
+            fi
+          done
+          if [ "$HAS_MAIN_ACTIVITY" -ne 1 ] || [ "$HAS_MAIN_APPLICATION" -ne 1 ]; then
+            echo "❌ CRITICAL: R8 stripped launcher classes from .dex"
+            echo "   MainActivity in dex:    $HAS_MAIN_ACTIVITY  (need 1)"
+            echo "   MainApplication in dex: $HAS_MAIN_APPLICATION  (need 1)"
+            echo ""
+            echo "   FIX: check mobile/proguard-rules.pro — the keep rules for"
+            echo "   MainActivity/MainApplication must match the package declared in"
+            echo "   mobile/android/app/build.gradle (namespace + applicationId)."
+            echo "   Current package: com.Invoice_Studio.myapp"
+            exit 1
+          fi
+          echo "✅ MainActivity + MainApplication present in .dex (R8 did not strip)"
+
       - name: Patch libexpo-modules-core.so to 16 KB segment alignment
         # Play Console requires arm64-v8a native libraries to have PT_LOAD
         # alignment >= 16 KB. expo-modules-core@2.5.0 ships
@@ -298,16 +349,20 @@ jobs:
           # v1 + v2 + v3 — same schemes Gradle would have used.
           # apksigner wants to read AndroidManifest.xml at the zip root,
           # but in AABs the manifest lives at base/manifest/AndroidManifest.xml
-          # (not at the root, which is APK layout). We use --min-sdk-version
-          # to bypass the auto-detection that fails on AAB.
+          # (not at the root, which is APK layout). build-tools 36 auto-detects
+          # this correctly; no --min-sdk-version override needed.
           MIN_SDK=$(grep -oP 'minSdkVersion\s+\K\d+' android/app/build.gradle 2>/dev/null || echo "24")
           echo "minSdkVersion: $MIN_SDK"
+          # NOTE: --min-sdk-version is NOT needed with build-tools 36 — apksigner
+          # auto-detects the manifest location at base/manifest/AndroidManifest.xml
+          # for AABs and embeds v2/v3 blocks correctly. Passing it explicitly was
+          # causing manifest validation drift in v62 (crash "ClassNotFoundException"
+          # at MainActivity load on real device).
           "$APKSIGNER_DIR" sign \
             --ks "$ANDROID_KEYSTORE_PATH" \
             --ks-pass "pass:$ANDROID_KEYSTORE_PASSWORD" \
             --ks-key-alias "$ANDROID_KEY_ALIAS" \
             --key-pass "pass:$ANDROID_KEY_PASSWORD" \
-            --min-sdk-version "$MIN_SDK" \
             --v1-signing-enabled true \
             --v2-signing-enabled true \
             --v3-signing-enabled true \
