@@ -108,6 +108,7 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          GRADLE_OPTS: "-Xmx6g -Dfile.encoding=UTF-8 -XX:+UseG1GC -XX:MaxMetaspaceSize=1g"
 
       - name: Align native libraries to 16KB page size (patchelf)
         # Disabled 2026-07-27: this step called patchelf --set-page-size
