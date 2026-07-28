@@ -29,7 +29,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'platforms;android-36 build-tools;35.0.0 ndk;27.2.12479018 cmdline-tools;latest'
+          packages: 'platforms;android-36 build-tools;36.0.0 ndk;27.2.12479018 cmdline-tools;latest'
 
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
@@ -287,7 +287,7 @@ jobs:
             echo "❌ AAB not found at $AAB — skipping re-sign"
             exit 0
           fi
-          APKSIGNER_DIR="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          APKSIGNER_DIR="$ANDROID_HOME/build-tools/36.0.0/apksigner"
           if [ ! -x "$APKSIGNER_DIR" ]; then
             APKSIGNER_DIR=$(find "$ANDROID_HOME" -name apksigner -type f 2>/dev/null | head -1)
           fi
