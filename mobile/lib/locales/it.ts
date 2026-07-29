@@ -304,6 +304,8 @@ export const it = {
 "scanner.result.label.vendor":"Fornitore",
 "scanner.result.label.date":"Data",
 "scanner.result.label.total":"Totale",
+"scanner.result.label.vat":"P.IVA",
+"scanner.result.label.invoice_number":"Numero fattura",
 "scanner.result.dash":"",
 "scanner.actions.retry":"Riprova",
 "scanner.actions.confirm":"Conferma →",

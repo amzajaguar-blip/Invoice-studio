@@ -8,7 +8,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { apiFetch } from "@/lib/ai";
 import { useLocale } from "@/components/LocaleProvider";
 import { QuickAddClientModal } from "@/components/QuickAddClientModal";
-import { LastClientChips, LastClientChipItem } from "@/components/LastClientChips";
+import { LastClientChips } from "@/components/LastClientChips";
+import type { LastClientChipItem } from "@/components/LastClientChips";
 import { SmartClientAutocomplete } from "@/components/SmartClientAutocomplete";
 import { getRecentClients, recordUsage } from "@/lib/lastUsed";
 import {

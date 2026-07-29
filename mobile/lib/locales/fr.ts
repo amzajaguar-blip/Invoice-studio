@@ -298,6 +298,8 @@ export const fr = {
 "scanner.result.label.vendor":"Fornitore",
 "scanner.result.label.date":"Data",
 "scanner.result.label.total":"Totale",
+"scanner.result.label.vat":"N° TVA",
+"scanner.result.label.invoice_number":"Numéro de facture",
 "scanner.result.dash":"",
 "scanner.actions.retry":"Riprova",
 "scanner.actions.confirm":"Conferma →",

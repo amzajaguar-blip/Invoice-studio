@@ -298,6 +298,8 @@ export const zh = {
 "scanner.result.label.vendor":"Fornitore",
 "scanner.result.label.date":"Data",
 "scanner.result.label.total":"Totale",
+"scanner.result.label.vat":"增值税号",
+"scanner.result.label.invoice_number":"发票号码",
 "scanner.result.dash":"",
 "scanner.actions.retry":"Riprova",
 "scanner.actions.confirm":"Conferma →",

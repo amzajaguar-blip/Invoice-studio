@@ -298,6 +298,8 @@ export const en = {
 "scanner.result.label.vendor":"Vendor",
 "scanner.result.label.date":"Date",
 "scanner.result.label.total":"Total",
+"scanner.result.label.vat":"VAT number",
+"scanner.result.label.invoice_number":"Invoice number",
 "scanner.result.dash":"",
 "scanner.actions.retry":"Retry",
 "scanner.actions.confirm":"Confirm →",
