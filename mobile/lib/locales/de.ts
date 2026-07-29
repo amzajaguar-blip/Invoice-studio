@@ -617,4 +617,20 @@ export const de = {
 "reset.invalid_link.body":"Dieser Link ist nicht mehr gültig. Fordere einen neuen über den Anmeldebildschirm an.",
 "reset.invalid_link.back_to_login":"Zur Anfrage",
 "login.forgot_password_link":"Passwort vergessen?",
+
+  // ─── OCR Field Review (confidence scoring + learning) ──────────────────────
+"ocrReview.needs_review":"Überprüfen",
+"ocrReview.confidence_high":"Mit hoher Zuverlässigkeit extrahiert",
+"ocrReview.confidence_low":"Dieses Feld überprüfen",
+"ocrReview.tap_to_edit":"Tippen zum Korrigieren",
+"ocrReview.saved_correction":"Korrektur gespeichert",
+"ocrReview.learned_from_previous":"Wert aus früherem Scan vorgeschlagen",
+
+  // ─── Smart Pre-fill (new-invoice) ─────────────────────────────────────────
+"invoicePrefill.recent_clients":"Letzte Kunden",
+"invoicePrefill.smart_match":"Hast du schon {name}?",
+"invoicePrefill.smart_match_yes":"Ja, auswählen",
+"invoicePrefill.use_template":"Vorlage verwenden",
+"invoicePrefill.defaults_explainer":"Standardwerte für Italien: 30 Tage, EUR, 22% MwSt.",
+"invoicePrefill.defaults_override_hint":"Tippen zum Ändern",
 };

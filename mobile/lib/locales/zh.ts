@@ -617,4 +617,20 @@ export const zh = {
 "reset.invalid_link.body":"此重置链接已不再有效。请从登录页面重新申请。",
 "reset.invalid_link.back_to_login":"返回申请",
 "login.forgot_password_link":"忘记密码？",
+
+  // ─── OCR Field Review (confidence scoring + learning) ──────────────────────
+"ocrReview.needs_review":"需要审核",
+"ocrReview.confidence_high":"高可信度提取",
+"ocrReview.confidence_low":"请验证此字段",
+"ocrReview.tap_to_edit":"点击修正",
+"ocrReview.saved_correction":"修正已保存",
+"ocrReview.learned_from_previous":"根据上一次扫描的推荐值",
+
+  // ─── Smart Pre-fill (new-invoice) ─────────────────────────────────────────
+"invoicePrefill.recent_clients":"最近使用的客户",
+"invoicePrefill.smart_match":"已经有 {name} 了？",
+"invoicePrefill.smart_match_yes":"是，选择",
+"invoicePrefill.use_template":"使用模板",
+"invoicePrefill.defaults_explainer":"意大利默认值：30 天、欧元、增值税 22%",
+"invoicePrefill.defaults_override_hint":"点击修改",
 };

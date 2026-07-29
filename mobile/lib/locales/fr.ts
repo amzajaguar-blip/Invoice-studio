@@ -617,4 +617,20 @@ export const fr = {
 "reset.invalid_link.body":"Ce lien de réinitialisation n'est plus valide. Demandes-en un nouveau depuis l'écran de connexion.",
 "reset.invalid_link.back_to_login":"Retour à la demande",
 "login.forgot_password_link":"Mot de passe oublié ?",
+
+  // ─── OCR Field Review (confidence scoring + learning) ──────────────────────
+"ocrReview.needs_review":"À vérifier",
+"ocrReview.confidence_high":"Extrait avec une fiabilité élevée",
+"ocrReview.confidence_low":"Vérifie ce champ",
+"ocrReview.tap_to_edit":"Touche pour corriger",
+"ocrReview.saved_correction":"Correction enregistrée",
+"ocrReview.learned_from_previous":"Valeur suggérée depuis un scan précédent",
+
+  // ─── Smart Pre-fill (new-invoice) ─────────────────────────────────────────
+"invoicePrefill.recent_clients":"Clients récents",
+"invoicePrefill.smart_match":"Tu as déjà {name} ?",
+"invoicePrefill.smart_match_yes":"Oui, sélectionner",
+"invoicePrefill.use_template":"Utiliser le modèle",
+"invoicePrefill.defaults_explainer":"Valeurs par défaut pour l'Italie : 30 jours, EUR, TVA 22%",
+"invoicePrefill.defaults_override_hint":"Appuie pour modifier",
 };

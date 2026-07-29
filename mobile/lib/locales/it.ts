@@ -627,6 +627,22 @@ export const it = {
 "reset.invalid_link.back_to_login":"Torna alla richiesta",
   // Link nel footer della schermata di login
 "login.forgot_password_link":"Password dimenticata?",
+
+  // ─── OCR Field Review (confidence scoring + learning) ──────────────────────
+"ocrReview.needs_review":"Da verificare",
+"ocrReview.confidence_high":"Estratto con alta affidabilità",
+"ocrReview.confidence_low":"Verifica questo campo",
+"ocrReview.tap_to_edit":"Tocca per correggere",
+"ocrReview.saved_correction":"Correzione salvata",
+"ocrReview.learned_from_previous":"Valore suggerito da scansione precedente",
+
+  // ─── Smart Pre-fill (new-invoice) ─────────────────────────────────────────
+"invoicePrefill.recent_clients":"Clienti recenti",
+"invoicePrefill.smart_match":"Hai già {name}?",
+"invoicePrefill.smart_match_yes":"Sì, seleziona",
+"invoicePrefill.use_template":"Usa template",
+"invoicePrefill.defaults_explainer":"Valori predefiniti per l'Italia: 30gg, EUR, IVA 22%",
+"invoicePrefill.defaults_override_hint":"Tocca per modificare",
 };
 
 export type TranslationKeys = keyof typeof it;

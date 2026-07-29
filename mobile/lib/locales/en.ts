@@ -617,4 +617,20 @@ export const en = {
 "reset.invalid_link.body":"This reset link is no longer valid. Request a new one from the login screen.",
 "reset.invalid_link.back_to_login":"Back to request",
 "login.forgot_password_link":"Forgot password?",
+
+  // ─── OCR Field Review (confidence scoring + learning) ──────────────────────
+"ocrReview.needs_review":"Needs review",
+"ocrReview.confidence_high":"Extracted with high confidence",
+"ocrReview.confidence_low":"Verify this field",
+"ocrReview.tap_to_edit":"Tap to correct",
+"ocrReview.saved_correction":"Correction saved",
+"ocrReview.learned_from_previous":"Value suggested from previous scan",
+
+  // ─── Smart Pre-fill (new-invoice) ─────────────────────────────────────────
+"invoicePrefill.recent_clients":"Recent clients",
+"invoicePrefill.smart_match":"Already have {name}?",
+"invoicePrefill.smart_match_yes":"Yes, select",
+"invoicePrefill.use_template":"Use template",
+"invoicePrefill.defaults_explainer":"Default values for Italy: 30 days, EUR, 22% VAT",
+"invoicePrefill.defaults_override_hint":"Tap to change",
 };

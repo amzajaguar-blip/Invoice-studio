@@ -22,6 +22,21 @@ import {
   SCAN_LIMIT,
   scheduleRetentionNotifications,
 } from "../../lib/scanner-quota";
+import {
+  scoreAllFields,
+  scoreAmount,
+  scoreDate,
+  scoreVendor,
+  scoreVat,
+  scoreInvoiceNumber,
+  normalizeVendorName,
+  type FieldConfidence,
+} from "../../lib/ocr-confidence";
+import {
+  recordCorrection,
+  getSuggestion,
+} from "../../lib/ocr-corrections";
+import { OCRFieldReview } from "../../components/OCRFieldReview";
 
 type ScanState = "idle" | "capturing" | "preview" | "analyzing" | "result";
 
@@ -31,6 +46,9 @@ interface OcrResult {
   total: number | null;
   currency: string;
   rawText: string;
+  /** Optional fields — may be missing in legacy API responses. */
+  vat_number?: string;
+  invoice_number?: string;
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -59,6 +77,18 @@ export default function ScannerScreen() {
   const [error, setError] = useState<string | null>(null);
   const [ocrResult, setOcrResult] = useState<OcrResult | null>(null);
   const [showPaywall, setShowPaywall] = useState(false);
+
+  // ── OCR Confidence / learning state (additive) ─────────────────────────────
+  // The original code stored `ocrResult` as a snapshot. We now ALSO hold
+  // a `Record<field, FieldConfidence>` so each value can carry its own
+  // confidence metadata. Initial state is null until the API returns.
+  const [fieldScores, setFieldScores] = useState<Record<string, FieldConfidence> | null>(null);
+  // Tracks which fields were auto-filled from previous corrections, so the
+  // UI can show a "learned from previous scan" hint.
+  const [autoFilledFields, setAutoFilledFields] = useState<Record<string, string>>({});
+  // Records the ORIGINAL value the user sees for each field, so we can
+  // detect corrections and persist them on confirm.
+  const originalValuesRef = useRef<Record<string, string>>({});
 
   // Animated scan line
   const scanAnim = useRef(new Animated.Value(0)).current;
@@ -180,8 +210,82 @@ export default function ScannerScreen() {
         }
 
         // Successful scan — show result
-        setOcrResult(data as OcrResult);
+        const result = data as OcrResult;
+        setOcrResult(result);
         setScanState("result");
+
+        // ── Compute per-field confidence + pre-fill from previous corrections ──
+        const scores = scoreAllFields(result.rawText, {
+          vendor: result.vendor,
+          date: result.date,
+          amount: result.total !== null ? result.total.toFixed(2) : "",
+          vat_number: result.vat_number ?? "",
+          invoice_number: result.invoice_number ?? "",
+        });
+        setFieldScores(scores);
+
+        // Snapshot of what the user sees for each field, so we can detect
+        // corrections at confirm-time and persist them.
+        originalValuesRef.current = {
+          vendor: scores.vendor.value,
+          date: scores.date.value,
+          amount: scores.amount.value,
+          vat_number: scores.vat_number.value,
+          invoice_number: scores.invoice_number.value,
+        };
+
+        // Look up corrections from previous scans of the same vendor.
+        // We do this asynchronously to avoid blocking the UI.
+        const vendorKey = normalizeVendorName(result.vendor);
+        if (vendorKey) {
+          void (async () => {
+            try {
+              const [sVendor, sDate, sAmount, sVat, sInv] = await Promise.all([
+                getSuggestion(vendorKey, "vendor"),
+                getSuggestion(vendorKey, "date"),
+                getSuggestion(vendorKey, "amount"),
+                getSuggestion(vendorKey, "vat_number"),
+                getSuggestion(vendorKey, "invoice_number"),
+              ]);
+              if (!isMounted.current) return;
+              const autoFilled: Record<string, string> = {};
+              // Only override when the current OCR value is empty (low signal).
+              if (sVendor && !scores.vendor.value) autoFilled.vendor = sVendor;
+              if (sDate && !scores.date.value) autoFilled.date = sDate;
+              if (sAmount && !scores.amount.value) autoFilled.amount = sAmount;
+              if (sVat && !scores.vat_number.value) autoFilled.vat_number = sVat;
+              if (sInv && !scores.invoice_number.value) autoFilled.invoice_number = sInv;
+
+              if (Object.keys(autoFilled).length > 0) {
+                setAutoFilledFields(autoFilled);
+                // Re-score any auto-filled fields so the user sees a green badge.
+                setFieldScores((prev) => {
+                  if (!prev) return prev;
+                  const updated: Record<string, FieldConfidence> = { ...prev };
+                  if (autoFilled.vendor) {
+                    updated.vendor = scoreVendor(autoFilled.vendor);
+                  }
+                  if (autoFilled.date) {
+                    updated.date = scoreDate(autoFilled.date);
+                  }
+                  if (autoFilled.amount) {
+                    updated.amount = scoreAmount(autoFilled.amount);
+                  }
+                  if (autoFilled.vat_number) {
+                    updated.vat_number = scoreVat(autoFilled.vat_number);
+                  }
+                  if (autoFilled.invoice_number) {
+                    updated.invoice_number = scoreInvoiceNumber(autoFilled.invoice_number);
+                  }
+                  return updated;
+                });
+              }
+            } catch (e) {
+              // Non-fatal — auto-fill is a best-effort UX enhancement.
+              console.warn("[scanner] auto-fill lookup failed:", e);
+            }
+          })();
+        }
 
         // Fire-and-forget retention notifications
         scheduleRetentionNotifications();
@@ -199,11 +303,86 @@ export default function ScannerScreen() {
     setPhotoBase64(null);
     setOcrResult(null);
     setError(null);
+    setFieldScores(null);
+    setAutoFilledFields({});
+    originalValuesRef.current = {};
     setScanState("idle");
   };
 
-  const handleConfirm = () => {
+  /**
+   * Persist any user corrections before navigating away.
+   * Fire-and-forget — errors are non-fatal and logged inside recordCorrection.
+   */
+  const handleConfirm = async () => {
+    try {
+      const originals = originalValuesRef.current;
+      const vendorKey = normalizeVendorName(originals.vendor || ocrResult?.vendor);
+      if (!vendorKey || !fieldScores) {
+        router.back();
+        return;
+      }
+      // Compare the live fieldScores to the originals we snapshotted.
+      const fields: ReadonlyArray<keyof typeof originals> = [
+        "vendor",
+        "date",
+        "amount",
+        "vat_number",
+        "invoice_number",
+      ];
+      const writes: Array<Promise<void>> = [];
+      for (const field of fields) {
+        const live = fieldScores[field]?.value ?? "";
+        const original = originals[field] ?? "";
+        if (live !== original && live.trim().length > 0) {
+          writes.push(
+            recordCorrection({
+              field,
+              originalValue: original,
+              correctedValue: live,
+              vendorNormalized: vendorKey,
+              at: new Date().toISOString(),
+            })
+          );
+        }
+      }
+      if (writes.length > 0) {
+        await Promise.all(writes);
+      }
+    } catch (e) {
+      console.warn("[scanner] confirm/correction write failed:", e);
+    }
     router.back();
+  };
+
+  /**
+   * Update a field's value as the user edits. Re-scores that field so the
+   * confidence badge stays in sync.
+   */
+  const updateFieldValue = (field: string, value: string) => {
+    setFieldScores((prev) => {
+      if (!prev) return prev;
+      let next: FieldConfidence;
+      switch (field) {
+        case "vendor":
+          next = scoreVendor(value);
+          break;
+        case "date":
+          next = scoreDate(value);
+          break;
+        case "amount":
+          next = scoreAmount(value);
+          break;
+        case "vat_number":
+          next = scoreVat(value);
+          break;
+        case "invoice_number":
+          next = scoreInvoiceNumber(value);
+          break;
+        default:
+          return prev;
+      }
+      return { ...prev, [field]: next };
+    });
   };
 
   // ── Permission loading ─────────────────────────────────────────────────────
@@ -244,6 +423,11 @@ export default function ScannerScreen() {
   // ── Result screen ─────────────────────────────────────────────────────────
 
   if (scanState === "result" && ocrResult) {
+    // Field-confidence UI. We render OCRFieldReview when `fieldScores` is
+    // populated (post-OCR). For an instant first paint we still show the
+    // legacy read-only ResultRow beneath, so the result screen never goes
+    // blank — additive only, the original flow keeps working.
+    const hasScores = fieldScores !== null;
     return (
       <View style={styles.container}>
         {/* Header */}
@@ -260,19 +444,59 @@ export default function ScannerScreen() {
         <Text style={styles.resultHint}>{t("scanner.result.hint")}</Text>
 
         <ScrollView style={styles.resultCard} contentContainerStyle={styles.resultContent} showsVerticalScrollIndicator={false}>
-          <ResultRow label={t("scanner.result.label.vendor")} value={ocrResult.vendor || t("scanner.result.dash")} />
-          <View style={styles.divider} />
-          <ResultRow label={t("scanner.result.label.date")} value={ocrResult.date || t("scanner.result.dash")} />
-          <View style={styles.divider} />
-          <ResultRow
-            label={t("scanner.result.label.total")}
-            value={
-              ocrResult.total !== null
-                ? `${ocrResult.total.toFixed(2)} ${ocrResult.currency || '€'}`
-                : t("scanner.result.dash")
-            }
-            highlight
-          />
+          {hasScores && fieldScores ? (
+            <>
+              <OCRFieldReview
+                field={fieldScores.vendor}
+                label={t("scanner.result.label.vendor")}
+                onChange={(v) => updateFieldValue("vendor", v)}
+                autoFilledFromCorrection={autoFilledFields.vendor}
+              />
+              <OCRFieldReview
+                field={fieldScores.date}
+                label={t("scanner.result.label.date")}
+                onChange={(v) => updateFieldValue("date", v)}
+                autoFilledFromCorrection={autoFilledFields.date}
+              />
+              <OCRFieldReview
+                field={fieldScores.amount}
+                label={t("scanner.result.label.total")}
+                onChange={(v) => updateFieldValue("amount", v)}
+                autoFilledFromCorrection={autoFilledFields.amount}
+                trailingHint={ocrResult.currency || "€"}
+              />
+              <OCRFieldReview
+                field={fieldScores.vat_number}
+                label={t("scanner.result.label.vat") ?? "P.IVA"}
+                onChange={(v) => updateFieldValue("vat_number", v)}
+                autoFilledFromCorrection={autoFilledFields.vat_number}
+              />
+              <OCRFieldReview
+                field={fieldScores.invoice_number}
+                label={t("scanner.result.label.invoice_number") ?? "Numero fattura"}
+                onChange={(v) => updateFieldValue("invoice_number", v)}
+                autoFilledFromCorrection={autoFilledFields.invoice_number}
+              />
+            </>
+          ) : (
+            // Fallback rendering while `fieldScores` is still null — same
+            // visual shape as before, no flicker.
+            <>
+              <ResultRow label={t("scanner.result.label.vendor")} value={ocrResult.vendor || t("scanner.result.dash")} />
+              <View style={styles.divider} />
+              <ResultRow label={t("scanner.result.label.date")} value={ocrResult.date || t("scanner.result.dash")} />
+              <View style={styles.divider} />
+              <ResultRow
+                label={t("scanner.result.label.total")}
+                value={
+                  ocrResult.total !== null
+                    ? `${ocrResult.total.toFixed(2)} ${ocrResult.currency || '€'}`
+                    : t("scanner.result.dash")
+                }
+                highlight
+              />
+            </>
+          )}
         </ScrollView>
 
         {error && (

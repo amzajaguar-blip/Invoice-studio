@@ -8,6 +8,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { apiFetch } from "@/lib/ai";
 import { useLocale } from "@/components/LocaleProvider";
 import { QuickAddClientModal } from "@/components/QuickAddClientModal";
+import { LastClientChips, LastClientChipItem } from "@/components/LastClientChips";
+import { SmartClientAutocomplete } from "@/components/SmartClientAutocomplete";
+import { getRecentClients, recordUsage } from "@/lib/lastUsed";
 import {
   maybeShowInterstitial,
   shouldShowInterstitialForInvoice,
@@ -42,6 +45,8 @@ export default function NewInvoiceScreen() {
   const [taxRate, setTaxRate] = useState("22");
   const [loading, setLoading] = useState(false);
   const [loadingClients, setLoadingClients] = useState(true);
+  const [clientSearch, setClientSearch] = useState("");
+  const [recentChips, setRecentChips] = useState<LastClientChipItem[]>([]);
 
   // Carica clienti
   useEffect(() => {
@@ -49,10 +54,35 @@ export default function NewInvoiceScreen() {
       if (data) {
         const list = Array.isArray(data) ? data : (data as { data: Client[] }).data || [];
         setClients(list);
-        if (list.length > 0) setSelectedClientId(list[0].id);
+        // No auto-select-first: the chips strip / Smart match surface
+        // the most-used clients explicitly. The user still has a manual
+        // picker below.
       }
       setLoadingClients(false);
     });
+  }, []);
+
+  // Smart Pre-fill: hydrate recent-client chips once clients load.
+  useEffect(() => {
+    if (loadingClients) return;
+    let cancelled = false;
+    getRecentClients(3, selectedClientId ? [selectedClientId] : []).then((entries) => {
+      if (cancelled) return;
+      const byId = new Map(clients.map((c) => [c.id, c.name]));
+      const chips: LastClientChipItem[] = entries
+        .map((e) => ({ id: e.clientId, name: byId.get(e.clientId) ?? "" }))
+        .filter((c) => c.name.length > 0);
+      setRecentChips(chips);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [loadingClients, clients, selectedClientId]);
+
+  const selectClientFromChip = useCallback((id: string) => {
+    setSelectedClientId(id);
+    setShowClientPicker(false);
+    setClientSearch("");
   }, []);
 
   const selectedClient = clients.find((c) => c.id === selectedClientId);
@@ -128,6 +158,9 @@ export default function NewInvoiceScreen() {
       return;
     }
 
+    // Smart Pre-fill: remember this client as recently used.
+    void recordUsage(selectedClientId);
+
     // Post-save: maybe show an interstitial (every Nth invoice of the month).
     // We don't wait for the ad to finish before acknowledging the save — the
     // user's success alert is already on screen. When the user dismisses the
@@ -196,6 +229,30 @@ export default function NewInvoiceScreen() {
 
         {/* Cliente */}
         <Text style={s.sectionLabel}>{t("invoices.new.section.client")}</Text>
+
+        {/* Smart Pre-fill: recently-used chips strip */}
+        <LastClientChips clients={recentChips} onSelect={selectClientFromChip} />
+
+        {/* Smart Pre-fill: search-as-you-type + "Hai già [name]?" banner */}
+        {clients.length > 0 && (
+          <TextInput
+            style={s.clientSearchInput}
+            placeholder={t("invoicePrefill.recent_clients")}
+            placeholderTextColor="#4b5563"
+            autoCapitalize="none"
+            autoCorrect={false}
+            value={clientSearch}
+            onChangeText={setClientSearch}
+          />
+        )}
+
+        <SmartClientAutocomplete
+          query={clientSearch}
+          clients={clients as LastClientChipItem[]}
+          excludeId={selectedClientId || undefined}
+          onPick={selectClientFromChip}
+        />
+
         <TouchableOpacity
           style={s.clientSelector}
           onPress={() => setShowClientPicker(!showClientPicker)}
@@ -219,13 +276,17 @@ export default function NewInvoiceScreen() {
                 </Text>
               </TouchableOpacity>
             ) : (
-              clients.map((c) => (
+              clients.filter((c) =>
+                clientSearch.trim().length === 0 ||
+                c.name.toLowerCase().includes(clientSearch.toLowerCase())
+              ).map((c) => (
                 <TouchableOpacity
                   key={c.id}
                   style={[s.clientOption, selectedClientId === c.id && s.clientOptionActive]}
                   onPress={() => {
                     setSelectedClientId(c.id);
                     setShowClientPicker(false);
+                    setClientSearch("");
                   }}
                 >
                   <Text style={[s.clientOptionName, selectedClientId === c.id && s.clientOptionNameActive]}>
@@ -237,6 +298,11 @@ export default function NewInvoiceScreen() {
             )}
           </View>
         )}
+
+        {/* Smart Pre-fill defaults hint */}
+        <Text style={s.prefillHint}>
+          {t("invoicePrefill.defaults_explainer")}
+        </Text>
 
         {/* Voci */}
         <Text style={s.sectionLabel}>{t("invoices.new.section.items")}</Text>
@@ -416,6 +482,15 @@ const s = StyleSheet.create({
     backgroundColor: "#0f1117", borderRadius: 10, padding: 12,
     color: "#f0f0f2", fontSize: 15, borderWidth: 1, borderColor: "#1e2029",
     marginBottom: 4,
+  },
+  clientSearchInput: {
+    backgroundColor: "#0f1117", borderRadius: 10, padding: 12,
+    color: "#f0f0f2", fontSize: 14, borderWidth: 1, borderColor: "#1e2029",
+    marginBottom: 10,
+  },
+  prefillHint: {
+    fontSize: 11, color: "#6b7280", fontStyle: "italic",
+    marginTop: 6, marginBottom: 4,
   },
   notesInput: { height: 80, textAlignVertical: "top" },
 
