@@ -228,7 +228,7 @@ if os.path.exists(props_path):
         'android.enableR8.fullMode':                    'true',
         'expo.useLegacyPackaging':                      'false',
         'android.bundle.enableUncompressedNativeLibs':  'true',
-        'reactNativeArchitectures':                     'arm64-v8a',
+        'reactNativeArchitectures':                     'armeabi-v7a,arm64-v8a,x86,x86_64',
     }
     for key, val in REQUIRED.items():
         before = len(re.findall(rf'^{re.escape(key)}\s*=', props, re.MULTILINE))
@@ -289,9 +289,9 @@ checks = [
     ('gradle.properties android.bundle.enableUncompressedNativeLibs == true',
      re.search(r'^android\.bundle\.enableUncompressedNativeLibs\s*=\s*true\s*$', final_props, re.MULTILINE) is not None,
      '`android.bundle.enableUncompressedNativeLibs=true` not present in gradle.properties'),
-    ('gradle.properties reactNativeArchitectures == arm64-v8a (16 KB ABI filter)',
-     re.search(r'^reactNativeArchitectures\s*=\s*arm64-v8a\s*$', final_props, re.MULTILINE) is not None,
-     '`reactNativeArchitectures=arm64-v8a` not present — 32-bit ABIs would still ship'),
+    ('gradle.properties reactNativeArchitectures includes arm64-v8a (16 KB ABI filter)',
+     re.search(r'^reactNativeArchitectures\s*=.*arm64-v8a.*$', final_props, re.MULTILINE) is not None,
+     '`reactNativeArchitectures` does not include arm64-v8a — Play Store compliance fails'),
     ('gradle.properties android.enableR8.fullMode (count=1)',
      count('android.enableR8.fullMode', final_props) == 1,
      'expected exactly 1 occurrence'),
