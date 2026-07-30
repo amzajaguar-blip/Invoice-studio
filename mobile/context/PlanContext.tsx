@@ -140,22 +140,18 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
     // 1. Aggiorna i limiti in memoria (isPremium sarà true dopo il refresh)
     await refreshLimits();
 
-    // 2. Aggiorna Supabase — se fallisce, il flag offline è già gestito
-    //    da refreshLimits() che ha letto lo stato da RevenueCat (non da Supabase)
+    // 2. Aggiorna Supabase — best-effort, non blocca l'accesso premium
     const written = await writePremiumToSupabase();
 
     if (!written) {
-      // Requirement 3.6: scrittura Supabase fallita
-      // isPremium è già true localmente (refreshLimits non ha sovrascritto perché
-      // il piano è già 'premium' in locale dopo che RevenueCat l'ha confermato)
-      // Salviamo il flag per ritentare al prossimo mount
+      // Requirement 3.6: scrittura Supabase fallita — salva flag per retry al mount
       await setPendingPremiumWrite(true);
       console.warn('[PlanContext] Supabase premium write failed — will retry on next mount');
     } else {
-      // Write riuscita: rimuovi eventuale pending flag
+      // Write riuscita: rimuovi eventuale pending flag.
+      // NON chiama refreshLimits() di nuovo — il primo refresh sopra
+      // ha già letto lo stato da RevenueCat che è la source of truth.
       await setPendingPremiumWrite(false);
-      // Refresh finale per sincronizzare con Supabase
-      await refreshLimits();
     }
   };
 

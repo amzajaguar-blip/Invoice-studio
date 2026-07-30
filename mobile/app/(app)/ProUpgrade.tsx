@@ -92,6 +92,8 @@ export default function ProUpgradeScreen() {
     successScaleAnim.setValue(0.8);
     successOpacityAnim.setValue(0);
 
+    let navTimer: ReturnType<typeof setTimeout> | null = null;
+
     Animated.parallel([
       Animated.timing(successScaleAnim, {
         toValue: 1,
@@ -105,9 +107,13 @@ export default function ProUpgradeScreen() {
       }),
     ]).start(() => {
       // After animation completes, brief pause then navigate
-      const t = setTimeout(() => router.replace("/(app)/(tabs)" as any), 200);
-      return () => clearTimeout(t);
+      navTimer = setTimeout(() => router.replace("/(app)/(tabs)" as any), 200);
     });
+
+    // Cleanup: cancella il timer se il componente si smonta prima della navigazione
+    return () => {
+      if (navTimer) clearTimeout(navTimer);
+    };
   }, [purchaseState, reduceMotion]);
 
   const packages = [

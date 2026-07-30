@@ -13,7 +13,12 @@
  * ProGuard keep rules for AdMob live in mobile/proguard-rules.pro.
  */
 
-import mobileAds, { MaxAdContentRating, TestIds } from 'react-native-google-mobile-ads';
+import mobileAds, {
+  MaxAdContentRating,
+  TestIds,
+  InterstitialAd,
+  AdEventType,
+} from 'react-native-google-mobile-ads';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -27,6 +32,9 @@ export const INTERSTITIAL_EVERY_N_INVOICES = 4;
 
 /** Minimum milliseconds between two interstitials (avoid spamming). */
 const MIN_INTERVAL_BETWEEN_ADS_MS = 60_000;
+
+/** Timeout waiting for an ad to load before giving up (ms). */
+const AD_LOAD_TIMEOUT_MS = 8_000;
 
 // ─── State ───────────────────────────────────────────────────────────────────
 
@@ -43,12 +51,12 @@ let lastShownAt = 0;
 export async function initAds(): Promise<void> {
   if (initialized) return;
   try {
-    await mobileAds()
-      .setRequestConfiguration({
-        maxAdContentRating: MaxAdContentRating.PG,
-        tagForChildDirectedTreatment: false,
-        tagForUnderAgeOfConsent: false,
-      });
+    await mobileAds().initialize();
+    await mobileAds().setRequestConfiguration({
+      maxAdContentRating: MaxAdContentRating.PG,
+      tagForChildDirectedTreatment: false,
+      tagForUnderAgeOfConsent: false,
+    });
     initialized = true;
   } catch (err) {
     console.warn('[ads] init failed — ads will not serve', err);
@@ -61,7 +69,7 @@ export async function initAds(): Promise<void> {
  * Show an interstitial ad if:
  *   1. the SDK is initialized,
  *   2. at least MIN_INTERVAL_BETWEEN_ADS_MS has passed since the last show,
- *   3. the ad loads successfully within the timeout.
+ *   3. the ad loads successfully within AD_LOAD_TIMEOUT_MS.
  *
  * Returns true if an ad was actually shown, false otherwise (timeout, no fill,
  * throttled, or init not done). The caller should treat the return value as a
@@ -78,26 +86,46 @@ export async function maybeShowInterstitial(): Promise<boolean> {
     return false;
   }
 
-  try {
-    const interstitial = await mobileAds().loadAd(
-      mobileAds().InterstitialAd,
-      {
-        adUnitId: INTERSTITIAL_AD_UNIT_ID,
-        requestOptions: { requestNonPersonalizedAdsOnly: false },
-      },
-    );
+  return new Promise<boolean>((resolve) => {
+    let settled = false;
+    const settle = (result: boolean) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutHandle);
+      resolve(result);
+    };
 
-    if (!interstitial) return false;
+    // Safety timeout — if the ad never loads, unblock the caller
+    const timeoutHandle = setTimeout(() => {
+      settle(false);
+    }, AD_LOAD_TIMEOUT_MS);
 
-    await interstitial.show();
-    lastShownAt = Date.now();
-    return true;
-  } catch (err) {
-    // Common reasons: no fill, network, ad unit not approved yet. Don't
-    // interrupt the user's flow; just log.
-    console.warn('[ads] interstitial failed to load/show', err);
-    return false;
-  }
+    try {
+      const interstitial = InterstitialAd.createForAdRequest(INTERSTITIAL_AD_UNIT_ID, {
+        requestNonPersonalizedAdsOnly: false,
+      });
+
+      const unsubLoaded = interstitial.addAdEventListener(AdEventType.LOADED, () => {
+        unsubLoaded();
+        unsubError();
+        interstitial.show().then(() => {
+          lastShownAt = Date.now();
+          settle(true);
+        }).catch(() => settle(false));
+      });
+
+      const unsubError = interstitial.addAdEventListener(AdEventType.ERROR, () => {
+        unsubLoaded();
+        unsubError();
+        settle(false);
+      });
+
+      interstitial.load();
+    } catch (err) {
+      console.warn('[ads] interstitial setup failed', err);
+      settle(false);
+    }
+  });
 }
 
 // ─── Decision helper ─────────────────────────────────────────────────────────

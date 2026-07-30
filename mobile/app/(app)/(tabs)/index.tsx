@@ -253,8 +253,12 @@ export default function DashboardScreen() {
   }, []);
 
   const fetchStats = useCallback(async () => {
+    // Limit 1000: copre la quasi totalità dei casi reali (PMI).
+    // Il monthly report e il trend vengono calcolati sull'array locale,
+    // quindi un limit troppo basso produce statistiche mensili errate
+    // per utenti con storico > limit. 1000 è il trade-off sicuro.
     const { data } = await apiFetch<{ data: any[]; total: number }>(
-      "/api/invoices?limit=200"
+      "/api/invoices?limit=1000"
     );
 
     if (data) {
