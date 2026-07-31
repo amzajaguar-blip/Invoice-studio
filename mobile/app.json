@@ -2,7 +2,7 @@
   "expo": {
     "name": "Milo Office",
     "slug": "vela-invoice",
-    "version": "1.0.66",
+    "version": "1.0.67",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "vela",
@@ -23,8 +23,8 @@
         "backgroundColor": "#0a0b0f"
       },
       "package": "com.Invoice_Studio.myapp",
-      "versionCode": 66,
-      "versionName": "1.0.66",
+      "versionCode": 67,
+      "versionName": "1.0.67",
       "permissions": [
         "com.android.vending.BILLING",
         "android.permission.CAMERA",
