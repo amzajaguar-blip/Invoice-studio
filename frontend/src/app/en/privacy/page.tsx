@@ -81,6 +81,19 @@ export default function PrivacyPageEn() {
               <strong>Usage and diagnostic data (Sentry):</strong> errors,
               performance, crash reports, session replay (text/masked).
             </li>
+            <li>
+              <strong>Advertising identifier (AAID) and ad data (Google AdMob):</strong>{" "}
+              for users on the free plan, we display advertisements via
+              Google AdMob. To do this, the app requests the Android{" "}
+              <code>AD_ID</code> permission and collects the device&apos;s
+              advertising identifier. Before requesting any ads, we collect
+              your consent through the Google User Messaging Platform (UMP)
+              form, compliant with the IAB Transparency and Consent Framework
+              (TCF) for users in the EEA/UK/Switzerland; you can review or
+              withdraw your choice at any time from Settings → Manage ad
+              privacy. Subscribed (Pro) users never see ads and are not
+              subject to this processing.
+            </li>
           </ul>
           <p className="text-sm leading-relaxed text-[#9ca3af]">
             Legal basis: contract performance (Art. 6.1.b GDPR), consent
@@ -265,6 +278,18 @@ export default function PrivacyPageEn() {
               monitoring and diagnostics.{" "}
               <a
                 href="https://sentry.io/privacy/"
+                className="text-[#6c63ff] hover:text-[#8b5cf6] transition-colors"
+              >
+                Privacy Policy
+              </a>
+              .
+            </li>
+            <li>
+              <strong className="text-[#d1d5db]">Google AdMob:</strong>{" "}
+              serves advertisements to users on the free plan, subject to
+              consent collected via Google UMP.{" "}
+              <a
+                href="https://policies.google.com/privacy"
                 className="text-[#6c63ff] hover:text-[#8b5cf6] transition-colors"
               >
                 Privacy Policy

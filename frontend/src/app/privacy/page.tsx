@@ -82,6 +82,20 @@ export default function PrivacyPage() {
               <strong>Dati di utilizzo e diagnostici (Sentry):</strong> errori,
               performance, crash report, session replay (testo/mascherato).
             </li>
+            <li>
+              <strong>Identificatore pubblicitario (AAID) e dati per gli annunci (Google AdMob):</strong>{" "}
+              per gli utenti sul piano gratuito, mostriamo annunci pubblicitari
+              tramite Google AdMob. A tal fine l&apos;app richiede il permesso
+              Android <code>AD_ID</code> e raccoglie l&apos;identificatore
+              pubblicitario del dispositivo. Prima di qualsiasi richiesta di
+              annunci raccogliamo il tuo consenso tramite il modulo Google
+              User Messaging Platform (UMP), conforme al framework di
+              trasparenza e consenso IAB (TCF) per utenti in EEA/UK/Svizzera;
+              puoi rivedere o revocare la scelta in qualsiasi momento da
+              Impostazioni → Gestisci privacy annunci. Gli utenti abbonati
+              (piano Pro) non vedono mai annunci e questo trattamento non li
+              riguarda.
+            </li>
           </ul>
           <p className="text-sm leading-relaxed text-[#9ca3af]">
             Base giuridica: esecuzione contratto (art. 6.1.b GDPR), consenso
@@ -268,6 +282,18 @@ export default function PrivacyPage() {
               errori e diagnostica.{" "}
               <a
                 href="https://sentry.io/privacy/"
+                className="text-[#6c63ff] hover:text-[#8b5cf6] transition-colors"
+              >
+                Privacy Policy
+              </a>
+              .
+            </li>
+            <li>
+              <strong className="text-[#d1d5db]">Google AdMob:</strong>{" "}
+              erogazione di annunci pubblicitari agli utenti sul piano
+              gratuito, previo consenso raccolto tramite Google UMP.{" "}
+              <a
+                href="https://policies.google.com/privacy"
                 className="text-[#6c63ff] hover:text-[#8b5cf6] transition-colors"
               >
                 Privacy Policy
