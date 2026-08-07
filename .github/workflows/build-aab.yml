@@ -1,4 +1,4 @@
-name: Build AAB Release v62
+name: Build AAB Release v69
 
 on:
   workflow_dispatch:
@@ -100,6 +100,12 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: Disable shrinkResources and R8 full mode for faster build
+        run: |
+          echo "android.enableShrinkResourcesInReleaseBuilds=false" >> android/gradle.properties
+          echo "android.enableR8.fullMode=false" >> android/gradle.properties
+          grep -E 'enableShrinkResources|enableR8' android/gradle.properties
 
       - name: Build AAB Release
         run: cd android && chmod +x gradlew && ./gradlew bundleRelease --no-daemon --stacktrace
@@ -393,7 +399,7 @@ jobs:
       - name: Upload AAB Release
         uses: actions/upload-artifact@v4
         with:
-          name: VELA-v62-AAB-16kb-signed
+          name: VELA-v69-AAB-16kb-signed
           path: mobile/android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 14
