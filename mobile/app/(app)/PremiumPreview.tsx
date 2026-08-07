@@ -31,7 +31,9 @@ import { Ionicons } from "@expo/vector-icons";
 // ─── Dati benefici Premium ────────────────────────────────────────────────────
 
 interface Benefit {
-  emoji: string;
+  emoji?: string;
+  iconName?: string;
+  iconColor?: string;
   title: string;
   description: string;
 }
@@ -39,7 +41,8 @@ interface Benefit {
 // ─── Dati feature locked preview ─────────────────────────────────────────────
 
 interface LockedFeature {
-  emoji: string;
+  emoji?: string;
+  iconName?: string;
   label: string;
 }
 
@@ -53,7 +56,7 @@ function BenefitRow({ benefit, a11yLabel }: { benefit: Benefit; a11yLabel: strin
       accessibilityLabel={a11yLabel}
     >
       <View style={[s.benefitIconContainer, { backgroundColor: (benefit.iconColor ?? '#1e2029') + '22' }]}>
-        <Ionicons name={benefit.iconName} size={18} color={benefit.iconColor ?? '#6c63ff'} />
+        <Ionicons name={(benefit.iconName ?? 'star-outline') as any} size={18} color={benefit.iconColor ?? '#6c63ff'} />
       </View>
       <View style={s.benefitTextContainer}>
         <Text style={s.benefitTitle}>{benefit.title}</Text>
@@ -75,7 +78,7 @@ function LockedFeatureCard({ feature, a11yLabel }: { feature: LockedFeature; a11
     <View style={s.lockedCard} accessibilityLabel={a11yLabel}>
       {/* Contenuto della card (sfumato/dimmed) */}
       <View style={s.lockedCardContent}>
-        <Ionicons name={feature.iconName} size={20} color="#f0f0f2" style={{ marginRight: 8 }} />
+        <Ionicons name={(feature.iconName ?? 'lock-closed') as any} size={20} color="#f0f0f2" style={{ marginRight: 8 }} />
         <Text style={s.lockedLabel}>{feature.label}</Text>
       </View>
       {/* Overlay dim */}
@@ -467,5 +470,35 @@ const s = StyleSheet.create({
   dismissText: {
     color: "#6b7280",
     fontSize: 14,
+  },
+
+  benefitTextContainer: {
+    flex: 1,
+  },
+  benefitTitle: {
+    color: "#f0f0f2",
+    fontSize: 15,
+    fontWeight: "600",
+    marginBottom: 2,
+  },
+  benefitDescription: {
+    color: "#9ca3af",
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  lockedLabel: {
+    color: "#f0f0f2",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  lockedOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#0a0b0f99",
   },
 });

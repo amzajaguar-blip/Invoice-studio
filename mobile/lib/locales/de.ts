@@ -1,6 +1,6 @@
 export const de = {
   dashboard:"Übersicht",
-  invoices:"Rechnungen",
+  invoices:"Files",
   quotes:"Angebote",
   clients:"Kunden",
   settings:"Einstellungen",
@@ -42,7 +42,7 @@ export const de = {
   quotes_convert_hint_title:"In Rechnung umwandeln",
   quotes_convert_hint_body:"Sie haben Entwurfs-Angebote bereit zum Versenden. Wandeln Sie sie mit einem Tippen in Rechnungen um.",
   quotes_convert_hint_cta:"Jetzt umwandeln",
-  settings_review_ask_title:"Gefällt Ihnen VELA?",
+  settings_review_ask_title:"Gefällt Ihnen Milo Office?",
   settings_review_ask_body:"Hinterlassen Sie eine Bewertung und helfen Sie anderen Freelancern, uns zu entdecken!",
   settings_review_ask_cta:"Bewertung abgeben",
 
@@ -69,7 +69,7 @@ export const de = {
   boost_success_resource_clients:"+1 Kunde",
   boost_success_resource_quotes:"+1 Angebot",
   boost_success_expiry_label:"Läuft ab in",
-  boost_success_thank_you:"Danke für die Unterstützung von VELA",
+  boost_success_thank_you:"Danke für die Unterstützung von Milo Office",
   boost_success_cta_text:"Meine Rechnung erstellen →",
   boost_success_cta_a11y:"Meine Rechnung erstellen",
   boost_success_cta_hint:"Zurück zur Rechnungsübersicht",
@@ -156,7 +156,7 @@ export const de = {
 
   // ─── Settings Alerts ─────────────────────────────────────────────────────
   settings_logout_title:"Abmelden?",
-  settings_logout_msg:"Möchten Sie sich von VELA abmelden?",
+  settings_logout_msg:"Möchten Sie sich von Milo Office abmelden?",
   settings_account_deleted_title:"Konto gelöscht",
   settings_account_deleted_msg:"Ihr Konto wurde erfolgreich gelöscht.",
   settings_delete_account_msg:"Sind Sie sicher, dass Sie Ihr Konto dauerhaft löschen möchten? Alle Ihre Daten, Rechnungen und Kunden werden unwiderruflich entfernt.",
@@ -165,6 +165,8 @@ export const de = {
   settings_delete_proceed:"Fortfahren",
   settings_delete_yes:"Ja, löschen",
   settings_language_updated:"Sprache aktualisiert",
+  settings_privacy_options:"Datenschutzoptionen verwalten",
+  settings_privacy_options_opened:"Datenschutzoptionen geöffnet",
 
   // ─── Invoice Detail Alerts ────────────────────────────────────────────────
   invoice_email_unavailable_title:"E-Mail nicht verfügbar",
@@ -185,8 +187,8 @@ export const de = {
 
   // ─── Tab Dashboard ────────────────────────────────────────────────────────
 "tabs.dashboard.title":"Dashboard",
-"tabs.dashboard.brand":"✦ VELA",
-"tabs.dashboard.onboarding.title":"Inizia con VELA",
+"tabs.dashboard.brand":"✦ Milo Office",
+"tabs.dashboard.onboarding.title":"Starte mit Milo Office",
 "tabs.dashboard.onboarding.first_invoice":"Crea la tua prima fattura",
 "tabs.dashboard.onboarding.first_client":"Aggiungi il tuo primo cliente",
 "tabs.dashboard.onboarding.profile_setup":"Imposta il tuo profilo",
@@ -227,11 +229,11 @@ export const de = {
 "tabs.invoices.status.paid":"Pagata",
 "tabs.invoices.status.overdue":"Scaduta",
 "tabs.invoices.status.cancelled":"Annullata",
-"tabs.invoices.title":"Fatture",
+"tabs.invoices.title":"Files",
 "tabs.invoices.sub_count":"{n} fattur{a|e}",
 "tabs.invoices.quota.a11y":"Quota fatture",
 "tabs.invoices.quota_text":"{used}/{base}",
-"tabs.invoices.new_button":"+ Nuova Fattura",
+"tabs.invoices.new_button":"+ Neue Datei",
 "tabs.invoices.empty.query.title":"Nessun risultato",
 "tabs.invoices.empty.query.hint":"Nessuna fattura trovata per \"{query}\"",
 "tabs.invoices.empty.overdue.title":"Nessuna fattura scaduta",
@@ -240,9 +242,9 @@ export const de = {
 "tabs.invoices.empty.paid.hint":"Invia le tue fatture per iniziare a ricevere pagamenti.",
 "tabs.invoices.empty.draft.title":"Nessuna bozza",
 "tabs.invoices.empty.draft.hint":"Le fatture salvate come bozza appariranno qui.",
-"tabs.invoices.empty.default.title":"Crea la tua prima fattura professionale.",
-"tabs.invoices.empty.default.hint":"VELA ti guida passo per passo.",
-"tabs.invoices.empty.default.cta":"Crea fattura",
+"tabs.invoices.empty.default.title":"Erstellen Sie Ihr erstes professionelles Dokument.",
+"tabs.invoices.empty.default.hint":"Milo Office führt Sie Schritt für Schritt.",
+"tabs.invoices.empty.default.cta":"Dokument erstellen",
 
   // ─── Tab Clients ──────────────────────────────────────────────────────────
 "tabs.clients.title":"Clienti",
@@ -252,6 +254,14 @@ export const de = {
 "tabs.clients.empty.hint":"Aggiungi il tuo primo cliente per iniziare a fatturare.",
 "tabs.clients.empty.cta":"Crea primo cliente",
 "tabs.clients.row.client_missing":"",
+
+  // ─── Tab Contacts (Adressbuch) ───────────────────────────────────────────────
+"tabs.contacts.title":"Adressbuch",
+"tabs.contacts.add.a11y":"Kunden hinzufügen",
+"tabs.contacts.sub_count":"{n} Kund{e|en}",
+"tabs.contacts.empty.title":"Ihr Adressbuch ist leer.",
+"tabs.contacts.empty.hint":"Fügen Sie Ihre Kunden hinzu, damit Sie sie immer griffbereit haben.",
+"tabs.contacts.empty.cta":"Kunden hinzufügen",
 
   // ─── Tab Quotes ───────────────────────────────────────────────────────────
 "tabs.quotes.sub_count":"{n} preventiv{o|i}",
@@ -511,14 +521,14 @@ export const de = {
 "milestone.clients_100.title":"100 clienti aggiunti!",
 "milestone.clients_100.body":"Un network straordinario. Il tuo business sta crescendo forte!",
 "milestone.review_ask.emoji":"",
-"milestone.review_ask.title":"Ti piace VELA?",
+"milestone.review_ask.title":"Gefällt Ihnen Milo Office?",
 "milestone.review_ask.body":"Lascia una recensione e aiuta altri freelancer a scoprirci!",
 "milestone.close.a11y":"Chiudi celebrazione",
 "milestone.premium_cta.a11y":"Sblocca Premium per crescita illimitata",
 "milestone.premium_cta.text":"Sblocca Premium per crescita illimitata",
 
   // ─── Login ───────────────────────────────────────────────────────────────
-"login.title":"VELA",
+"login.title":"Milo Office",
 "login.subtitle":"Accedi con Google per continuare",
 "login.button.text":"Accedi con Google",
 
@@ -594,7 +604,7 @@ export const de = {
 "invoices.detail.share_text.amount_line_prefix":"Importo:",
 "invoices.detail.share_text.due_line_prefix":"Scadenza:",
 "invoices.detail.share_text.status_line_prefix":"Stato:",
-"invoices.detail.share_text.visualize_line":"Visualizza su VELA",
+"invoices.detail.share_text.visualize_line":"Visualizza su Milo Office",
 "invoices.detail.share_url":"https://invoicestudio.app",
 "invoices.detail.share_title_template":"Fattura #{n}",
 "invoices.detail.email_subject_template":"Fattura #{n}  {amount}",
@@ -635,4 +645,50 @@ export const de = {
 "invoicePrefill.use_template":"Vorlage verwenden",
 "invoicePrefill.defaults_explainer":"Standardwerte für Italien: 30 Tage, EUR, 22% MwSt.",
 "invoicePrefill.defaults_override_hint":"Tippen zum Ändern",
+
+  // ─── Tab Expenses (Ausgabenberichte) ─────────────────────────────────────────
+"tabs.expenses.title":"Ausgaben",
+"tabs.expenses.empty.title":"Noch keine Ausgaben.",
+"tabs.expenses.empty.hint":"Erfassen Sie Ihre beruflichen Ausgaben und erstellen Sie einen Bericht.",
+"tabs.expenses.empty.cta":"Neuer Ausgabenbericht",
+
+  // ─── Tab Reminders (Erinnerungen) ────────────────────────────────────────────
+"tabs.reminders.title":"Erinnerungen",
+"tabs.reminders.empty.title":"Noch keine Erinnerungen.",
+"tabs.reminders.empty.hint":"Fügen Sie Fristen hinzu, damit Sie keinen wichtigen Termin verpassen.",
+"tabs.reminders.empty.cta":"Neue Erinnerung",
+
+  // ─── IAP Feature Keys ────────────────────────────────────────────────────────
+"iap.excel.name":"Excel-Export",
+"iap.excel.description":"Exportieren Sie Ihre Ausgabenberichte im Excel-Format für Ihren Steuerberater.",
+"iap.template.name":"Premium-Vorlage",
+"iap.logo.name":"Benutzerdefiniertes Logo",
+"iap.backup.name":"Cloud-Backup",
+
+  // ─── Reminders Notification Permission ──────────────────────────────────────
+"reminders.notification.permission_denied_title":"Benachrichtigungen deaktiviert",
+"reminders.notification.permission_denied_msg":"Um Fälligkeitserinnerungen zu erhalten, aktivieren Sie die Benachrichtigungen in den Geräteeinstellungen.",
+
+  // ─── Format Picker ───────────────────────────────────────────────────────────
+"format_picker.title":"Format wählen",
+"format_picker.pdf":"PDF",
+"format_picker.doc":"Word (DOCX)",
+"format_picker.rtf":"RTF",
+
+  // ─── Translator ──────────────────────────────────────────────────────────────
+"translator.title":"Dokument übersetzen",
+"translator.select_language":"Zielsprache auswählen",
+"translator.auto_label":"Automatisch übersetzt",
+"translator.privacy_note":"Der Textinhalt Ihres Dokuments wird zur Übersetzung an die Gemini API (Google) gesendet.",
+
+  // ─── Quota Engine ────────────────────────────────────────────────────────────
+"quota.remaining":"Noch {n} kostenlose Dokumente verfügbar",
+"quota.exhausted.title":"Limit für kostenlose Dokumente erreicht",
+"quota.exhausted.cta":"Premium werden",
+"quota.reward_cta":"Video ansehen für +1 Dokument",
+"quota.reward_pending":"Wird verarbeitet…",
+"quota.reward_success":"Zusätzliches Dokument freigeschaltet!",
+"quota.reward_failed":"Fehler. Bitte später erneut versuchen.",
+"quota.reward_unavailable":"Derzeit kein Video verfügbar. Bitte später erneut versuchen.",
+"quota.reward_limit_reached":"Du hast die 3 zusätzlichen Dokumente für heute bereits freigeschaltet. Versuche es morgen erneut.",
 };

@@ -1,8 +1,15 @@
 /**
- * quotes.tsx — Schermata preventivi con gate V34
+ * quotes.tsx — Schermata preventivi
  *
- * Integra il Rate Limit Gate (Req 9.3 pattern), Business Boost Modal (Req 9.11),
- * InApp Contextual Card (Req 6.10), e Smart Empty State (Req 17.3, 17.5, 17.6).
+ * Funzionalità:
+ * - Lista preventivi dell'organizzazione corrente da Supabase via apiFetch
+ * - Filtri per stato: all | draft | sent | accepted | rejected | invoiced
+ * - Empty state specifico ("Crea il tuo primo preventivo")
+ * - Header con contatore mensile per utenti free: "X/3 preventivi questo mese"
+ * - CTA "+ Nuovo preventivo" con gate freemium: se l'utente free ha già 3
+ *   preventivi nel mese corrente, mostra Alert invece di navigare
+ * - Ogni riga mostra: numero preventivo, nome cliente (da client_snapshot.name),
+ *   stato badge, totale, data
  *
  * Requirements: 17.3, 17.5, 17.6
  */
@@ -15,39 +22,54 @@ import {
   FlatList,
   RefreshControl,
   TouchableOpacity,
+  ScrollView,
+  Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
-import { Ionicons } from "@expo/vector-icons";
 import { apiFetch } from "@/lib/ai";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { EmptyState } from "@/components/EmptyState";
-
-// ─── V34 imports ──────────────────────────────────────────────────────────────
 import { usePlan } from "@/context/PlanContext";
-import { useBusinessBoost } from "@/hooks/useBusinessBoost";
-import { trackEvent } from "@/lib/analytics-events";
 import { useLocale } from "@/components/LocaleProvider";
-import BusinessBoostModal from "@/components/BusinessBoostModal";
-import BoostSuccessModal from "@/components/BoostSuccessModal";
-import InAppContextualCard from "@/components/InAppContextualCard";
-import { useSmartCards } from "@/hooks/useSmartCards";
 import { useEngagementContext } from "@/context/EngagementContext";
+import * as Haptics from "@/lib/haptics";
+
+// ─── Costanti ─────────────────────────────────────────────────────────────────
+
+/** Limite mensile preventivi per utenti free */
+const FREE_MONTHLY_QUOTE_LIMIT = 3;
 
 // ─── Tipi ─────────────────────────────────────────────────────────────────────
 
+type QuoteStatus = "draft" | "sent" | "accepted" | "rejected" | "invoiced";
+type FilterStatus = QuoteStatus | "all";
+
+interface ClientSnapshot {
+  id?: string;
+  name: string;
+  email?: string;
+}
+
 interface Quote {
   id: string;
-  number: string;
-  status: "draft" | "sent" | "accepted" | "rejected" | "invoiced";
+  quote_number: string;
+  /** Alias restituito dall'API (potrebbe essere number o quote_number) */
+  number?: string;
+  status: QuoteStatus;
   total: number;
   currency: string;
   created_at: string;
-  clients?: { id?: string; name: string; email: string };
+  /** Snapshot cliente copiato al momento della creazione */
+  client_snapshot?: ClientSnapshot;
+  /** Legacy: alcune versioni API restituiscono ancora questo campo */
+  clients?: { id?: string; name: string; email?: string };
 }
 
-const STATUS_COLORS: Record<string, string> = {
+// ─── Colori e label per stato ─────────────────────────────────────────────────
+
+const STATUS_COLORS: Record<QuoteStatus, string> = {
   draft:    "#6b7280",
   sent:     "#3b82f6",
   accepted: "#22c55e",
@@ -55,63 +77,96 @@ const STATUS_COLORS: Record<string, string> = {
   invoiced: "#a855f7",
 };
 
-const getStatusLabels = (t: any): Record<string, string> => ({
-  draft:    t("draft_quote"),
-  sent:     t("sent_quote"),
-  accepted: t("accepted"),
-  rejected: t("rejected"),
-  invoiced: t("invoiced"),
-});
+// ─── Helper: nome cliente con fallback ───────────────────────────────────────
+
+function getClientName(quote: Quote): string {
+  return (
+    quote.client_snapshot?.name ||
+    quote.clients?.name ||
+    "—"
+  );
+}
+
+// ─── Helper: numero preventivo con fallback ──────────────────────────────────
+
+function getQuoteNumber(quote: Quote): string {
+  return quote.quote_number || quote.number || "—";
+}
+
+// ─── Filtro locale ────────────────────────────────────────────────────────────
+
+function filterQuotes(quotes: Quote[], status: FilterStatus): Quote[] {
+  if (status === "all") return quotes;
+  return quotes.filter((q) => q.status === status);
+}
+
+// ─── Contatore mensile locale ─────────────────────────────────────────────────
+
+function countCurrentMonthQuotes(quotes: Quote[]): number {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  return quotes.filter(
+    (q) => new Date(q.created_at).getTime() >= monthStart
+  ).length;
+}
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function QuotesScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { t } = useLocale();
+
+  // ─── Translated status labels ────────────────────────────────────────────
+  const STATUS_LABELS: Record<QuoteStatus, string> = {
+    draft:    t("draft_quote"),
+    sent:     t("sent_quote"),
+    accepted: t("accepted"),
+    rejected: t("rejected"),
+    invoiced: t("invoiced"),
+  };
+
+  const FILTER_LABELS: Record<FilterStatus, string> = {
+    all:      t("filter.pill.all"),
+    draft:    t("filter.pill.draft"),
+    sent:     t("filter.pill.sent"),
+    accepted: t("accepted"),
+    rejected: t("rejected"),
+    invoiced: t("invoiced"),
+  };
 
   // ─── Data state ─────────────────────────────────────────────────────────
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const { t } = useLocale();
-  const STATUS_LABELS = getStatusLabels(t);
+  const [activeFilter, setActiveFilter] = useState<FilterStatus>("all");
 
-  // ─── V34: Engagement context (Req 9.4 pattern) ──────────────────────────
+  // ─── Plan context ─────────────────────────────────────────────────────────
+  const { isPremium } = usePlan();
+
+  // ─── Engagement context ──────────────────────────────────────────────────
   const { recordAction } = useEngagementContext();
 
-  // ─── V34: Plan gate ─────────────────────────────────────────────────────
-  const { checkCanCreate, limits } = usePlan();
-
-  // ─── V34: Business Boost hook ────────────────────────────────────────────
-  const {
-    boostSession,
-    showBoostModal,
-    openBoostModal,
-    closeBoostModal,
-    currentResource,
-  } = useBusinessBoost();
-
-  // ─── V34: BoostSuccessModal state ────────────────────────────────────────
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-
-  // ─── V34: InApp contextual card for quotes_convert_hint (Req 6.10) ───────
-  // hasDraftQuote: true se esiste almeno un preventivo in bozza — condizione per
-  // mostrare la card 'quotes_convert_hint' (Requirements 6.10)
-  const hasDraftQuote = quotes.some((q) => q.status === "draft");
-  const { card, dismiss: dismissCard } = useSmartCards("quotes_convert_hint", hasDraftQuote);
-
-  // ─── Ref per rilevare nuovi preventivi al focus (Req 9.4 pattern) ────────
+  // ─── Ref per rilevare nuovi preventivi al focus ──────────────────────────
   const prevQuoteCountRef = useRef<number | null>(null);
+
+  // ─── Contatore mensile ────────────────────────────────────────────────────
+  const monthlyCount = countCurrentMonthQuotes(quotes);
+  const monthlyLimitReached = !isPremium && monthlyCount >= FREE_MONTHLY_QUOTE_LIMIT;
 
   // ─── Data loading ────────────────────────────────────────────────────────
   const load = useCallback(async () => {
-    const { data } = await apiFetch<{ data: Quote[] }>("/api/quotes?limit=50");
-    if (data) {
-      const list = Array.isArray(data)
-        ? data
-        : (data as { data: Quote[] }).data || [];
-      setQuotes(list);
-      return list.length;
+    try {
+      const { data } = await apiFetch<{ data: Quote[] }>("/api/quotes?limit=100");
+      if (data) {
+        const list = Array.isArray(data)
+          ? data
+          : (data as { data: Quote[] }).data || [];
+        setQuotes(list);
+        return list.length;
+      }
+    } catch {
+      // Non fatale — mostra lista vuota
     }
     setLoading(false);
     return null;
@@ -126,11 +181,7 @@ export default function QuotesScreen() {
     });
   }, [load]);
 
-  // ─── V34: useFocusEffect — rileva nuovi preventivi al ritorno (Req 9.4 pattern)
-  /**
-   * Quando la schermata riacquista il focus (utente torna da quotes/new),
-   * ricarica la lista e confronta il conteggio. Se aumentato → recordAction('quote').
-   */
+  // ─── useFocusEffect — rileva nuovi preventivi al ritorno ─────────────────
   useFocusEffect(
     useCallback(() => {
       if (prevQuoteCountRef.current === null) return;
@@ -138,19 +189,23 @@ export default function QuotesScreen() {
       const prevCount = prevQuoteCountRef.current;
 
       void (async () => {
-        const { data } = await apiFetch<{ data: Quote[] }>("/api/quotes?limit=50");
-        if (!data) return;
-        const list = Array.isArray(data)
-          ? data
-          : (data as { data: Quote[] }).data || [];
-        setQuotes(list);
-        setLoading(false);
+        try {
+          const { data } = await apiFetch<{ data: Quote[] }>("/api/quotes?limit=100");
+          if (!data) return;
+          const list = Array.isArray(data)
+            ? data
+            : (data as { data: Quote[] }).data || [];
+          setQuotes(list);
+          setLoading(false);
 
-        if (list.length > prevCount) {
-          prevQuoteCountRef.current = list.length;
-          await recordAction("invoice"); // quotes use 'invoice' counter in engagement
-        } else {
-          prevQuoteCountRef.current = list.length;
+          if (list.length > prevCount) {
+            prevQuoteCountRef.current = list.length;
+            await recordAction("invoice");
+          } else {
+            prevQuoteCountRef.current = list.length;
+          }
+        } catch {
+          setLoading(false);
         }
       })();
     }, [recordAction]),
@@ -158,130 +213,149 @@ export default function QuotesScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await load();
+    const count = await load();
+    if (count !== null) prevQuoteCountRef.current = count;
     setRefreshing(false);
   }, [load]);
 
   const fmt = (n: number, c = "EUR") =>
     new Intl.NumberFormat("it-IT", { style: "currency", currency: c }).format(n);
 
-  // ─── V34 Gate: handler creazione preventivo ───────────────────────────────
+  // ─── Handler pill filtro ──────────────────────────────────────────────────
+  const handleFilterChange = useCallback(async (status: FilterStatus) => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setActiveFilter(status);
+  }, []);
+
+  // ─── Handler CTA "Nuovo preventivo" ──────────────────────────────────────
   /**
-   * Prima di navigare alla schermata di creazione:
-   *  1. Chiama checkCanCreate('quote')
-   *  2. Se allowed === false e isLoading === false → traccia limit_reached,
-   *     apre BusinessBoostModal (NON naviga)
-   *  3. Se allowed === true → naviga normalmente
-   *
-   * Requirements: 17.3, 17.5
+   * Se l'utente è free e ha già raggiunto il limite di 3 preventivi mensili,
+   * mostra un Alert invece di navigare.
+   * Se premium (o sotto limite) → naviga a quotes/new.
    */
   const handleNewQuote = useCallback(() => {
-    const result = checkCanCreate("quote");
-
-    if (!result.allowed && !limits.isLoading) {
-      // Traccia limit_reached per la risorsa 'quote'
-      trackEvent({ event: "limit_reached", properties: { resource: "quote" } });
-      // Apri BusinessBoostModal invece di navigare
-      openBoostModal("quote");
+    if (monthlyLimitReached) {
+      Alert.alert(
+        "Limite mensile raggiunto",
+        "Hai già creato 3 preventivi questo mese. Passa a Premium per preventivi illimitati.",
+        [
+          { text: "Annulla", style: "cancel" },
+          {
+            text: "Passa a Premium",
+            onPress: () => router.push("/(app)/ProUpgrade" as never),
+          },
+        ]
+      );
       return;
     }
 
-    // Naviga alla schermata di creazione preventivo
     router.push("/(app)/quotes/new" as never);
-  }, [checkCanCreate, limits.isLoading, openBoostModal, router]);
+  }, [monthlyLimitReached, router]);
 
-  // ─── Handler chiusura BusinessBoostModal ─────────────────────────────────
-  const handleBoostModalClose = useCallback(() => {
-    closeBoostModal();
-  }, [closeBoostModal]);
+  // ─── Liste filtrate ───────────────────────────────────────────────────────
+  const filteredQuotes = filterQuotes(quotes, activeFilter);
 
-  // ─── Handler upgrade a Premium dal modal ─────────────────────────────────
-  const handleUpgrade = useCallback(() => {
-    closeBoostModal();
-    router.push("/(app)/ProUpgrade" as never);
-  }, [closeBoostModal, router]);
+  // ─── Empty state ──────────────────────────────────────────────────────────
+  const renderEmpty = () => {
+    if (activeFilter !== "all") {
+      return (
+        <EmptyState
+          icon="document-text-outline"
+          title="Nessun preventivo"
+          hint={`Nessun preventivo con stato "${FILTER_LABELS[activeFilter]}".`}
+        />
+      );
+    }
+    return (
+      <EmptyState
+        icon="document-text-outline"
+        title="Crea il tuo primo preventivo"
+        hint="Converti facilmente i preventivi in fatture."
+        cta="+ Nuovo preventivo"
+        onCTA={handleNewQuote}
+      />
+    );
+  };
 
-  // ─── Handler CTA della InAppContextualCard ────────────────────────────────
-  const handleCardCTA = useCallback(() => {
-    // La card 'quotes_convert_hint' guida l'utente a convertire un preventivo in fattura
-    openBoostModal("quote");
-  }, [openBoostModal]);
-
-  // ─── Limiti quota per badge header ───────────────────────────────────────
-  const quoteLimits = limits.quotes;
-  const canCreate = quoteLimits?.canCreate ?? true;
-
-  // ─── Smart Empty State (Req 17.3, 17.5, 17.6) ────────────────────────────
-  /**
-   * Req 17.3: icona 📝, titolo "Prepara un preventivo prima di fatturare.",
-   * hint "Converti facilmente i preventivi in fatture.", CTA "Crea preventivo"
-   * Req 17.5: CTA presente e visibile
-   * Req 17.6: no dark pattern
-   */
-  const renderEmpty = () => (
-    <EmptyState
-      icon="document-text-outline"
-      title={t("tabs.quotes.empty.title")}
-      hint={t("tabs.quotes.empty.hint")}
-      cta={t("tabs.quotes.empty.cta")}
-      onCTA={handleNewQuote}
-    />
-  );
+  // ─── Pill filtri ──────────────────────────────────────────────────────────
+  const FILTER_PILLS: FilterStatus[] = ["all", "draft", "sent", "accepted", "rejected", "invoiced"];
 
   return (
     <View style={[s.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={s.header}>
-        <View>
+        <View style={s.headerLeft}>
           <Text style={s.title}>{t("quotes")}</Text>
           <Text style={s.sub}>
-            {quotes.length} preventiv{quotes.length === 1 ? "o" : "i"}
+            {t("tabs.quotes.sub_count")
+              .replace("{n}", String(quotes.length))
+              .replace("{o|i}", quotes.length === 1 ? "o" : "i")}
           </Text>
         </View>
 
-        {/* Quota badge — limiti V34 da PlanContext */}
-        <TouchableOpacity
-          style={[s.quotaBadge, !canCreate && s.quotaBadgeWarn]}
-          onPress={handleNewQuote}
-          accessibilityRole="button"
-          accessibilityLabel={t("tabs.quotes.quota.a11y")}
-        >
-          <View style={s.quotaInner}>
-            <Ionicons
-              name="document-text-outline"
-              size={14}
-              color={canCreate ? "#9ca3af" : "#ef4444"}
-              style={s.quotaIcon}
-            />
-            <Text style={[s.quotaText, !canCreate && s.quotaTextWarn]}>
-              {quoteLimits?.used ?? 0}/{quoteLimits?.base ?? 3}
+        {/* Contatore mensile — visibile solo per utenti free */}
+        {!isPremium && (
+          <View
+            style={[
+              s.monthlyBadge,
+              monthlyLimitReached && s.monthlyBadgeWarn,
+            ]}
+            accessibilityRole="text"
+            accessibilityLabel={`${monthlyCount} su 3 preventivi questo mese`}
+          >
+            <Text
+              style={[
+                s.monthlyText,
+                monthlyLimitReached && s.monthlyTextWarn,
+              ]}
+            >
+              {monthlyCount}/{FREE_MONTHLY_QUOTE_LIMIT} questo mese
             </Text>
           </View>
-        </TouchableOpacity>
+        )}
       </View>
 
       {/* Pulsante nuovo preventivo */}
       <TouchableOpacity
-        style={s.newBtn}
+        style={[s.newBtn, monthlyLimitReached && s.newBtnDisabled]}
         onPress={handleNewQuote}
         activeOpacity={0.85}
         accessibilityRole="button"
         accessibilityLabel={t("tabs.quotes.new.a11y")}
       >
-        <Text style={s.newBtnText}>{t("newQuote")}</Text>
+        <Text style={s.newBtnText}>+ Nuovo preventivo</Text>
       </TouchableOpacity>
 
-      {/* V34: InAppContextualCard per context 'quotes_convert_hint'
-          Mostrata sopra la lista, solo se card !== null (Req 6.10) */}
-      {card !== null && (
-        <View style={s.cardWrapper}>
-          <InAppContextualCard
-            card={card}
-            onDismiss={dismissCard}
-            onCTA={handleCardCTA}
-          />
-        </View>
-      )}
+      {/* Filter pills */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={s.filterScroll}
+        contentContainerStyle={s.filterContainer}
+      >
+        {FILTER_PILLS.map((key) => {
+          const isActive = key === activeFilter;
+          return (
+            <TouchableOpacity
+              key={key}
+              style={[s.pill, isActive ? s.pillActive : s.pillInactive]}
+              onPress={() => handleFilterChange(key)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isActive }}
+              accessibilityLabel={`Filtra per ${FILTER_LABELS[key]}`}
+            >
+              <Text
+                style={[
+                  s.pillText,
+                  isActive ? s.pillTextActive : s.pillTextInactive,
+                ]}
+              >
+                {FILTER_LABELS[key]}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
 
       {/* Lista o skeleton */}
       {loading ? (
@@ -292,8 +366,8 @@ export default function QuotesScreen() {
         </View>
       ) : (
         <FlatList
-          data={quotes}
-          keyExtractor={(i) => i.id}
+          data={filteredQuotes}
+          keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
           removeClippedSubviews={true}
           maxToRenderPerBatch={10}
@@ -313,13 +387,18 @@ export default function QuotesScreen() {
               style={s.card}
               onPress={() => router.push(`/(app)/quotes/${item.id}` as never)}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={`Preventivo ${getQuoteNumber(item)}, cliente ${getClientName(item)}, stato ${STATUS_LABELS[item.status] || item.status}, totale ${fmt(item.total, item.currency)}`}
             >
+              {/* Riga 1: numero preventivo + badge stato */}
               <View style={s.row}>
-                <Text style={s.num}>{item.number}</Text>
+                <Text style={s.num}>{getQuoteNumber(item)}</Text>
                 <View
                   style={[
                     s.badge,
-                    { backgroundColor: `${STATUS_COLORS[item.status] || "#6b7280"}20` },
+                    {
+                      backgroundColor: `${STATUS_COLORS[item.status] || "#6b7280"}20`,
+                    },
                   ]}
                 >
                   <Text
@@ -332,7 +411,11 @@ export default function QuotesScreen() {
                   </Text>
                 </View>
               </View>
-              <Text style={s.client}>{item.clients?.name || "—"}</Text>
+
+              {/* Riga 2: nome cliente (da client_snapshot.name) */}
+              <Text style={s.client}>{getClientName(item)}</Text>
+
+              {/* Riga 3: data + totale */}
               <View style={s.row}>
                 <Text style={s.date}>
                   {new Date(item.created_at).toLocaleDateString("it-IT")}
@@ -344,23 +427,6 @@ export default function QuotesScreen() {
           ListEmptyComponent={renderEmpty}
         />
       )}
-
-      {/* V34: BusinessBoostModal (Req 17.3, 9.11) */}
-      <BusinessBoostModal
-        visible={showBoostModal}
-        resource={currentResource ?? "quote"}
-        boostSession={boostSession}
-        onUpgrade={handleUpgrade}
-        onClose={handleBoostModalClose}
-      />
-
-      {/* V34: BoostSuccessModal — mostrato dopo boost completato con successo */}
-      <BoostSuccessModal
-        visible={showSuccessModal}
-        resource={currentResource ?? "quote"}
-        expiresIn={boostSession.boostExpiresIn ?? "24 ore"}
-        onClose={() => setShowSuccessModal(false)}
-      />
     </View>
   );
 }
@@ -369,31 +435,39 @@ export default function QuotesScreen() {
 
 const s = StyleSheet.create({
   container:       { flex: 1, backgroundColor: "#0a0b0f" },
+
   header: {
-    flexDirection:    "row",
-    justifyContent:   "space-between",
-    alignItems:       "flex-start",
+    flexDirection:     "row",
+    justifyContent:    "space-between",
+    alignItems:        "flex-start",
     paddingHorizontal: 20,
-    marginBottom:     12,
+    marginBottom:      12,
   },
-  title:       { fontSize: 24, fontWeight: "bold", color: "#f0f0f2", fontFamily: "serif" },
-  sub:         { fontSize: 14, color: "#9ca3af", marginTop: 4 },
-  quotaBadge: {
-    backgroundColor: "#1e2029",
-    borderRadius:    10,
+  headerLeft: {
+    flex: 1,
+    marginRight: 12,
+  },
+  title:  { fontSize: 24, fontWeight: "bold", color: "#f0f0f2", fontFamily: "serif" },
+  sub:    { fontSize: 14, color: "#9ca3af", marginTop: 4 },
+
+  // Badge contatore mensile
+  monthlyBadge: {
+    backgroundColor:  "#1e2029",
+    borderRadius:     10,
     paddingHorizontal: 10,
     paddingVertical:   6,
-    borderWidth:     1,
-    borderColor:     "#2d2f3a",
+    borderWidth:      1,
+    borderColor:      "#2d2f3a",
+    alignSelf:        "flex-start",
   },
-  quotaBadgeWarn: {
-    borderColor:     "#ef444466",
-    backgroundColor: "#ef444411",
+  monthlyBadgeWarn: {
+    borderColor:      "#ef444466",
+    backgroundColor:  "#ef444411",
   },
-  quotaInner:    { flexDirection: "row", alignItems: "center", gap: 5 },
-  quotaIcon:     { marginRight: 2 },
-  quotaText:     { fontSize: 13, color: "#9ca3af", fontWeight: "600" },
-  quotaTextWarn: { color: "#ef4444" },
+  monthlyText:     { fontSize: 12, color: "#9ca3af", fontWeight: "600" },
+  monthlyTextWarn: { color: "#ef4444" },
+
+  // Pulsante CTA
   newBtn: {
     marginHorizontal: 20,
     marginBottom:     12,
@@ -402,15 +476,31 @@ const s = StyleSheet.create({
     paddingVertical:  14,
     alignItems:       "center",
   },
-  newBtnText:       { color: "#fff", fontWeight: "700", fontSize: 15 },
-  cardWrapper: {
-    paddingHorizontal: 20,
-    marginBottom:      10,
+  newBtnDisabled: {
+    backgroundColor: "#3d3a6b",
   },
-  skeletonContainer: {
-    paddingHorizontal: 20,
-    gap:               10,
+  newBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+
+  // Filter pills
+  filterScroll:    { flexGrow: 0, marginBottom: 12 },
+  filterContainer: { paddingHorizontal: 16, alignItems: "center" },
+  pill: {
+    borderRadius:     20,
+    paddingHorizontal: 14,
+    paddingVertical:   7,
+    marginRight:       8,
+    borderWidth:       1,
   },
+  pillActive:       { backgroundColor: "#6c63ff", borderColor: "#6c63ff" },
+  pillInactive:     { backgroundColor: "#111318", borderColor: "#1e2029" },
+  pillText:         { fontSize: 13, fontWeight: "400" },
+  pillTextActive:   { color: "#ffffff", fontWeight: "600" },
+  pillTextInactive: { color: "#9ca3af" },
+
+  // Skeleton
+  skeletonContainer: { paddingHorizontal: 20, gap: 10 },
+
+  // Card preventivo
   card: {
     backgroundColor: "#111318",
     borderRadius:    14,

@@ -4,20 +4,23 @@
  * Mostra un banner AdMob standard (320×50) nelle schermate consentite.
  * Se l'ad non si carica (no fill, rete, ecc.) il componente si nasconde
  * silenziosamente senza interrompere il layout.
+ * Il banner non viene richiesto prima che il SDK sia inizializzato
+ * (consenso UMP risolto via initAds in lib/ads.ts).
  *
- * Ad Unit ID produzione: ca-app-pub-8156953772676654/BANNER_UNIT_ID
+ * Ad Unit ID produzione: ca-app-pub-8156953772676654/4020450686
  * In DEV usa TestIds.BANNER per evitare click invalidi.
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
 import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
+import { isAdsInitialized, onAdsInitialized } from '@/lib/ads';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
 const BANNER_AD_UNIT_ID = __DEV__
   ? TestIds.BANNER
-  : 'ca-app-pub-8156953772676654/3180431755';
+  : 'ca-app-pub-8156953772676654/4020450686';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -30,9 +33,13 @@ export interface BannerAdWrapperProps {
 
 export function BannerAdWrapper({ style }: BannerAdWrapperProps) {
   const [failed, setFailed] = useState(false);
+  const [adsReady, setAdsReady] = useState(isAdsInitialized());
 
-  // Se l'ad fallisce, non rendiamo nulla per non lasciare spazio vuoto
-  if (failed) return null;
+  useEffect(() => onAdsInitialized(() => setAdsReady(true)), []);
+
+  // Niente richiesta prima che consenso UMP + initialize() siano completati;
+  // se l'ad fallisce, non rendiamo nulla per non lasciare spazio vuoto.
+  if (!adsReady || failed) return null;
 
   return (
     <View

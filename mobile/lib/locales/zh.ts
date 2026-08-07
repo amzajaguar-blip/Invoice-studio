@@ -1,6 +1,6 @@
 export const zh = {
   dashboard:"仪表盘",
-  invoices:"发票",
+  invoices:"Files",
   quotes:"报价单",
   clients:"客户",
   settings:"设置",
@@ -42,7 +42,7 @@ export const zh = {
   quotes_convert_hint_title:"转换为发票",
   quotes_convert_hint_body:"您有待发送的草稿报价单。一键将其转换为发票。",
   quotes_convert_hint_cta:"立即转换",
-  settings_review_ask_title:"喜欢 VELA 吗？",
+  settings_review_ask_title:"喜欢 Milo Office 吗？",
   settings_review_ask_body:"留下评价，帮助其他自由职业者发现我们！",
   settings_review_ask_cta:"留下评价",
 
@@ -69,7 +69,7 @@ export const zh = {
   boost_success_resource_clients:"+1 个客户",
   boost_success_resource_quotes:"+1 份报价单",
   boost_success_expiry_label:"过期时间",
-  boost_success_thank_you:"感谢您对 VELA 的支持",
+  boost_success_thank_you:"感谢您对 Milo Office 的支持",
   boost_success_cta_text:"创建我的发票 →",
   boost_success_cta_a11y:"创建我的发票",
   boost_success_cta_hint:"返回发票界面",
@@ -156,7 +156,7 @@ export const zh = {
 
   // ─── Settings Alerts ─────────────────────────────────────────────────────
   settings_logout_title:"退出？",
-  settings_logout_msg:"您确定要退出 VELA 吗？",
+  settings_logout_msg:"您确定要退出 Milo Office 吗？",
   settings_account_deleted_title:"账户已删除",
   settings_account_deleted_msg:"您的账户已成功删除。",
   settings_delete_account_msg:"您确定要永久删除您的账户吗？您的所有数据、发票和客户将被不可逆地删除。",
@@ -165,6 +165,8 @@ export const zh = {
   settings_delete_proceed:"继续",
   settings_delete_yes:"是的，删除",
   settings_language_updated:"语言已更新",
+  settings_privacy_options:"管理隐私选项",
+  settings_privacy_options_opened:"隐私选项已打开",
 
   // ─── Invoice Detail Alerts ────────────────────────────────────────────────
   invoice_email_unavailable_title:"电子邮件不可用",
@@ -185,8 +187,8 @@ export const zh = {
 
   // ─── Tab Dashboard ────────────────────────────────────────────────────────
 "tabs.dashboard.title":"Dashboard",
-"tabs.dashboard.brand":"✦ VELA",
-"tabs.dashboard.onboarding.title":"Inizia con VELA",
+"tabs.dashboard.brand":"✦ Milo Office",
+"tabs.dashboard.onboarding.title":"开始使用 Milo Office",
 "tabs.dashboard.onboarding.first_invoice":"Crea la tua prima fattura",
 "tabs.dashboard.onboarding.first_client":"Aggiungi il tuo primo cliente",
 "tabs.dashboard.onboarding.profile_setup":"Imposta il tuo profilo",
@@ -227,11 +229,11 @@ export const zh = {
 "tabs.invoices.status.paid":"Pagata",
 "tabs.invoices.status.overdue":"Scaduta",
 "tabs.invoices.status.cancelled":"Annullata",
-"tabs.invoices.title":"Fatture",
+"tabs.invoices.title":"Files",
 "tabs.invoices.sub_count":"{n} fattur{a|e}",
 "tabs.invoices.quota.a11y":"Quota fatture",
 "tabs.invoices.quota_text":"{used}/{base}",
-"tabs.invoices.new_button":"+ Nuova Fattura",
+"tabs.invoices.new_button":"+ 新建文件",
 "tabs.invoices.empty.query.title":"Nessun risultato",
 "tabs.invoices.empty.query.hint":"Nessuna fattura trovata per \"{query}\"",
 "tabs.invoices.empty.overdue.title":"Nessuna fattura scaduta",
@@ -240,9 +242,9 @@ export const zh = {
 "tabs.invoices.empty.paid.hint":"Invia le tue fatture per iniziare a ricevere pagamenti.",
 "tabs.invoices.empty.draft.title":"Nessuna bozza",
 "tabs.invoices.empty.draft.hint":"Le fatture salvate come bozza appariranno qui.",
-"tabs.invoices.empty.default.title":"Crea la tua prima fattura professionale.",
-"tabs.invoices.empty.default.hint":"VELA ti guida passo per passo.",
-"tabs.invoices.empty.default.cta":"Crea fattura",
+"tabs.invoices.empty.default.title":"创建您的第一份专业文档。",
+"tabs.invoices.empty.default.hint":"Milo Office 将一步一步指引您。",
+"tabs.invoices.empty.default.cta":"创建文档",
 
   // ─── Tab Clients ──────────────────────────────────────────────────────────
 "tabs.clients.title":"Clienti",
@@ -252,6 +254,14 @@ export const zh = {
 "tabs.clients.empty.hint":"Aggiungi il tuo primo cliente per iniziare a fatturare.",
 "tabs.clients.empty.cta":"Crea primo cliente",
 "tabs.clients.row.client_missing":"",
+
+  // ─── Tab Contacts (通讯录) ────────────────────────────────────────────────
+"tabs.contacts.title":"通讯录",
+"tabs.contacts.add.a11y":"添加客户",
+"tabs.contacts.sub_count":"{n} 位客户",
+"tabs.contacts.empty.title":"您的通讯录为空。",
+"tabs.contacts.empty.hint":"添加您的客户，随时查找联系方式。",
+"tabs.contacts.empty.cta":"添加客户",
 
   // ─── Tab Quotes ───────────────────────────────────────────────────────────
 "tabs.quotes.sub_count":"{n} preventiv{o|i}",
@@ -511,14 +521,14 @@ export const zh = {
 "milestone.clients_100.title":"100 clienti aggiunti!",
 "milestone.clients_100.body":"Un network straordinario. Il tuo business sta crescendo forte!",
 "milestone.review_ask.emoji":"",
-"milestone.review_ask.title":"Ti piace VELA?",
+"milestone.review_ask.title":"您喜欢 Milo Office 吗？",
 "milestone.review_ask.body":"Lascia una recensione e aiuta altri freelancer a scoprirci!",
 "milestone.close.a11y":"Chiudi celebrazione",
 "milestone.premium_cta.a11y":"Sblocca Premium per crescita illimitata",
 "milestone.premium_cta.text":"Sblocca Premium per crescita illimitata",
 
   // ─── Login ───────────────────────────────────────────────────────────────
-"login.title":"VELA",
+"login.title":"Milo Office",
 "login.subtitle":"Accedi con Google per continuare",
 "login.button.text":"Accedi con Google",
 
@@ -594,7 +604,7 @@ export const zh = {
 "invoices.detail.share_text.amount_line_prefix":"Importo:",
 "invoices.detail.share_text.due_line_prefix":"Scadenza:",
 "invoices.detail.share_text.status_line_prefix":"Stato:",
-"invoices.detail.share_text.visualize_line":"Visualizza su VELA",
+"invoices.detail.share_text.visualize_line":"在 Milo Office 上查看",
 "invoices.detail.share_url":"https://invoicestudio.app",
 "invoices.detail.share_title_template":"Fattura #{n}",
 "invoices.detail.email_subject_template":"Fattura #{n}  {amount}",
@@ -635,4 +645,50 @@ export const zh = {
 "invoicePrefill.use_template":"使用模板",
 "invoicePrefill.defaults_explainer":"意大利默认值：30 天、欧元、增值税 22%",
 "invoicePrefill.defaults_override_hint":"点击修改",
+
+  // ─── Tab Expenses (费用) ──────────────────────────────────────────────────────
+"tabs.expenses.title":"费用",
+"tabs.expenses.empty.title":"暂无费用记录。",
+"tabs.expenses.empty.hint":"记录您的业务费用并生成报告。",
+"tabs.expenses.empty.cta":"新建费用",
+
+  // ─── Tab Reminders (提醒) ─────────────────────────────────────────────────────
+"tabs.reminders.title":"提醒",
+"tabs.reminders.empty.title":"暂无提醒。",
+"tabs.reminders.empty.hint":"添加截止日期，不错过任何重要事项。",
+"tabs.reminders.empty.cta":"新建提醒",
+
+  // ─── IAP Feature Keys ────────────────────────────────────────────────────────
+"iap.excel.name":"Export Excel",
+"iap.excel.description":"将费用报告导出为 Excel 格式，发送给您的会计。",
+"iap.template.name":"Template Premium",
+"iap.logo.name":"自定义徽标",
+"iap.backup.name":"Backup Cloud",
+
+  // ─── Reminders Notification Permission ──────────────────────────────────────
+"reminders.notification.permission_denied_title":"通知已禁用",
+"reminders.notification.permission_denied_msg":"要接收截止日期提醒，请在设备设置中启用通知。",
+
+  // ─── Format Picker ───────────────────────────────────────────────────────────
+"format_picker.title":"选择格式",
+"format_picker.pdf":"PDF",
+"format_picker.doc":"Word (DOCX)",
+"format_picker.rtf":"RTF",
+
+  // ─── Translator ──────────────────────────────────────────────────────────────
+"translator.title":"翻译文档",
+"translator.select_language":"选择目标语言",
+"translator.auto_label":"自动翻译",
+"translator.privacy_note":"您文档的文本内容将发送至 Gemini API（Google）进行翻译。",
+
+  // ─── Quota Engine ────────────────────────────────────────────────────────────
+"quota.remaining":"还剩 {n} 个免费文档",
+"quota.exhausted.title":"免费文档限额已达上限",
+"quota.exhausted.cta":"升级为 Premium",
+"quota.reward_cta":"观看视频获取 +1 文档",
+"quota.reward_pending":"处理中…",
+"quota.reward_success":"已解锁额外文档！",
+"quota.reward_failed":"错误，请稍后重试。",
+"quota.reward_unavailable":"暂时没有可用的视频，请稍后重试。",
+"quota.reward_limit_reached":"您已解锁今天的 3 份额外文档，请明天再试。",
 };

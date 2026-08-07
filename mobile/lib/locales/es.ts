@@ -1,6 +1,6 @@
 export const es = {
   dashboard:"Panel",
-  invoices:"Facturas",
+  invoices:"Files",
   quotes:"Presupuestos",
   clients:"Clientes",
   settings:"Ajustes",
@@ -42,7 +42,7 @@ export const es = {
   quotes_convert_hint_title:"Convertir en factura",
   quotes_convert_hint_body:"Tienes presupuestos en borrador listos para enviar. Conviértelos en factura con un toque.",
   quotes_convert_hint_cta:"Convertir ahora",
-  settings_review_ask_title:"¿Te gusta VELA?",
+  settings_review_ask_title:"¿Te gusta Milo Office?",
   settings_review_ask_body:"¡Deja una reseña y ayuda a otros freelancers a descubrirnos!",
   settings_review_ask_cta:"Dejar reseña",
 
@@ -69,7 +69,7 @@ export const es = {
   boost_success_resource_clients:"+1 cliente",
   boost_success_resource_quotes:"+1 presupuesto",
   boost_success_expiry_label:"Expira en",
-  boost_success_thank_you:"Gracias por apoyar VELA",
+  boost_success_thank_you:"Gracias por apoyar Milo Office",
   boost_success_cta_text:"Crear mi factura →",
   boost_success_cta_a11y:"Crear mi factura",
   boost_success_cta_hint:"Volver a la pantalla de facturas",
@@ -156,7 +156,7 @@ export const es = {
 
   // ─── Settings Alerts ─────────────────────────────────────────────────────
   settings_logout_title:"¿Cerrar sesión?",
-  settings_logout_msg:"¿Quieres cerrar sesión en VELA?",
+  settings_logout_msg:"¿Quieres cerrar sesión en Milo Office?",
   settings_account_deleted_title:"Cuenta eliminada",
   settings_account_deleted_msg:"Tu cuenta ha sido eliminada con éxito.",
   settings_delete_account_msg:"¿Estás seguro de que deseas eliminar permanentemente tu cuenta? Todos tus datos, facturas y clientes serán eliminados de forma irreversible.",
@@ -165,6 +165,8 @@ export const es = {
   settings_delete_proceed:"Continuar",
   settings_delete_yes:"Sí, eliminar",
   settings_language_updated:"Idioma actualizado",
+  settings_privacy_options:"Gestionar opciones de privacidad",
+  settings_privacy_options_opened:"Opciones de privacidad abiertas",
 
   // ─── Invoice Detail Alerts ────────────────────────────────────────────────
   invoice_email_unavailable_title:"Correo no disponible",
@@ -185,8 +187,8 @@ export const es = {
 
   // ─── Tab Dashboard ────────────────────────────────────────────────────────
 "tabs.dashboard.title":"Dashboard",
-"tabs.dashboard.brand":"✦ VELA",
-"tabs.dashboard.onboarding.title":"Inizia con VELA",
+"tabs.dashboard.brand":"✦ Milo Office",
+"tabs.dashboard.onboarding.title":"Empieza con Milo Office",
 "tabs.dashboard.onboarding.first_invoice":"Crea la tua prima fattura",
 "tabs.dashboard.onboarding.first_client":"Aggiungi il tuo primo cliente",
 "tabs.dashboard.onboarding.profile_setup":"Imposta il tuo profilo",
@@ -227,11 +229,11 @@ export const es = {
 "tabs.invoices.status.paid":"Pagata",
 "tabs.invoices.status.overdue":"Scaduta",
 "tabs.invoices.status.cancelled":"Annullata",
-"tabs.invoices.title":"Fatture",
+"tabs.invoices.title":"Files",
 "tabs.invoices.sub_count":"{n} fattur{a|e}",
 "tabs.invoices.quota.a11y":"Quota fatture",
 "tabs.invoices.quota_text":"{used}/{base}",
-"tabs.invoices.new_button":"+ Nuova Fattura",
+"tabs.invoices.new_button":"+ Nuevo Archivo",
 "tabs.invoices.empty.query.title":"Nessun risultato",
 "tabs.invoices.empty.query.hint":"Nessuna fattura trovata per \"{query}\"",
 "tabs.invoices.empty.overdue.title":"Nessuna fattura scaduta",
@@ -240,9 +242,9 @@ export const es = {
 "tabs.invoices.empty.paid.hint":"Invia le tue fatture per iniziare a ricevere pagamenti.",
 "tabs.invoices.empty.draft.title":"Nessuna bozza",
 "tabs.invoices.empty.draft.hint":"Le fatture salvate come bozza appariranno qui.",
-"tabs.invoices.empty.default.title":"Crea la tua prima fattura professionale.",
-"tabs.invoices.empty.default.hint":"VELA ti guida passo per passo.",
-"tabs.invoices.empty.default.cta":"Crea fattura",
+"tabs.invoices.empty.default.title":"Crea tu primer documento profesional.",
+"tabs.invoices.empty.default.hint":"Milo Office te guía paso a paso.",
+"tabs.invoices.empty.default.cta":"Crear documento",
 
   // ─── Tab Clients ──────────────────────────────────────────────────────────
 "tabs.clients.title":"Clienti",
@@ -252,6 +254,14 @@ export const es = {
 "tabs.clients.empty.hint":"Aggiungi il tuo primo cliente per iniziare a fatturare.",
 "tabs.clients.empty.cta":"Crea primo cliente",
 "tabs.clients.row.client_missing":"",
+
+  // ─── Tab Contacts (Libreta de contactos) ─────────────────────────────────────
+"tabs.contacts.title":"Agenda",
+"tabs.contacts.add.a11y":"Añadir cliente",
+"tabs.contacts.sub_count":"{n} cliente{s}",
+"tabs.contacts.empty.title":"Tu agenda está vacía.",
+"tabs.contacts.empty.hint":"Añade tus clientes para tenerlos siempre a mano.",
+"tabs.contacts.empty.cta":"Añadir cliente",
 
   // ─── Tab Quotes ───────────────────────────────────────────────────────────
 "tabs.quotes.sub_count":"{n} preventiv{o|i}",
@@ -511,14 +521,14 @@ export const es = {
 "milestone.clients_100.title":"100 clienti aggiunti!",
 "milestone.clients_100.body":"Un network straordinario. Il tuo business sta crescendo forte!",
 "milestone.review_ask.emoji":"",
-"milestone.review_ask.title":"Ti piace VELA?",
+"milestone.review_ask.title":"¿Te gusta Milo Office?",
 "milestone.review_ask.body":"Lascia una recensione e aiuta altri freelancer a scoprirci!",
 "milestone.close.a11y":"Chiudi celebrazione",
 "milestone.premium_cta.a11y":"Sblocca Premium per crescita illimitata",
 "milestone.premium_cta.text":"Sblocca Premium per crescita illimitata",
 
   // ─── Login ───────────────────────────────────────────────────────────────
-"login.title":"VELA",
+"login.title":"Milo Office",
 "login.subtitle":"Accedi con Google per continuare",
 "login.button.text":"Accedi con Google",
 
@@ -594,7 +604,7 @@ export const es = {
 "invoices.detail.share_text.amount_line_prefix":"Importo:",
 "invoices.detail.share_text.due_line_prefix":"Scadenza:",
 "invoices.detail.share_text.status_line_prefix":"Stato:",
-"invoices.detail.share_text.visualize_line":"Visualizza su VELA",
+"invoices.detail.share_text.visualize_line":"Visualizza su Milo Office",
 "invoices.detail.share_url":"https://invoicestudio.app",
 "invoices.detail.share_title_template":"Fattura #{n}",
 "invoices.detail.email_subject_template":"Fattura #{n}  {amount}",
@@ -635,4 +645,50 @@ export const es = {
 "invoicePrefill.use_template":"Usar plantilla",
 "invoicePrefill.defaults_explainer":"Valores predeterminados para Italia: 30 días, EUR, IVA 22%",
 "invoicePrefill.defaults_override_hint":"Toca para cambiar",
+
+  // ─── Tab Expenses (Notas de gastos) ──────────────────────────────────────────
+"tabs.expenses.title":"Gastos",
+"tabs.expenses.empty.title":"Aún no hay notas de gastos.",
+"tabs.expenses.empty.hint":"Registra tus gastos profesionales y genera un informe.",
+"tabs.expenses.empty.cta":"Nueva nota de gastos",
+
+  // ─── Tab Reminders (Recordatorios) ───────────────────────────────────────────
+"tabs.reminders.title":"Recordatorios",
+"tabs.reminders.empty.title":"Aún no hay recordatorios.",
+"tabs.reminders.empty.hint":"Añade fechas límite para no perder ninguna cita importante.",
+"tabs.reminders.empty.cta":"Nuevo recordatorio",
+
+  // ─── IAP Feature Keys ────────────────────────────────────────────────────────
+"iap.excel.name":"Exportar a Excel",
+"iap.excel.description":"Exporta tus notas de gastos en formato Excel para tu asesor fiscal.",
+"iap.template.name":"Plantilla Premium",
+"iap.logo.name":"Logo personalizado",
+"iap.backup.name":"Copia de seguridad en la nube",
+
+  // ─── Reminders Notification Permission ──────────────────────────────────────
+"reminders.notification.permission_denied_title":"Notificaciones desactivadas",
+"reminders.notification.permission_denied_msg":"Para recibir recordatorios de vencimiento, activa las notificaciones en la configuración del dispositivo.",
+
+  // ─── Format Picker ───────────────────────────────────────────────────────────
+"format_picker.title":"Elegir formato",
+"format_picker.pdf":"PDF",
+"format_picker.doc":"Word (DOCX)",
+"format_picker.rtf":"RTF",
+
+  // ─── Translator ──────────────────────────────────────────────────────────────
+"translator.title":"Traducir documento",
+"translator.select_language":"Seleccionar idioma de destino",
+"translator.auto_label":"Traducción automática",
+"translator.privacy_note":"El contenido de texto de tu documento se enviará a la API Gemini (Google) para su traducción.",
+
+  // ─── Quota Engine ────────────────────────────────────────────────────────────
+"quota.remaining":"Te quedan {n} documentos gratuitos",
+"quota.exhausted.title":"Límite de documentos gratuitos alcanzado",
+"quota.exhausted.cta":"Pasarse a Premium",
+"quota.reward_cta":"Ver un vídeo para +1 documento",
+"quota.reward_pending":"Procesando…",
+"quota.reward_success":"¡Documento extra desbloqueado!",
+"quota.reward_failed":"Error. Por favor, inténtalo más tarde.",
+"quota.reward_unavailable":"No hay video disponible en este momento. Inténtalo más tarde.",
+"quota.reward_limit_reached":"Ya has desbloqueado los 3 documentos extra de hoy. Inténtalo mañana.",
 };

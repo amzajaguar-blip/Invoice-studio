@@ -46,6 +46,8 @@ json.google/
 *.json.google
 *service-account*.json
 *-firebase-adminsdk-*.json
+jsono key google */
+invoice-studio-497410-*.json
 
 # ZIP files and extracted project artifacts
 *.zip

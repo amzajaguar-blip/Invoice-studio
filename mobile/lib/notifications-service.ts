@@ -2,7 +2,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export type NotificationType = 'payment_received' | 'invoice_sent' | 'invoice_overdue' | 'payment_reminder' | 'invoice_viewed';
+export type NotificationType = 'payment_received' | 'invoice_sent' | 'invoice_overdue' | 'payment_reminder' | 'invoice_viewed' | 'daily_summary' | 'system_alert' | 'business_boost' | 'subscription_expired' | 'smart_insight';
 
 export interface NotificationPayload {
   type: NotificationType;
@@ -455,5 +455,97 @@ function shouldSendNotification(type: NotificationType, settings: NotificationSe
       return true;
     default:
       return false;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VELA Pivot — Sezione Promemoria (aggiunto in append, nessuna funzione esistente modificata)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type ReminderNotificationType = 'deadline_reminder';
+
+export interface ReminderForNotification {
+  id: string;
+  title: string;
+  notes?: string;
+  dueDate: Date;
+  recurrence: 'once' | 'monthly' | 'yearly';
+  notificationId?: string;
+}
+
+/**
+ * Schedula una notifica push locale per un promemoria.
+ * Trigger = reminder.dueDate. content.title = reminder.title.
+ * @returns notificationId schedulato, o null se il permesso non è concesso
+ */
+export async function scheduleReminderNotification(
+  reminder: ReminderForNotification
+): Promise<string | null> {
+  try {
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status !== 'granted') {
+      return null;
+    }
+
+    const notificationId = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: reminder.title,
+        body: reminder.notes ?? '',
+        data: {
+          type: 'deadline_reminder' as ReminderNotificationType,
+          reminderId: reminder.id,
+        },
+        sound: 'default',
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: reminder.dueDate,
+      },
+    });
+
+    return notificationId;
+  } catch (error) {
+    console.error('Failed to schedule reminder notification:', error);
+    return null;
+  }
+}
+
+/**
+ * Cancella la notifica schedulata per un promemoria.
+ */
+export async function cancelReminderNotification(
+  notificationId: string
+): Promise<void> {
+  try {
+    await Notifications.cancelScheduledNotificationAsync(notificationId);
+  } catch (error) {
+    console.error('Failed to cancel reminder notification:', error);
+  }
+}
+
+/**
+ * Richiede permesso notifiche. Usato al primo accesso sezione Promemoria.
+ * @returns true se il permesso è stato concesso
+ */
+export async function requestNotificationPermission(): Promise<boolean> {
+  try {
+    const { status } = await Notifications.requestPermissionsAsync();
+    return status === 'granted';
+  } catch (error) {
+    console.error('Failed to request notification permission:', error);
+    return false;
+  }
+}
+
+/**
+ * Controlla se i permessi notifiche sono già concessi (senza chiedere).
+ */
+export async function hasNotificationPermission(): Promise<boolean> {
+  try {
+    const { status } = await Notifications.getPermissionsAsync();
+    return status === 'granted';
+  } catch (error) {
+    console.error('Failed to check notification permission:', error);
+    return false;
   }
 }

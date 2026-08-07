@@ -30,6 +30,13 @@ const PRODUCT_IDS = {
  * configurato per il prodotto. Su Google Play il trial gratuito è esposto
  * come introPrice con prezzo 0; se non c'è (o è solo uno sconto), non lo
  * mostriamo. Ritorna { hasTrial:false } quando l'offering non è disponibile.
+ *
+ * Sicurezza eligibilità: se l'utente ha già usato il trial, Google Play non
+ * restituisce introPrice nell'offering — quindi hasTrial sarà false
+ * automaticamente. Nessun check aggiuntivo lato app necessario.
+ *
+ * Piano annuale: nessuna offerta trial configurata in baseline — introPrice
+ * sarà null → hasTrial = false. Questa funzione è sicura per entrambi i piani.
  */
 function trialFor(offering: PurchasesOffering | null, productId: string, t: (key: string) => string): { hasTrial: boolean; text: string } {
   const pkg = offering?.availablePackages?.find((p) => p.product.identifier?.startsWith(productId));

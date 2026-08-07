@@ -101,7 +101,7 @@ export const MILESTONE_COPY: Record<
   review_ask: {
     iconName: 'star',
     iconColor: '#f59e0b',
-    title: 'Ti piace VELA?',
+    title: 'Ti piace Milo Office?',
     body:  'Lascia una recensione e aiuta altri freelancer a scoprirci!',
   },
 };

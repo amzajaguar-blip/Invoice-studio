@@ -1,7 +1,7 @@
 {
-  "name": "InvoiceStudio — Fatture Professionali per Freelancer",
-  "short_name": "InvoiceStudio",
-  "description": "Crea fatture professionali, accetta pagamenti online con Stripe e PayPal, e automatizza i reminder. La piattaforma SaaS per freelancer e agenzie italiane.",
+  "name": "Milo Office — Documenti Professionali per Freelancer",
+  "short_name": "Milo Office",
+  "description": "Da PDF a DOCX, da XLSX a ODT — genera, converti e gestisci i tuoi documenti professionali in un'unica app.",
   "theme_color": "#0a0b0f",
   "background_color": "#0a0b0f",
   "display": "standalone",
@@ -30,21 +30,21 @@
       "sizes": "1080x1920",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Dashboard principale di InvoiceStudio"
+      "label": "Dashboard principale di Milo Office"
     },
     {
       "src": "/playstore/screenshot-2.png",
       "sizes": "1080x1920",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Creazione fattura professionale"
+      "label": "Creazione documento professionale"
     },
     {
       "src": "/playstore/screenshot-3.png",
       "sizes": "1080x1920",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Gestione clienti e pagamenti"
+      "label": "Gestione documenti e conversioni"
     },
     {
       "src": "/playstore/screenshot-4.png",

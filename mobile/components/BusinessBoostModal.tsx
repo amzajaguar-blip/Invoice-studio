@@ -608,6 +608,9 @@ const s = StyleSheet.create({
     color: '#f59e0b',
     marginBottom: 10,
   },
+  upgradeFeatureList: {
+    gap: 6,
+  },
   featureRow: {
     flexDirection: 'row',
     alignItems: 'center',

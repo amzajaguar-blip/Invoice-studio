@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   Dimensions,
   Easing,
@@ -37,6 +38,20 @@ import {
   getSuggestion,
 } from "../../lib/ocr-corrections";
 import { OCRFieldReview } from "../../components/OCRFieldReview";
+import {
+  FormatPickerModal,
+  DocumentFormat,
+  loadLastDocFormat,
+} from "@/components/FormatPickerModal";
+import { generateDocumentPDF } from "@/lib/pdf-utils";
+import {
+  generateDocumentDOC,
+  generateDocumentRTF,
+  shareDocument,
+  DocumentFormatData,
+} from "@/lib/document-format-engine";
+import * as Sharing from "expo-sharing";
+import { useDocumentAd } from "@/lib/useDocumentAd";
 
 type ScanState = "idle" | "capturing" | "preview" | "analyzing" | "result";
 
@@ -86,6 +101,12 @@ export default function ScannerScreen() {
   // Tracks which fields were auto-filled from previous corrections, so the
   // UI can show a "learned from previous scan" hint.
   const [autoFilledFields, setAutoFilledFields] = useState<Record<string, string>>({});
+
+  // Format picker per l'output del documento scansionato
+  const [formatPickerVisible, setFormatPickerVisible] = useState(false);
+  const [selectedFormat, setSelectedFormat] = useState<DocumentFormat | null>(null);
+  const [generatingDoc, setGeneratingDoc] = useState(false);
+  const { runWithAd, adLoading } = useDocumentAd();
   // Records the ORIGINAL value the user sees for each field, so we can
   // detect corrections and persist them on confirm.
   const originalValuesRef = useRef<Record<string, string>>({});
@@ -310,48 +331,120 @@ export default function ScannerScreen() {
   };
 
   /**
-   * Persist any user corrections before navigating away.
-   * Fire-and-forget — errors are non-fatal and logged inside recordCorrection.
+   * Persist corrections e apre il FormatPickerModal per scegliere il formato
+   * di output del documento scansionato. Genera e condivide il documento
+   * nel formato scelto dall'utente (PDF / DOCX / RTF).
    */
   const handleConfirm = async () => {
+    // 1. Persisti correzioni OCR (fire-and-forget)
     try {
       const originals = originalValuesRef.current;
       const vendorKey = normalizeVendorName(originals.vendor || ocrResult?.vendor);
-      if (!vendorKey || !fieldScores) {
-        router.back();
-        return;
-      }
-      // Compare the live fieldScores to the originals we snapshotted.
-      const fields: ReadonlyArray<keyof typeof originals> = [
-        "vendor",
-        "date",
-        "amount",
-        "vat_number",
-        "invoice_number",
-      ];
-      const writes: Array<Promise<void>> = [];
-      for (const field of fields) {
-        const live = fieldScores[field]?.value ?? "";
-        const original = originals[field] ?? "";
-        if (live !== original && live.trim().length > 0) {
-          writes.push(
-            recordCorrection({
-              field,
-              originalValue: original,
-              correctedValue: live,
-              vendorNormalized: vendorKey,
-              at: new Date().toISOString(),
-            })
-          );
+      if (vendorKey && fieldScores) {
+        const fields: ReadonlyArray<keyof typeof originals> = [
+          "vendor", "date", "amount", "vat_number", "invoice_number",
+        ];
+        const writes: Array<Promise<void>> = [];
+        for (const field of fields) {
+          const live = fieldScores[field]?.value ?? "";
+          const original = originals[field] ?? "";
+          if (live !== original && live.trim().length > 0) {
+            writes.push(recordCorrection({ field, originalValue: original, correctedValue: live, vendorNormalized: vendorKey, at: new Date().toISOString() }));
+          }
         }
-      }
-      if (writes.length > 0) {
-        await Promise.all(writes);
+        if (writes.length > 0) await Promise.all(writes);
       }
     } catch (e) {
-      console.warn("[scanner] confirm/correction write failed:", e);
+      console.warn("[scanner] correction write failed:", e);
     }
-    router.back();
+
+    // 2. Carica ultima preferenza formato e apre il picker
+    const last = await loadLastDocFormat();
+    if (last) setSelectedFormat(last);
+    setFormatPickerVisible(true);
+  };
+
+  /**
+   * Genera il documento scansionato nel formato scelto e lo condivide.
+   * Mostra pubblicità obbligatoria per utenti free prima della generazione.
+   */
+  const handleGenerateScannedDoc = async (format: DocumentFormat) => {
+    if (!ocrResult || generatingDoc) return;
+    setFormatPickerVisible(false);
+    setGeneratingDoc(true);
+
+    await runWithAd(async () => {
+      try {
+        const title = ocrResult.vendor
+          ? `Documento — ${ocrResult.vendor}`
+          : "Documento scansionato";
+        const amount = ocrResult.total ?? 0;
+        const currency = ocrResult.currency || "EUR";
+        const dateStr = ocrResult.date
+          ? new Date(ocrResult.date).toLocaleDateString("it-IT")
+          : new Date().toLocaleDateString("it-IT");
+
+        const docData: DocumentFormatData = {
+          type: "invoice",
+          title,
+          number: ocrResult.invoice_number ?? undefined,
+          issueDate: dateStr,
+          client: ocrResult.vendor ? { name: ocrResult.vendor, taxId: ocrResult.vat_number ?? undefined } : undefined,
+          lineItems: [{ description: "Importo scansionato", quantity: 1, rate: amount, amount }],
+          totals: { subtotal: amount, grandTotal: amount, currency },
+          notes: `Documento acquisito via scanner il ${dateStr}`,
+        };
+
+        const safeVendor = (ocrResult.vendor ?? "documento").replace(/[^a-zA-Z0-9_-]/g, "_");
+
+        if (format === "pdf") {
+          // Costruisce un InvoiceData minimale compatibile con generateDocumentPDF
+          const pdfData = {
+            id: `scan_${Date.now()}`,
+            invoiceNumber: ocrResult.invoice_number ?? `SCAN-${Date.now()}`,
+            clientId: "",
+            client: {
+              id: "",
+              name: ocrResult.vendor || "—",
+              email: "",
+              taxId: ocrResult.vat_number,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+            status: "sent" as const,
+            issueDate: ocrResult.date ? new Date(ocrResult.date) : new Date(),
+            dueDate: new Date(),
+            lineItems: [{ id: "1", description: "Importo scansionato", quantity: 1, rate: amount, amount }],
+            subtotal: amount,
+            taxRate: 0,
+            taxAmount: 0,
+            discountAmount: 0,
+            total: amount,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+          const filepath = await generateDocumentPDF(pdfData, { documentType: "invoice" });
+          if (!filepath) { Alert.alert(t("error"), "Impossibile generare il PDF."); return; }
+          const canShare = await Sharing.isAvailableAsync();
+          if (canShare) await Sharing.shareAsync(filepath, { mimeType: "application/pdf", dialogTitle: title });
+          else Alert.alert("PDF generato", `File: ${filepath}`);
+        } else if (format === "doc") {
+          const fp = await generateDocumentDOC(docData);
+          await shareDocument(fp, `${safeVendor}.docx`);
+        } else if (format === "rtf") {
+          const fp = await generateDocumentRTF(docData);
+          await shareDocument(fp, `${safeVendor}.rtf`);
+        }
+
+        // Torna indietro dopo generazione riuscita
+        router.back();
+      } catch (err) {
+        Alert.alert(t("error"), "Errore durante la generazione del documento.");
+        console.error("[scanner] generateScannedDoc error:", err);
+      }
+    });
+
+    setGeneratingDoc(false);
   };
 
   /**
@@ -509,10 +602,35 @@ export default function ScannerScreen() {
           <TouchableOpacity style={styles.secondaryBtn} onPress={handleReset}>
             <Text style={styles.secondaryBtnTxt}>{t("scanner.actions.retry")}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.primaryBtn} onPress={handleConfirm}>
-            <Text style={styles.primaryBtnTxt}>{t("scanner.actions.confirm")}</Text>
+          <TouchableOpacity
+            style={[styles.primaryBtn, (generatingDoc || adLoading) && styles.btnDisabled]}
+            onPress={handleConfirm}
+            disabled={generatingDoc || adLoading}
+          >
+            {(generatingDoc || adLoading) ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.primaryBtnTxt}>
+                {adLoading ? "Pub…" : t("scanner.actions.confirm")}
+              </Text>
+            )}
           </TouchableOpacity>
         </View>
+
+        {/* Format Picker — selezione formato output documento scansionato */}
+        <FormatPickerModal
+          visible={formatPickerVisible}
+          selectedFormat={selectedFormat}
+          onSelect={(format) => {
+            setSelectedFormat(format);
+            void handleGenerateScannedDoc(format);
+          }}
+          onDismiss={() => {
+            setFormatPickerVisible(false);
+            // Se l'utente chiude senza scegliere, torna indietro normalmente
+            router.back();
+          }}
+        />
       </View>
     );
   }

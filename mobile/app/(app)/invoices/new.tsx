@@ -16,6 +16,7 @@ import {
   maybeShowInterstitial,
   shouldShowInterstitialForInvoice,
 } from "@/lib/ads";
+import { usePlan } from "@/context/PlanContext";
 
 interface Client {
   id: string;
@@ -35,6 +36,7 @@ const generateId = () => Math.random().toString(36).slice(2);
 export default function NewInvoiceScreen() {
   const router = useRouter();
   const { t } = useLocale();
+  const { isPremium } = usePlan();
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [showClientPicker, setShowClientPicker] = useState(false);
@@ -187,7 +189,7 @@ export default function NewInvoiceScreen() {
           monthCount = (countResp as any).count;
         }
         monthCount = monthCount > 0 ? monthCount : 1; // assume at least the one we just saved
-        if (shouldShowInterstitialForInvoice(monthCount)) {
+        if (!isPremium && shouldShowInterstitialForInvoice(monthCount)) {
           // Fire-and-forget: don't block the back navigation on the ad.
           maybeShowInterstitial().catch(() => {});
         }

@@ -29,6 +29,7 @@ export interface Invoice {
   invoiceNumber: string;
   clientId: string;
   client?: Client;
+  clientSnapshot?: ClientSnapshot;
   status: InvoiceStatus;
   issueDate: Date;
   dueDate: Date;
@@ -83,4 +84,78 @@ export interface User {
   loginMethod: string;
   role: 'user' | 'admin';
   lastSignedIn: Date;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VELA Pivot — Nuovi tipi condivisi (aggiunti in append, nessun tipo esistente modificato)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'invoiced';
+
+export type ReminderRecurrence = 'once' | 'monthly' | 'yearly';
+
+export interface ClientSnapshot {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  taxId?: string;
+  currency: string;
+}
+
+export interface Quote {
+  id: string;
+  quoteNumber: string;
+  status: QuoteStatus;
+  issueDate: Date;
+  validUntil: Date;
+  clientId?: string;
+  clientSnapshot: ClientSnapshot;
+  lineItems: LineItem[]; // riusa LineItem esistente
+  subtotal: number;
+  taxRate: number;
+  taxAmount: number;
+  discountAmount: number;
+  total: number;
+  notes?: string;
+  templateId?: string;
+  convertedToInvoiceId?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ExpenseItem {
+  id: string;
+  date: Date;
+  category: string;
+  amount: number;
+  currency: string;
+  description?: string;
+}
+
+export interface ExpenseReport {
+  id: string;
+  reportNumber: string;
+  title: string;
+  periodFrom: Date;
+  periodTo: Date;
+  items: ExpenseItem[];
+  totalByCategory: Record<string, number>;
+  grandTotal: number;
+  currency: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Reminder {
+  id: string;
+  title: string;
+  notes?: string;
+  dueDate: Date;
+  recurrence: ReminderRecurrence;
+  notificationId?: string;
+  completed: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }

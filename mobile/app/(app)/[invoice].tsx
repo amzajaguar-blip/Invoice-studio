@@ -117,7 +117,7 @@ export default function InvoiceDetailScreen() {
       `Scadenza: ${data?.due_date ? new Date(data.due_date).toLocaleDateString("it-IT") : "—"}`,
       `Stato: ${STATUS_LABELS[data?.status ?? "draft"]}`,
       "",
-      "Visualizza su VELA",
+      "Visualizza su Milo Office",
       `https://invoicestudio.app`,
     ];
     return lines.join("\n");

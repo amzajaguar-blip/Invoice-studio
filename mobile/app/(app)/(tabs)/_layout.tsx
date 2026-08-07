@@ -45,7 +45,7 @@ export default function TabLayout() {
           headerShown: false,
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
-              name={focused ? 'document-text' : 'document-text-outline'}
+              name={focused ? "document-text" : "document-text-outline"}
               size={size}
               color={color}
             />
@@ -53,11 +53,41 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="clients"
+        name="expenses"
         options={{
-          title: t("clients"),
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="people" size={size} color={color} />
+          title: "Note spese",
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? "receipt" : "receipt-outline"}
+              size={size}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="reminders"
+        options={{
+          title: "Promemoria",
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? "alarm" : "alarm-outline"}
+              size={size}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="contacts"
+        options={{
+          title: "Rubrica",
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? "people" : "people-outline"}
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
@@ -69,6 +99,11 @@ export default function TabLayout() {
             <Ionicons name="settings" size={size} color={color} />
           ),
         }}
+      />
+      {/* clients route rimane attiva per retrocompatibilità ma nascosta dalla tab bar */}
+      <Tabs.Screen
+        name="clients"
+        options={{ href: null }}
       />
     </Tabs>
   );

@@ -206,19 +206,72 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    // Aggiunge il listener per i futuri aggiornamenti
-    Purchases.addCustomerInfoUpdateListener(customerInfoListener);
+    /**
+     * BUG-FIX: Purchases.configure() è chiamato in _layout.tsx dentro useEffect.
+     * Su React 19 StrictMode il primo useEffect del parent (RootLayout) e quello
+     * del child (PlanProvider) possono interleacciarsi, e getCustomerInfo()
+     * può partire PRIMA che configure() abbia propagato il singleton nativo.
+     *
+     * Soluzione: attendere che Purchases.isConfigured() === true prima di
+     * chiamare getCustomerInfo(), con retry + backoff esponenziale. Dopo 5s
+     * di configurazione mai arrivata, abbandoniamo silenziosamente (l'utente
+     * resta su piano free, ma l'app non crasha).
+     */
+    let cancelled = false;
+    let retryDelay = 100;
+    const maxDelay = 2000;
+    const maxAttempts = 8;
 
-    // Controlla immediatamente lo stato corrente al mount
-    // (caso in cui l'utente ha già acquistato prima di questo render)
-    Purchases.getCustomerInfo()
-      .then(customerInfoListener)
-      .catch((err) => {
-        console.warn('[PlanContext] getCustomerInfo error:', err);
+    async function waitForPurchasesConfigured(attempt = 0): Promise<boolean> {
+      if (cancelled) return false;
+      try {
+        if (Purchases.isConfigured && (await Purchases.isConfigured())) {
+          return true;
+        }
+      } catch {
+        // isConfigured può non essere disponibile in versioni vecchie del SDK
+      }
+      if (attempt >= maxAttempts) return false;
+      await new Promise((r) => setTimeout(r, retryDelay));
+      retryDelay = Math.min(retryDelay * 2, maxDelay);
+      return waitForPurchasesConfigured(attempt + 1);
+    }
+
+    let unsubscribe: (() => void) | undefined;
+    let pollTimer: ReturnType<typeof setInterval> | undefined;
+
+    void waitForPurchasesConfigured()
+      .then((ready) => {
+        if (cancelled || !ready) {
+          if (!cancelled) {
+            console.warn('[PlanContext] Purchases.configure() never completed within timeout — skipping RevenueCat init');
+          }
+          return;
+        }
+
+        // Aggiunge il listener per i futuri aggiornamenti
+        Purchases.addCustomerInfoUpdateListener(customerInfoListener);
+        unsubscribe = () => {
+          try {
+            Purchases.removeCustomerInfoUpdateListener(customerInfoListener);
+          } catch {
+            // listener potrebbe essere già stato rimosso
+          }
+        };
+
+        // Controlla immediatamente lo stato corrente al mount
+        // (caso in cui l'utente ha già acquistato prima di questo render)
+        Purchases.getCustomerInfo()
+          .then(customerInfoListener)
+          .catch((err) => {
+            console.warn('[PlanContext] getCustomerInfo error:', err);
+          });
       });
 
     return () => {
-      Purchases.removeCustomerInfoUpdateListener(customerInfoListener);
+      cancelled = true;
+      if (pollTimer) clearInterval(pollTimer);
+      unsubscribe?.();
     };
   }, [isPremium]); // eslint-disable-line react-hooks/exhaustive-deps
 
