@@ -25,6 +25,7 @@ import { useToast } from "@/lib/toast";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useDeleteAccount } from "@/hooks/useDeleteAccount";
+import { showPrivacyOptionsForm } from "@/lib/ads";
 
 // V34 — plan, smart cards, banner
 import { usePlan } from "@/context/PlanContext";
@@ -242,8 +243,18 @@ export default function SettingsScreen() {
         <Text style={styles.buttonText}>{t("logout")}</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button} onPress={() => Linking.openURL("https://vela.app/privacy")}>
+      <TouchableOpacity style={styles.button} onPress={() => Linking.openURL("https://milo.mindprint.it/privacy")}>
         <Text style={styles.buttonText}>{t("tabs.settings.account.privacy_policy")}</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.button}
+        onPress={async () => {
+          await showPrivacyOptionsForm();
+          showToast({ message: t("settings_privacy_options_opened"), type: "success" });
+        }}
+      >
+        <Text style={styles.buttonText}>{t("settings_privacy_options")}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -253,8 +264,8 @@ export default function SettingsScreen() {
         <Text style={[styles.buttonText, styles.deleteText]}>{t("deleteAccount")}</Text>
       </TouchableOpacity>
 
-      {/* V34 — BannerAdWrapper in fondo, solo se !isPremium (Req 9.8, 4.1) */}
-      {!isPremium && (
+      {/* V34 — BannerAdWrapper in fondo, solo se !isPremium e piano risolto (Req 9.8, 4.1) */}
+      {!isPremium && !limits.isLoading && (
         <BannerAdWrapper screen="settings" style={styles.bannerAd} />
       )}
     </ScrollView>
@@ -448,7 +459,7 @@ const styles = StyleSheet.create({
 
   // ─── V34 — Banner Ad ──────────────────────────────────────────────────────
   bannerAd: {
-    marginTop: 8,
+    marginTop: 24,
     marginBottom: 4,
   },
 });

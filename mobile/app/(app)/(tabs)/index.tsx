@@ -580,7 +580,10 @@ export default function DashboardScreen() {
         </View>
 
         {/* ── BannerAdWrapper — in fondo allo ScrollView, solo per utenti free ── */}
-        {!isPremium && (
+        {/* !limits.isLoading evita di mostrare il banner a un utente Pro prima
+            che il piano sia stato risolto da RevenueCat/Supabase (isPremium
+            di default è false durante il caricamento). */}
+        {!isPremium && !limits.isLoading && (
           <BannerAdWrapper screen="dashboard" style={{ marginTop: 24 }} />
         )}
       </ScrollView>

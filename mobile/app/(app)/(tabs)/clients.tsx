@@ -267,8 +267,9 @@ export default function ClientsScreen() {
           />
         }
         ListFooterComponent={
-          /* V34 — BannerAdWrapper at the bottom of the list, only if !isPremium (Req 9.7, 4.1) */
-          !isPremium ? <BannerAdWrapper screen="customers" /> : null
+          /* V34 — BannerAdWrapper at the bottom of the list, only if !isPremium
+             and plan resolution has finished (Req 9.7, 4.1) */
+          !isPremium && !limits.isLoading ? <BannerAdWrapper screen="customers" /> : null
         }
       />
 
