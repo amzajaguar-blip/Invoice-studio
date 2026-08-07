@@ -53,19 +53,19 @@
       [
         "react-native-google-mobile-ads",
         {
-          "androidAppId": "ca-app-pub-8156953772676654~5852038578"
+          "androidAppId": "ca-app-pub-8156953772676654~4738629818"
         }
       ],
       [
         "expo-camera",
         {
-          "cameraPermission": "Consenti a VELA di usare la fotocamera per scansionare le ricevute."
+          "cameraPermission": "Consenti a Milo Office di usare la fotocamera per scansionare le ricevute."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Consenti a VELA di accedere alle tue foto per allegare documenti."
+          "photosPermission": "Consenti a Milo Office di accedere alle tue foto per allegare documenti."
         }
       ],
       [
