@@ -61,6 +61,8 @@ react {
 
     /* Autolinking */
     autolinkLibrariesWithApp()
+    // Standalone debug APK: embed the JS bundle instead of relying on Metro
+    debuggableVariants = []
 }
 
 /**
@@ -92,11 +94,8 @@ android {
         applicationId 'com.Invoice_Studio.myapp'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 65
-        versionName "1.0.65"
-        ndk {
-            abiFilters "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
-        }
+        versionCode 69
+        versionName "1.0.69"
     }
     signingConfigs {
         debug {
@@ -132,7 +131,7 @@ android {
     }
     packagingOptions {
         jniLibs {
-            useLegacyPackaging (findProperty('expo.useLegacyPackaging')?.toBoolean() ?: false)
+            useLegacyPackaging false
         }
     }
     androidResources {
