@@ -1,4 +1,4 @@
-name: Build AAB Release v69
+name: Build AAB Release
 
 on:
   workflow_dispatch:
@@ -13,6 +13,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Read app version
+        id: appver
+        run: |
+          VERSION_NAME=$(node -p "require('./app.json').expo.version")
+          VERSION_CODE=$(node -p "require('./app.json').expo.android.versionCode")
+          echo "name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "code=$VERSION_CODE" >> $GITHUB_OUTPUT
+          echo "Version $VERSION_NAME (versionCode $VERSION_CODE)"
 
       - uses: actions/setup-node@v4
         with:
@@ -399,7 +408,7 @@ jobs:
       - name: Upload AAB Release
         uses: actions/upload-artifact@v4
         with:
-          name: VELA-v69-AAB-16kb-signed
+          name: MiloOffice-v${{ steps.appver.outputs.name }}-AAB-signed-${{ github.sha }}
           path: mobile/android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 14

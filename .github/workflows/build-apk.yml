@@ -1,4 +1,4 @@
-name: Build APK Release v43
+name: Build APK Release
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   apk-debug:
-    name: APK Debug — installabile su Android
+    name: APK — installabile su Android
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -15,6 +15,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Read app version
+        id: appver
+        run: |
+          VERSION_NAME=$(node -p "require('./app.json').expo.version")
+          VERSION_CODE=$(node -p "require('./app.json').expo.android.versionCode")
+          echo "name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "code=$VERSION_CODE" >> $GITHUB_OUTPUT
+          echo "Version $VERSION_NAME (versionCode $VERSION_CODE)"
 
       - uses: actions/setup-node@v4
         with:
@@ -109,7 +118,7 @@ jobs:
       - name: Upload APK Debug
         uses: actions/upload-artifact@v4
         with:
-          name: VELA-v43-APK
+          name: MiloOffice-v${{ steps.appver.outputs.name }}-APK-${{ github.sha }}
           path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
