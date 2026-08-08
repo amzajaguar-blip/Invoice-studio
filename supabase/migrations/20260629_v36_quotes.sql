@@ -1,4 +1,4 @@
--- VELA v36: Quotes & Quote Items Tables (CORRECTED)
+-- Milo Office v36: Quotes & Quote Items Tables (CORRECTED)
 -- Esegui in Supabase SQL Editor (copy/paste tutto)
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

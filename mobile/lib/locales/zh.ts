@@ -696,4 +696,20 @@ export const zh = {
 "quota.reward_failed":"错误，请稍后重试。",
 "quota.reward_unavailable":"暂时没有可用的视频，请稍后重试。",
 "quota.reward_limit_reached":"您已解锁今天的 3 份额外文档，请明天再试。",
+
+// Export multi-formato (PDF / Excel / Word)
+"documents.new.format_badge":"格式：{format}",
+"documents.new.export.cta":"生成 {format}",
+"documents.new.export.skip":"稍后",
+"documents.new.export.failed_title":"导出失败",
+"documents.new.export.failed_msg":"无法生成 {format} 文件。文档已保存。",
+"documents.detail.export.section":"导出",
+"documents.detail.export.a11y":"导出为 {format}",
+"documents.detail.export.failed_title":"导出失败",
+"documents.detail.export.failed_msg":"无法生成 {format} 文件。请重试。",
+"format_picker.xlsx":"Excel (XLSX)",
+"format_picker.pdf_desc":"可打印文档，固定版式",
+"format_picker.xlsx_desc":"可编辑行和合计的电子表格",
+"format_picker.doc_desc":"Word 文档，文本可编辑",
+"format_picker.rtf_desc":"富文本，广泛兼容",
 };

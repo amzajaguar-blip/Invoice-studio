@@ -74,7 +74,7 @@ export default function InvoicesScreen() {
   // ─── V34: Engagement context (Req 9.4) ──────────────────────────────────
   const { recordAction } = useEngagementContext();
 
-  // ─── Req 18.1: micro animation on "Nuova Fattura" button ─────────────────
+  // ─── Req 18.1: micro animation on "Nuovo documento" button ─────────────────
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const [reduceMotion, setReduceMotion] = useState(false);
 
@@ -155,7 +155,7 @@ export default function InvoicesScreen() {
           prevInvoiceCountRef.current = list.length;
           await recordAction('invoice');
 
-          // Req 18.1: scale pulse on "Nuova Fattura" button — skip if reduceMotion
+          // Req 18.1: scale pulse on "Nuovo documento" button — skip if reduceMotion
           if (!reduceMotion) {
             Animated.sequence([
               Animated.timing(scaleAnim, {
@@ -232,8 +232,8 @@ export default function InvoicesScreen() {
 
   // ─── Smart Empty State (Req 17.2, 20.1, 20.2) ────────────────────────────
   /**
-   * Req 17.2: icona 📄, titolo "Crea la tua prima fattura professionale.",
-   * hint "VELA ti guida passo per passo.", CTA "Crea fattura"
+   * Req 17.2: icona 📄, titolo "Crea il tuo primo documento professionale.",
+   * hint "Milo Office ti guida passo per passo.", CTA "Crea documento"
    * Req 20.1: CTA presente e chiaramente visibile
    * Req 20.2: no dark pattern, testo onesto
    */

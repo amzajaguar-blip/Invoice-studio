@@ -6,7 +6,7 @@ export const it = {
   clients:"Clienti",
   settings:"Impostazioni",
   // Actions
-  newInvoice:"Nuova Documento",
+  newInvoice:"Nuovo documento",
   newClient:"Nuovo Cliente",
   scan:"Scansiona",
   save:"Salva",
@@ -20,7 +20,7 @@ export const it = {
   overdue:"Scaduta",
   cancelled:"Annullata",
   // Messages
-  noInvoices:"Nessuna documento ancora",
+  noInvoices:"Nessun documento ancora",
   noClients:"Nessun cliente ancora",
   savedSuccess:"Salvato",
   deletedSuccess:"Eliminato",
@@ -37,7 +37,7 @@ export const it = {
 
   // ─── Contextual Cards (In-App Messaging) ──────────────────────────────────
   dashboard_limit_warning_title:"Quasi al limite mensile",
-  dashboard_limit_warning_body:"Hai usato l'80% delle tue documenti mensili. Guarda un video per sbloccare 3 in più.",
+  dashboard_limit_warning_body:"Hai usato l'80% dei tuoi documenti mensili. Guarda un video per sbloccare 3 in più.",
   dashboard_limit_warning_cta:"Business Boost",
   invoices_boost_available_title:"Business Boost disponibile",
   invoices_boost_available_body:"Guarda un breve video e sblocca subito 3 documenti extra per 24 ore.",
@@ -76,8 +76,8 @@ export const it = {
   boost_success_resource_quotes:"+1 bozza",
   boost_success_expiry_label:"Scade in",
   boost_success_thank_you:"Grazie per supportare Milo Office",
-  boost_success_cta_text:"Crea la mia documento →",
-  boost_success_cta_a11y:"Crea la mia documento",
+  boost_success_cta_text:"Crea il mio documento →",
+  boost_success_cta_a11y:"Crea il mio documento",
   boost_success_cta_hint:"Torna alla schermata documenti",
   boost_success_modal_a11y_label:"Business Boost attivato con successo",
   boost_success_modal_summary_a11y:"Risorse sbloccate per 24 ore",
@@ -150,7 +150,7 @@ export const it = {
 
   // ─── Premium Upgrade (Dynamic content) ───────────────────────────────────
   upgrade_premium_cta:"Attiva abbonamento Premium",
-  upgrade_premium_hint:"Sblocca documenti illimitate e tutte le funzioni Pro",
+  upgrade_premium_hint:"Sblocca documenti illimitati e tutte le funzioni Pro",
   view_premium_features:"Vedi tutte le funzioni Premium",
   close_without_boost:"Continua con il piano gratuito senza Boost",
   close:"Chiudi",
@@ -183,9 +183,9 @@ export const it = {
   // ─── New Invoice Alerts ───────────────────────────────────────────────────
   invoice_missing_items_msg:"Aggiungi almeno una voce con descrizione e importo.",
   invoice_draft_saved_title:"Bozza salvata",
-  invoice_draft_saved_msg:"La documento è stata salvata come bozza.",
+  invoice_draft_saved_msg:"Il documento è stato salvato come bozza.",
   invoice_created_title:"Documento creata",
-  invoice_created_msg:"La documento è stata creata e contrassegnata come inviata.",
+  invoice_created_msg:"Il documento è stato creato e contrassegnato come inviato.",
 
   // ─── Client Edit Alerts ───────────────────────────────────────────────────
   client_delete_title:"Elimina cliente",
@@ -195,7 +195,7 @@ export const it = {
 "tabs.dashboard.title":"Dashboard",
 "tabs.dashboard.brand":"✦ Milo Office",
 "tabs.dashboard.onboarding.title":"Inizia con Milo Office",
-"tabs.dashboard.onboarding.first_invoice":"Crea la tua prima documento",
+"tabs.dashboard.onboarding.first_invoice":"Crea il tuo primo documento",
 "tabs.dashboard.onboarding.first_client":"Aggiungi il tuo primo cliente",
 "tabs.dashboard.onboarding.profile_setup":"Imposta il tuo profilo",
 "tabs.dashboard.onboarding.chevron":"→",
@@ -223,11 +223,11 @@ export const it = {
 "tabs.dashboard.cashflow.confidence.high":"Alta affidabilità",
 "tabs.dashboard.cashflow.confidence.medium":"Media affidabilità",
 "tabs.dashboard.cashflow.confidence.low":"Bassa affidabilità",
-"tabs.dashboard.cashflow.invoice_count":"{n} documento/e in scadenza nei prossimi 30gg",
+"tabs.dashboard.cashflow.invoice_count":"{n} documento/i in scadenza nei prossimi 30gg",
 "tabs.dashboard.cashflow.avg_monthly":"Media mensile: {value}",
 "tabs.dashboard.activity.title":"Ultime attività",
 "tabs.dashboard.quick_actions.new_invoice.label":"Nuova\nDocumento",
-"tabs.dashboard.quick_actions.new_invoice.a11y":"Crea nuova documento",
+"tabs.dashboard.quick_actions.new_invoice.a11y":"Crea nuovo documento",
 "tabs.dashboard.quick_actions.new_client.label":"Nuovo\nCliente",
 "tabs.dashboard.quick_actions.new_client.a11y":"Aggiungi nuovo cliente",
 "tabs.dashboard.quick_actions.scan.label":"Scansiona",
@@ -246,13 +246,13 @@ export const it = {
 "tabs.documents.quota_text":"{used}/{base}",
 "tabs.documents.new_button":"+ Nuovo File",
 "tabs.documents.empty.query.title":"Nessun risultato",
-"tabs.documents.empty.query.hint":"Nessuna documento trovata per \"{query}\"",
-"tabs.documents.empty.overdue.title":"Nessuna documento scaduta",
+"tabs.documents.empty.query.hint":"Nessun documento trovato per \"{query}\"",
+"tabs.documents.empty.overdue.title":"Nessun documento scaduto",
 "tabs.documents.empty.overdue.hint":"Ottimo lavoro! Tutti i pagamenti sono in ordine.",
 "tabs.documents.empty.paid.title":"Ancora nessun incasso",
-"tabs.documents.empty.paid.hint":"Invia le tue documenti per iniziare a ricevere pagamenti.",
+"tabs.documents.empty.paid.hint":"Invia i tuoi documenti per iniziare a ricevere pagamenti.",
 "tabs.documents.empty.draft.title":"Nessuna bozza",
-"tabs.documents.empty.draft.hint":"Le documenti salvate come bozza appariranno qui.",
+"tabs.documents.empty.draft.hint":"I documenti salvati come bozza appariranno qui.",
 "tabs.documents.empty.default.title":"Crea il tuo primo documento professionale.",
 "tabs.documents.empty.default.hint":"Milo Office ti guida passo per passo.",
 "tabs.documents.empty.default.cta":"Crea documento",
@@ -396,7 +396,7 @@ export const it = {
 "modal.premium_preview.locked.email":"Invio email diretto",
 "modal.premium_preview.locked.templates":"Template personalizzati",
 "modal.premium_preview.benefit.unlimited_invoices.title":"Documenti illimitate",
-"modal.premium_preview.benefit.unlimited_invoices.desc":"Crea tutte le documenti che vuoi, ogni mese, senza limiti.",
+"modal.premium_preview.benefit.unlimited_invoices.desc":"Crea tutti i documenti che vuoi, ogni mese, senza limiti.",
 "modal.premium_preview.benefit.unlimited_clients.title":"Clienti illimitati",
 "modal.premium_preview.benefit.unlimited_clients.desc":"Gestisci un portfolio clienti senza restrizioni.",
 "modal.premium_preview.benefit.unlimited_quotes.title":"Bozze illimitati",
@@ -423,7 +423,7 @@ export const it = {
   // ─── Modal Invoice Limit ──────────────────────────────────────────────────
 "modal.invoice_limit.a11y_title":"Limite mensile raggiunto. Scegli come continuare.",
 "modal.invoice_limit.title":"Hai raggiunto il limite mensile",
-"modal.invoice_limit.subtitle":"5 documenti create questo mese. Per continuare:",
+"modal.invoice_limit.subtitle":"5 documenti creati questo mese. Per continuare:",
 "modal.invoice_limit.pro_button_title":"Passa a Pro  €4,99/mese",
 "modal.invoice_limit.pro_a11y_prefix":"Passa a Pro. 19 euro al mese.",
 "modal.invoice_limit.pro_a11y_body":"Documenti illimitate, invio diretto via email e PDF, annulla in qualsiasi momento.",
@@ -436,7 +436,7 @@ export const it = {
 "modal.invoice_limit.ad.title":"Guarda un video breve",
 "modal.invoice_limit.ad.sub_loaded":"Sblocca 1 documento extra gratis",
 "modal.invoice_limit.ad.sub_limit_template":"Limite giornaliero · Reset in {time}",
-"modal.invoice_limit.ad.a11y_loaded":"Guarda un video breve per sbloccare una documento extra gratis",
+"modal.invoice_limit.ad.a11y_loaded":"Guarda un video breve per sbloccare un documento extra gratis",
 "modal.invoice_limit.ad.a11y_limit_template":"Limite giornaliero raggiunto. Reset in {time}.",
 "modal.invoice_limit.ad.a11y_unavailable":"Video non disponibile. Riprova più tardi.",
 "modal.invoice_limit.ad.state.loading":"Caricamento…",
@@ -447,9 +447,9 @@ export const it = {
 "modal.invoice_limit.ad.retry.text":"Riprova",
 "modal.invoice_limit.limit_badge":"ESAURITO",
 "modal.invoice_limit.free_badge":"GRATIS",
-"modal.invoice_limit.close.text":"Continua senza creare altre documenti",
-"modal.invoice_limit.close.a11y":"Continua senza creare altre documenti",
-"modal.invoice_limit.overlay.close.a11y":"Chiudi e continua senza creare altre documenti",
+"modal.invoice_limit.close.text":"Continua senza creare altri documenti",
+"modal.invoice_limit.close.a11y":"Continua senza creare altri documenti",
+"modal.invoice_limit.overlay.close.a11y":"Chiudi e continua senza creare altri documenti",
 
   // ─── Form Client ──────────────────────────────────────────────────────────
 "form.client.title":"Modifica cliente",
@@ -508,25 +508,25 @@ export const it = {
 
   // ─── Milestone ───────────────────────────────────────────────────────────
 "milestone.first_invoice.emoji":"",
-"milestone.first_invoice.title":"Prima documento creata!",
+"milestone.first_invoice.title":"Primo documento creato!",
 "milestone.first_invoice.body":"Hai fatto il primo passo. Il tuo business è ufficialmente partito!",
 "milestone.invoices_10.emoji":"",
-"milestone.invoices_10.title":"10 documenti create!",
+"milestone.invoices_10.title":"10 documenti creati!",
 "milestone.invoices_10.body":"Stai costruendo una solida base clienti. Continua così!",
 "milestone.invoices_25.emoji":"",
-"milestone.invoices_25.title":"25 documenti create!",
+"milestone.invoices_25.title":"25 documenti creati!",
 "milestone.invoices_25.body":"Un traguardo importante. Stai crescendo!",
 "milestone.invoices_50.emoji":"",
-"milestone.invoices_50.title":"50 documenti create!",
+"milestone.invoices_50.title":"50 documenti creati!",
 "milestone.invoices_50.body":"Sei un professionista in piena attività. Impressionante!",
 "milestone.invoices_100.emoji":"",
-"milestone.invoices_100.title":"100 documenti create!",
+"milestone.invoices_100.title":"100 documenti creati!",
 "milestone.invoices_100.body":"Un professionista affermato. Straordinario!",
 "milestone.invoices_500.emoji":"",
-"milestone.invoices_500.title":"500 documenti create!",
+"milestone.invoices_500.title":"500 documenti creati!",
 "milestone.invoices_500.body":"Sei una leggenda del freelancing. Incredibile!",
 "milestone.invoices_1000.emoji":"",
-"milestone.invoices_1000.title":"1000 documenti create!",
+"milestone.invoices_1000.title":"1000 documenti creati!",
 "milestone.invoices_1000.body":"Un risultato epico. Complimenti!",
 "milestone.clients_100.emoji":"",
 "milestone.clients_100.title":"100 clienti aggiunti!",
@@ -552,7 +552,7 @@ export const it = {
 "error.startup_crash.go_home":"Go to Dashboard",
 
   // ─── Invoices New ────────────────────────────────────────────────────────
-"documents.new.title":"Nuova Documento",
+"documents.new.title":"Nuovo documento",
 "documents.new.back":"← Indietro",
 "documents.new.section.client":"CLIENTE",
 "documents.new.client.select_placeholder":"Seleziona un cliente",
@@ -616,14 +616,14 @@ export const it = {
 "invoices.detail.share_text.due_line_prefix":"Scadenza:",
 "invoices.detail.share_text.status_line_prefix":"Stato:",
 "invoices.detail.share_text.visualize_line":"Visualizza su Milo Office",
-"invoices.detail.share_url":"https://invoicestudio.app",
+"invoices.detail.share_url":"https://milo.mindprint.it",
 "invoices.detail.share_title_template":"Documento #{n}",
 "invoices.detail.email_subject_template":"Documento #{n}  {amount}",
 
   // ─── Password Reset (forgot-password / reset-password) ─────────────────────
   // Solo per utenti email/password  il flusso Google OAuth non prevede reset.
   // La sessione di cambio password arriva come deep link
-  // 'vela://(auth)/reset-password#access_token=...&refresh_token=...&type=recovery'.
+  // 'milo-office://(auth)/reset-password#access_token=...&refresh_token=...&type=recovery'.
 "reset.forgot.title":"Password dimenticata",
 "reset.forgot.subtitle":"Inserisci la tua email per ricevere il link di reimpostazione.",
 "reset.forgot.email_label":"Email",
@@ -706,6 +706,22 @@ export const it = {
 "quota.reward_failed":"Errore. Riprova più tardi.",
 "quota.reward_unavailable":"Video non disponibile al momento. Riprova più tardi.",
 "quota.reward_limit_reached":"Hai già sbloccato i 3 documenti extra di oggi. Riprova domani.",
+
+// Export multi-formato (PDF / Excel / Word)
+"documents.new.format_badge":"Formato: {format}",
+"documents.new.export.cta":"Genera {format}",
+"documents.new.export.skip":"Più tardi",
+"documents.new.export.failed_title":"Export non riuscito",
+"documents.new.export.failed_msg":"Non è stato possibile generare il file {format}. Il documento è stato comunque salvato.",
+"documents.detail.export.section":"ESPORTA",
+"documents.detail.export.a11y":"Esporta in {format}",
+"documents.detail.export.failed_title":"Export non riuscito",
+"documents.detail.export.failed_msg":"Non è stato possibile generare il file {format}. Riprova.",
+"format_picker.xlsx":"Excel (XLSX)",
+"format_picker.pdf_desc":"Documento stampabile, layout fisso",
+"format_picker.xlsx_desc":"Foglio di calcolo, righe e totali modificabili",
+"format_picker.doc_desc":"Documento Word, testo modificabile",
+"format_picker.rtf_desc":"Testo formattato, compatibile ovunque",
 };
 
 export type TranslationKeys = keyof typeof it;

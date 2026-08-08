@@ -2,7 +2,7 @@
  * auth-deep-link — helpers per estrarre token dal fragment di un deep link.
  *
  * Supabase invia il recovery link via email nel formato:
- *   vela://(auth)/reset-password#access_token=...&refresh_token=...&type=recovery
+ *   milo-office://(auth)/reset-password#access_token=...&refresh_token=...&type=recovery
  *
  * Il client Supabase su mobile ha `detectSessionInUrl: false` (vedi
  * lib/supabase.ts) perché in React Native il `URL` global non esiste

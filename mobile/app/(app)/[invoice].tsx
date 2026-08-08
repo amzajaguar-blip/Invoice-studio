@@ -10,6 +10,11 @@ import * as MailComposer from "expo-mail-composer";
 import { apiFetch } from "@/lib/ai";
 import { useLocale } from "@/components/LocaleProvider";
 import { Ionicons } from "@expo/vector-icons";
+import {
+  generateAndShareDocument,
+  FORMAT_META,
+} from "@/lib/document-format-engine";
+import type { DocumentFormatData, OutputFormat } from "@/lib/document-format-engine";
 
 interface LineItem {
   description: string;
@@ -70,6 +75,7 @@ export default function InvoiceDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [exportingFormat, setExportingFormat] = useState<OutputFormat | null>(null);
 
   useEffect(() => {
     if (!invoiceId) {
@@ -105,6 +111,62 @@ export default function InvoiceDetailScreen() {
     } else {
       // aggiorna localmente se l'API non ritorna il dato aggiornato
       setData((prev) => prev ? { ...prev, status: next as InvoiceDetail["status"] } : prev);
+    }
+  };
+
+  // ─── Export multi-formato ─────────────────────────────────────────────────
+  const buildFormatData = (): DocumentFormatData => {
+    const items = data?.line_items ?? [];
+    const subtotal =
+      data?.subtotal ?? items.reduce((sum, i) => sum + (i.amount ?? 0), 0);
+    const taxAmount = data?.tax_amount ?? 0;
+    return {
+      type: "custom",
+      title: `Documento_${invoiceNum}`,
+      customTitle: `DOCUMENTO #${invoiceNum}`,
+      number: invoiceNum,
+      issueDate: data?.created_at
+        ? new Date(data.created_at).toLocaleDateString("it-IT")
+        : undefined,
+      dueDate: data?.due_date
+        ? new Date(data.due_date).toLocaleDateString("it-IT")
+        : undefined,
+      client: data?.client_name
+        ? { name: data.client_name, email: data.client_email || undefined }
+        : undefined,
+      lineItems: items.map((i) => ({
+        description: i.description,
+        quantity: i.quantity,
+        rate: i.rate,
+        amount: i.amount,
+      })),
+      totals: {
+        subtotal,
+        taxRate: data?.tax_rate,
+        taxAmount,
+        grandTotal: data?.total ?? subtotal + taxAmount,
+        currency: "EUR",
+      },
+      notes: data?.notes || undefined,
+      companyName: "Milo Office",
+    };
+  };
+
+  const handleExport = async (format: OutputFormat) => {
+    if (!data || exportingFormat) return;
+    setExportingFormat(format);
+    try {
+      await generateAndShareDocument(buildFormatData(), format);
+    } catch (err) {
+      Alert.alert(
+        t("documents.detail.export.failed_title"),
+        t("documents.detail.export.failed_msg").replace(
+          "{format}",
+          FORMAT_META[format].label
+        )
+      );
+    } finally {
+      setExportingFormat(null);
     }
   };
 
@@ -284,6 +346,46 @@ export default function InvoiceDetailScreen() {
         </TouchableOpacity>
       )}
 
+      {/* Export multi-formato */}
+      <Text style={s.sectionLabel}>{t("documents.detail.export.section")}</Text>
+      <View style={s.shareRow}>
+        {(["pdf", "xlsx", "doc"] as OutputFormat[]).map((format) => {
+          const meta = FORMAT_META[format];
+          const busy = exportingFormat === format;
+          return (
+            <TouchableOpacity
+              key={format}
+              style={[s.shareBtn, exportingFormat !== null && s.shareBtnDisabled]}
+              onPress={() => handleExport(format)}
+              disabled={exportingFormat !== null}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: exportingFormat !== null, busy }}
+              accessibilityLabel={t("documents.detail.export.a11y").replace(
+                "{format}",
+                meta.label
+              )}
+            >
+              {busy ? (
+                <ActivityIndicator color="#6c63ff" size="small" />
+              ) : (
+                <Ionicons
+                  name={
+                    format === "xlsx"
+                      ? "grid-outline"
+                      : format === "doc"
+                      ? "document-outline"
+                      : "document-text-outline"
+                  }
+                  size={22}
+                  color="#6c63ff"
+                />
+              )}
+              <Text style={s.shareBtnText}>{meta.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
       {/* Condivisione */}
       <Text style={s.sectionLabel}>CONDIVIDI</Text>
       <View style={s.shareRow}>
@@ -361,6 +463,7 @@ const s = StyleSheet.create({
     alignItems: "center", borderWidth: 1, borderColor: "#1e2029", gap: 6,
   },
   shareBtnText: { fontSize: 12, color: "#9ca3af", fontWeight: "600" },
+  shareBtnDisabled: { opacity: 0.45 },
 
   deleteBtn: {
     marginTop: 24, borderRadius: 12, padding: 14,

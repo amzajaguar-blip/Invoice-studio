@@ -1,4 +1,4 @@
--- VELA v37: Delete Account RPC Function
+-- Milo Office v37: Delete Account RPC Function
 -- Esegui in Supabase SQL Editor (copy/pasta tutto)
 
 -- ═══════════════════════════════════════════════════════════════════════════════

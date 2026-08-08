@@ -91,7 +91,7 @@ function AuthDeepLinkHandler() {
 
     // SECURITY/RACE-FIX: il flusso Google OAuth viene già gestito interamente
     // da WebBrowser.openAuthSessionAsync dentro useAuth.tsx (signInWithGoogle):
-    // lì il callback URL 'vela://auth/callback?code=...' viene letto, il code
+    // lì il callback URL 'milo-office://auth/callback?code=...' viene letto, il code
     // scambiato con exchangeCodeForSession(), e onAuthStateChange popola la
     // sessione. NON deve esistere un secondo consumer che fa router.push su
     // /auth/callback, perché ciò monta il callback handler in contemporanea

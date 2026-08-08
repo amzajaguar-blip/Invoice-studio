@@ -696,4 +696,20 @@ export const es = {
 "quota.reward_failed":"Error. Por favor, inténtalo más tarde.",
 "quota.reward_unavailable":"No hay video disponible en este momento. Inténtalo más tarde.",
 "quota.reward_limit_reached":"Ya has desbloqueado los 3 documentos extra de hoy. Inténtalo mañana.",
+
+// Export multi-formato (PDF / Excel / Word)
+"documents.new.format_badge":"Formato: {format}",
+"documents.new.export.cta":"Generar {format}",
+"documents.new.export.skip":"Más tarde",
+"documents.new.export.failed_title":"Error al exportar",
+"documents.new.export.failed_msg":"No se pudo generar el archivo {format}. El documento se guardó igualmente.",
+"documents.detail.export.section":"EXPORTAR",
+"documents.detail.export.a11y":"Exportar como {format}",
+"documents.detail.export.failed_title":"Error al exportar",
+"documents.detail.export.failed_msg":"No se pudo generar el archivo {format}. Inténtalo de nuevo.",
+"format_picker.xlsx":"Excel (XLSX)",
+"format_picker.pdf_desc":"Documento imprimible, diseño fijo",
+"format_picker.xlsx_desc":"Hoja de cálculo con filas y totales editables",
+"format_picker.doc_desc":"Documento Word, texto editable",
+"format_picker.rtf_desc":"Texto enriquecido, compatible en todas partes",
 };

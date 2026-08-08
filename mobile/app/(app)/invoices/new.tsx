@@ -17,6 +17,12 @@ import {
   shouldShowInterstitialForInvoice,
 } from "@/lib/ads";
 import { usePlan } from "@/context/PlanContext";
+import {
+  generateAndShareDocument,
+  parseOutputFormat,
+  FORMAT_META,
+} from "@/lib/document-format-engine";
+import type { DocumentFormatData } from "@/lib/document-format-engine";
 
 interface Client {
   id: string;
@@ -37,8 +43,13 @@ export default function NewInvoiceScreen() {
   const router = useRouter();
   const { t } = useLocale();
   const { isPremium } = usePlan();
-  const params = useLocalSearchParams<{ document_type?: string }>();
+  const params = useLocalSearchParams<{ document_type?: string; format?: string }>();
   const documentType = (params.document_type as string) || "custom";
+  // Formato scelto dalla quick action della dashboard (?format=pdf|xlsx|docx).
+  // Determina il file realmente prodotto al salvataggio.
+  const outputFormat = parseOutputFormat(params.format);
+  const formatLabel = FORMAT_META[outputFormat].label;
+  const [exporting, setExporting] = useState(false);
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [showClientPicker, setShowClientPicker] = useState(false);
@@ -201,12 +212,66 @@ export default function NewInvoiceScreen() {
       router.back();
     };
 
+    // Esporta nel formato richiesto dalla quick action (PDF / Excel / Word).
+    // Il salvataggio è già andato a buon fine: un errore di export non lo annulla.
+    const exportThenDismiss = async () => {
+      setExporting(true);
+      try {
+        const saved = data as { number?: string; id?: string } | null;
+        const docNumber = saved?.number ?? saved?.id?.slice(0, 8) ?? "";
+        const formatData: DocumentFormatData = {
+          type: documentType === "custom" ? "custom" : (documentType as DocumentFormatData["type"]),
+          title: docNumber ? `Documento_${docNumber}` : "Documento",
+          customTitle: docNumber ? `DOCUMENTO #${docNumber}` : "DOCUMENTO",
+          number: docNumber || undefined,
+          issueDate: new Date().toLocaleDateString("it-IT"),
+          client: selectedClient
+            ? { name: selectedClient.name, email: selectedClient.email || undefined }
+            : undefined,
+          lineItems: validItems.map((i) => {
+            const quantity = parseFloat(i.quantity) || 1;
+            const rate = parseFloat(i.rate) || 0;
+            return {
+              description: i.description.trim(),
+              quantity,
+              rate,
+              amount: quantity * rate,
+            };
+          }),
+          totals: {
+            subtotal,
+            taxRate: parseFloat(taxRate) || 0,
+            taxAmount,
+            grandTotal: total,
+            currency: "EUR",
+          },
+          notes: notes.trim() || undefined,
+          companyName: "Milo Office",
+        };
+        await generateAndShareDocument(formatData, outputFormat);
+      } catch (err) {
+        Alert.alert(
+          t("documents.new.export.failed_title"),
+          t("documents.new.export.failed_msg").replace("{format}", formatLabel)
+        );
+      } finally {
+        setExporting(false);
+        await postSaveAndDismiss();
+      }
+    };
+
     Alert.alert(
       status === "draft" ? t("invoice_draft_saved_title") : t("invoice_created_title"),
       status === "draft"
         ? t("invoice_draft_saved_msg")
         : t("invoice_created_msg"),
-      [{ text: "OK", onPress: postSaveAndDismiss }]
+      [
+        {
+          text: t("documents.new.export.cta").replace("{format}", formatLabel),
+          onPress: () => { void exportThenDismiss(); },
+        },
+        { text: t("documents.new.export.skip"), style: "cancel", onPress: postSaveAndDismiss },
+      ]
     );
   };
 
@@ -230,6 +295,22 @@ export default function NewInvoiceScreen() {
             <Text style={s.backText}>{t("documents.new.back")}</Text>
           </TouchableOpacity>
           <Text style={s.title}>{t("documents.new.title")}</Text>
+          <View style={s.formatBadge}>
+            <Ionicons
+              name={
+                outputFormat === "xlsx"
+                  ? "grid-outline"
+                  : outputFormat === "doc"
+                  ? "document-outline"
+                  : "document-text-outline"
+              }
+              size={14}
+              color="#6c63ff"
+            />
+            <Text style={s.formatBadgeText}>
+              {t("documents.new.format_badge").replace("{format}", formatLabel)}
+            </Text>
+          </View>
         </View>
 
         {/* Cliente */}
@@ -405,22 +486,22 @@ export default function NewInvoiceScreen() {
         {/* Azioni */}
         <View style={s.actions}>
           <TouchableOpacity
-            style={[s.btn, s.btnDraft, loading && s.btnDisabled]}
+            style={[s.btn, s.btnDraft, (loading || exporting) && s.btnDisabled]}
             onPress={() => handleSave("draft")}
-            disabled={loading}
+            disabled={loading || exporting}
           >
-            {loading ? (
+            {loading || exporting ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
               <Text style={s.btnText}>{t("documents.new.button.draft")}</Text>
             )}
           </TouchableOpacity>
           <TouchableOpacity
-            style={[s.btn, s.btnSend, loading && s.btnDisabled]}
+            style={[s.btn, s.btnSend, (loading || exporting) && s.btnDisabled]}
             onPress={() => handleSave("sent")}
-            disabled={loading}
+            disabled={loading || exporting}
           >
-            {loading ? (
+            {loading || exporting ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
               <Text style={s.btnText}>{t("documents.new.button.send")}</Text>
@@ -446,6 +527,20 @@ const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#0a0b0f" },
   content: { padding: 20, paddingTop: 60, paddingBottom: 40 },
   header: { marginBottom: 28 },
+  formatBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 6,
+    marginTop: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    backgroundColor: "#6c63ff1a",
+    borderWidth: 1,
+    borderColor: "#6c63ff40",
+  },
+  formatBadgeText: { color: "#6c63ff", fontSize: 12, fontWeight: "600" },
   backBtn: { marginBottom: 12 },
   backText: { color: "#6c63ff", fontSize: 15 },
   title: { fontSize: 26, fontWeight: "bold", color: "#f0f0f2", fontFamily: "serif" },

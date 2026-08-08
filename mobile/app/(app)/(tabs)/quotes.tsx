@@ -4,9 +4,9 @@
  * Funzionalità:
  * - Lista preventivi dell'organizzazione corrente da Supabase via apiFetch
  * - Filtri per stato: all | draft | sent | accepted | rejected | invoiced
- * - Empty state specifico ("Crea il tuo primo preventivo")
- * - Header con contatore mensile per utenti free: "X/3 preventivi questo mese"
- * - CTA "+ Nuovo preventivo" con gate freemium: se l'utente free ha già 3
+ * - Empty state specifico ("Crea la tua prima bozza")
+ * - Header con contatore mensile per utenti free: "X/3 bozze questo mese"
+ * - CTA "+ Nuova bozza" con gate freemium: se l'utente free ha già 3
  *   preventivi nel mese corrente, mostra Alert invece di navigare
  * - Ogni riga mostra: numero preventivo, nome cliente (da client_snapshot.name),
  *   stato badge, totale, data
@@ -227,9 +227,9 @@ export default function QuotesScreen() {
     setActiveFilter(status);
   }, []);
 
-  // ─── Handler CTA "Nuovo preventivo" ──────────────────────────────────────
+  // ─── Handler CTA "Nuova bozza" ───────────────────────────────────────────
   /**
-   * Se l'utente è free e ha già raggiunto il limite di 3 preventivi mensili,
+   * Se l'utente è free e ha già raggiunto il limite di 3 bozze mensili,
    * mostra un Alert invece di navigare.
    * Se premium (o sotto limite) → naviga a quotes/new.
    */
@@ -237,7 +237,7 @@ export default function QuotesScreen() {
     if (monthlyLimitReached) {
       Alert.alert(
         "Limite mensile raggiunto",
-        "Hai già creato 3 preventivi questo mese. Passa a Premium per preventivi illimitati.",
+        "Hai già creato 3 bozze questo mese. Passa a Premium per bozze illimitate.",
         [
           { text: "Annulla", style: "cancel" },
           {
@@ -301,7 +301,7 @@ export default function QuotesScreen() {
               monthlyLimitReached && s.monthlyBadgeWarn,
             ]}
             accessibilityRole="text"
-            accessibilityLabel={`${monthlyCount} su 3 preventivi questo mese`}
+            accessibilityLabel={`${monthlyCount} su 3 bozze questo mese`}
           >
             <Text
               style={[

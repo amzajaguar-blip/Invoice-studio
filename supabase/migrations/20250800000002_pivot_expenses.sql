@@ -1,4 +1,4 @@
--- VELA Pivot: Expenses Table
+-- Milo Office Pivot: Expenses Table
 -- Migration: 20250800000002_pivot_expenses.sql
 -- Crea la tabella `expenses` per le note spese
 -- Vincolo critico: nessuna modifica a organizations.plan o user_plan.plan

@@ -1,4 +1,4 @@
--- VELA Pivot Prodotto: tabella quotes con client_snapshot e line_items JSONB
+-- Milo Office Pivot Prodotto: tabella quotes con client_snapshot e line_items JSONB
 -- Task 1.2 — Migrazione quotes per il pivot prodotto
 
 CREATE TABLE IF NOT EXISTS public.quotes (

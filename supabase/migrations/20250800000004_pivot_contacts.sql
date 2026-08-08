@@ -1,4 +1,4 @@
--- VELA Pivot Prodotto: aggiornamento additivo tabella clients per Rubrica
+-- Milo Office Pivot Prodotto: aggiornamento additivo tabella clients per Rubrica
 -- Task 1.5 — Migrazione contacts (solo ADD COLUMN IF NOT EXISTS — nessuna modifica a colonne esistenti)
 --
 -- VINCOLO CRITICO:

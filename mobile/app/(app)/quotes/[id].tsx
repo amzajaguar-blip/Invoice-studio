@@ -15,7 +15,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { generateDocumentPDF } from "@/lib/pdf-utils";
 import * as Sharing from "expo-sharing";
 import { FormatPickerModal, DocumentFormat, loadLastDocFormat } from "@/components/FormatPickerModal";
-import { generateDocumentDOC, generateDocumentRTF, shareDocument, DocumentFormatData } from "@/lib/document-format-engine";
+import { generateDocumentDOC, generateDocumentRTF, generateDocumentXLSX, shareDocument, DocumentFormatData } from "@/lib/document-format-engine";
 import { LanguagePickerModal } from "@/components/LanguagePickerModal";
 import { translateDocumentContent, extractTranslatableFields, TranslatableFields } from "@/lib/translation-service";
 import { QuotaPaywall } from "@/components/QuotaPaywall";
@@ -180,7 +180,10 @@ export default function QuoteDetailScreen() {
         } else {
           const docData = buildDocumentData();
           if (!docData) throw new Error("Dati non disponibili");
-          if (format === "doc") {
+          if (format === "xlsx") {
+            const fp = await generateDocumentXLSX(docData);
+            await shareDocument(fp, `bozza_${quoteNum}.xlsx`);
+          } else if (format === "doc") {
             const fp = await generateDocumentDOC(docData);
             await shareDocument(fp, `bozza_${quoteNum}.docx`);
           } else {
@@ -247,7 +250,7 @@ export default function QuoteDetailScreen() {
     ]);
   }, [quote, STATUS_LABELS, handleUpdateStatus, t]);
 
-  // ── Converti in Fattura ───────────────────────────────────────────────────
+  // ── Converti in Documento ─────────────────────────────────────────────────
   const handleConvertToInvoice = useCallback(() => {
     if (!quote || quote.status !== "accepted") return;
     router.push({
@@ -336,7 +339,7 @@ export default function QuoteDetailScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Converti in Fattura */}
+        {/* Converti in Documento */}
         {quote.status === "accepted" && (
           <TouchableOpacity style={[s.actionBtn, s.actionBtnGreen, { marginBottom: 16 }]}
             onPress={handleConvertToInvoice} accessibilityRole="button">

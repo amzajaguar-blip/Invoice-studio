@@ -4,7 +4,7 @@ import { LanguageSelector } from "@/components/LanguageSelector";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
-  description: "VELA Terms and Conditions of Use.",
+  description: "Milo Office Terms and Conditions of Use.",
   alternates: {
     languages: {
       it: "/terms",
@@ -40,7 +40,7 @@ export default function TermsPageEn() {
             1. Service Description
           </h2>
           <p className="text-sm leading-relaxed text-[#9ca3af]">
-            VELA (&ldquo;the App&rdquo;) is an Android mobile application for
+            Milo Office (&ldquo;the App&rdquo;) is an Android mobile application for
             freelancers, professionals, and small businesses with a VAT number
             that enables creating, sending, and managing professional invoices
             and quotes, automating payment reminders, and syncing data in the
@@ -58,7 +58,7 @@ export default function TermsPageEn() {
             email address and a password. You are responsible for maintaining
             the confidentiality of your credentials and for all activities that
             occur under your account. Sharing credentials with third parties or
-            using the account for illegal activities is prohibited. VELA
+            using the account for illegal activities is prohibited. Milo Office
             reserves the right to suspend or close accounts that violate these
             terms.
           </p>
@@ -70,7 +70,7 @@ export default function TermsPageEn() {
             3. User Obligations
           </h2>
           <p className="text-sm leading-relaxed text-[#9ca3af] mb-2">
-            By using VELA, you agree to:
+            By using Milo Office, you agree to:
           </p>
           <ul className="list-disc list-inside text-sm text-[#9ca3af] space-y-1 ml-2">
             <li>Provide accurate and up-to-date information.</li>
@@ -79,7 +79,7 @@ export default function TermsPageEn() {
               activities.
             </li>
             <li>
-              Not infringe the intellectual property rights of VELA or third
+              Not infringe the intellectual property rights of Milo Office or third
               parties.
             </li>
             <li>
@@ -99,7 +99,7 @@ export default function TermsPageEn() {
             4. Payments and Subscriptions
           </h2>
           <p className="text-sm leading-relaxed text-[#9ca3af] mb-2">
-            VELA offers a free plan and two paid premium plans (monthly and
+            Milo Office offers a free plan and two paid premium plans (monthly and
             annual). Prices are published in the app and on the Google Play
             Store. Subscriptions are managed via <strong>Google Play Billing</strong>
             on Android. <strong>RevenueCat</strong> acts as a subscription
@@ -119,9 +119,9 @@ export default function TermsPageEn() {
           </h2>
           <p className="text-sm leading-relaxed text-[#9ca3af]">
             The software, design, logos, and content of the App are the
-            exclusive property of VELA and are protected by Italian and
+            exclusive property of Milo Office and are protected by Italian and
             international copyright laws. Content you enter (client data,
-            invoices, quotes, notes) remains your property. You grant VELA a
+            invoices, quotes, notes) remains your property. You grant Milo Office a
             limited license to process such data solely to provide the service.
           </p>
         </section>
@@ -132,12 +132,12 @@ export default function TermsPageEn() {
             6. Limitation of Liability
           </h2>
           <p className="text-sm leading-relaxed text-[#9ca3af]">
-            VELA provides the service &ldquo;as is&rdquo; and does not guarantee
+            Milo Office provides the service &ldquo;as is&rdquo; and does not guarantee
             that the service will be error-free or uninterrupted. To the extent
-            permitted by law, VELA shall not be liable for direct or indirect
+            permitted by law, Milo Office shall not be liable for direct or indirect
             damages arising from the use or inability to use the App, including
             but not limited to data loss, lost profits, or business
-            interruptions. VELA's total liability shall not exceed the amount
+            interruptions. Milo Office's total liability shall not exceed the amount
             paid by you in the last 12 months.
           </p>
         </section>
@@ -150,7 +150,7 @@ export default function TermsPageEn() {
           <p className="text-sm leading-relaxed text-[#9ca3af]">
             These terms remain in effect while you maintain an active account
             on the App. You may close your account at any time from settings.
-            VELA may terminate or suspend access for breach of these terms,
+            Milo Office may terminate or suspend access for breach of these terms,
             with 7 days' notice (or immediately for serious breaches). Upon
             termination, you will have 30 days to export your data. After that
             period, data will be deleted, subject to tax retention obligations.
@@ -165,7 +165,7 @@ export default function TermsPageEn() {
           <p className="text-sm leading-relaxed text-[#9ca3af]">
             These Terms of Service are governed by Italian law. Any dispute
             arising from the interpretation or execution of these terms shall
-            be subject to the exclusive jurisdiction of the court where VELA
+            be subject to the exclusive jurisdiction of the court where Milo Office
             has its registered office, except as provided by the Consumer Code
             (Legislative Decree 206/2005) for consumers.
           </p>
@@ -177,7 +177,7 @@ export default function TermsPageEn() {
             9. Changes to the Terms
           </h2>
           <p className="text-sm leading-relaxed text-[#9ca3af]">
-            VELA reserves the right to modify these terms at any time. Changes
+            Milo Office reserves the right to modify these terms at any time. Changes
             will be communicated via email with at least 15 days' notice.
             Continued use of the App after the effective date of changes
             constitutes acceptance of the new terms.
@@ -186,9 +186,9 @@ export default function TermsPageEn() {
 
         <div className="border-t border-[#1e2029] pt-8 mt-12">
           <p className="text-xs text-[#6b7280]">
-            VELA — Mobile app for professional invoicing and quotes.
+            Milo Office — Mobile app for generating professional documents.
             For questions about terms:{" "}
-            <span className="text-[#6c63ff]">supporto@vela.app</span>
+            <span className="text-[#6c63ff]">supporto@milo.mindprint.it</span>
           </p>
         </div>
       </div>

@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "name": "vela-invoice-frontend",
+  "name": "milo-office-frontend",
   "framework": "nextjs",
   "buildCommand": "npm run build",
   "outputDirectory": ".next",

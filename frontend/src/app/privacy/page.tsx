@@ -4,7 +4,7 @@ import { LanguageSelector } from "@/components/LanguageSelector";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: "Informativa sulla privacy di VELA — GDPR compliant.",
+  description: "Informativa sulla privacy di Milo Office — GDPR compliant.",
   alternates: {
     languages: {
       it: "/privacy",
@@ -40,11 +40,11 @@ export default function PrivacyPage() {
             1. Titolare del Trattamento
           </h2>
           <p className="text-sm leading-relaxed text-[#9ca3af]">
-            VELA, con sede operativa in Italia, è il titolare del
+            Milo Office, con sede operativa in Italia, è il titolare del
             trattamento dei dati personali raccolti attraverso questa
             applicazione mobile. Per qualsiasi richiesta relativa alla privacy, puoi
             contattarci all&apos;indirizzo email:{" "}
-            <span className="text-[#6c63ff]">privacy@vela.app</span>.
+            <span className="text-[#6c63ff]">privacy@milo.mindprint.it</span>.
           </p>
         </section>
 
@@ -194,7 +194,7 @@ export default function PrivacyPage() {
           </ul>
           <p className="text-sm leading-relaxed text-[#9ca3af] mt-2">
             Per esercitare i tuoi diritti, scrivi a{" "}
-            <span className="text-[#6c63ff]">privacy@vela.app</span>.
+            <span className="text-[#6c63ff]">privacy@milo.mindprint.it</span>.
             Risponderemo entro 30 giorni. Hai inoltre il diritto di presentare
             reclamo al Garante per la Protezione dei Dati Personali (
             <a
@@ -213,7 +213,7 @@ export default function PrivacyPage() {
             6. Cookie e Tecnologie Simili
           </h2>
           <p className="text-sm leading-relaxed text-[#9ca3af]">
-            L&apos;app mobile VELA (Android) non utilizza cookie web
+            L&apos;app mobile Milo Office (Android) non utilizza cookie web
             tradizionali. Impiega identificatori di dispositivo per:
           </p>
           <ul className="list-disc list-inside text-sm text-[#9ca3af] space-y-1 ml-2 mt-2">
@@ -317,7 +317,7 @@ export default function PrivacyPage() {
 
         <div className="border-t border-[#1e2029] pt-8 mt-12">
           <p className="text-xs text-[#6b7280]">
-            VELA — App mobile per fatturazione e preventivi professionali.
+            Milo Office — App mobile per generare documenti professionali.
             Sede operativa in Italia.
           </p>
         </div>

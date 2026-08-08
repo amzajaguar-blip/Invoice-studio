@@ -1,7 +1,7 @@
 /**
  * FormatPickerModal.tsx — Selezione formato documento
  *
- * Mostra 3 opzioni (PDF / DOCX / RTF) con icona, nome e descrizione breve.
+ * Mostra 4 opzioni (PDF / Excel / Word / RTF) con icona, nome e descrizione breve.
  * Persiste l'ultima scelta via AsyncStorage alla chiave `milo_last_doc_format`.
  * Al primo uso (nessuna preferenza salvata) nessun formato è pre-selezionato.
  *
@@ -24,7 +24,7 @@ import { useLocale } from "@/components/LocaleProvider";
 
 // ─── Tipi ─────────────────────────────────────────────────────────────────────
 
-export type DocumentFormat = "pdf" | "doc" | "rtf";
+export type DocumentFormat = "pdf" | "xlsx" | "doc" | "rtf";
 
 export interface FormatPickerModalProps {
   visible: boolean;
@@ -53,6 +53,12 @@ const FORMAT_OPTIONS: FormatOption[] = [
     accentColor: "#ef4444",
   },
   {
+    id: "xlsx",
+    iconName: "grid-outline",
+    descriptionKey: "format_picker.xlsx_desc",
+    accentColor: "#22c55e",
+  },
+  {
     id: "doc",
     iconName: "document-outline",
     descriptionKey: "format_picker.doc_desc",
@@ -71,7 +77,7 @@ const FORMAT_OPTIONS: FormatOption[] = [
 export async function loadLastDocFormat(): Promise<DocumentFormat | null> {
   try {
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
-    if (raw === "pdf" || raw === "doc" || raw === "rtf") return raw;
+    if (raw === "pdf" || raw === "xlsx" || raw === "doc" || raw === "rtf") return raw;
     return null;
   } catch {
     return null;

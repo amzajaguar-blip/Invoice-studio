@@ -216,10 +216,10 @@ export default function ClientDetailScreen() {
         {data.notes ? <InfoRow label="Note" value={data.notes} /> : null}
       </View>
 
-      {/* Storico fatture */}
+      {/* Storico documenti */}
       {invoices.length > 0 && (
         <>
-          <Text style={s.sectionLabel}>STORICO FATTURE</Text>
+          <Text style={s.sectionLabel}>STORICO DOCUMENTI</Text>
           <View style={s.card}>
             {invoices.map((inv, i) => (
               <TouchableOpacity

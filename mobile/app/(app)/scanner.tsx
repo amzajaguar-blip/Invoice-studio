@@ -46,6 +46,7 @@ import {
 import { generateDocumentPDF } from "@/lib/pdf-utils";
 import {
   generateDocumentDOC,
+  generateDocumentXLSX,
   generateDocumentRTF,
   shareDocument,
   DocumentFormatData,
@@ -428,6 +429,9 @@ export default function ScannerScreen() {
           const canShare = await Sharing.isAvailableAsync();
           if (canShare) await Sharing.shareAsync(filepath, { mimeType: "application/pdf", dialogTitle: title });
           else Alert.alert("PDF generato", `File: ${filepath}`);
+        } else if (format === "xlsx") {
+          const fp = await generateDocumentXLSX(docData);
+          await shareDocument(fp, `${safeVendor}.xlsx`);
         } else if (format === "doc") {
           const fp = await generateDocumentDOC(docData);
           await shareDocument(fp, `${safeVendor}.docx`);

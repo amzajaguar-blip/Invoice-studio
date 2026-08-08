@@ -523,6 +523,6 @@ export async function maybeNotifyPremium(
   return sendSmartNotification(orgId, {
     category: 'premium',
     title:    'Potenzia il tuo business',
-    body:     'Passa a Premium: fatture illimitate, clienti illimitati, zero pubblicità.',
+    body:     'Passa a Premium: documenti illimitati, clienti illimitati, zero pubblicità.',
   });
 }

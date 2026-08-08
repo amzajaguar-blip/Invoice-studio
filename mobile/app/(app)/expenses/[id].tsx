@@ -19,7 +19,7 @@ import { checkEntitlement } from "@/lib/iap-engine";
 import IAPPaywall from "@/components/IAPPaywall";
 import * as Sharing from "expo-sharing";
 import { FormatPickerModal, DocumentFormat, loadLastDocFormat } from "@/components/FormatPickerModal";
-import { generateDocumentDOC, generateDocumentRTF, shareDocument, DocumentFormatData } from "@/lib/document-format-engine";
+import { generateDocumentDOC, generateDocumentRTF, generateDocumentXLSX, shareDocument, DocumentFormatData } from "@/lib/document-format-engine";
 import { LanguagePickerModal } from "@/components/LanguagePickerModal";
 import { translateDocumentContent, extractTranslatableFields, TranslatableFields } from "@/lib/translation-service";
 import { QuotaPaywall } from "@/components/QuotaPaywall";
@@ -140,7 +140,8 @@ export default function ExpenseDetailScreen() {
         } else {
           const docData = buildDocumentData();
           if (!docData) throw new Error("Dati non disponibili");
-          if (format === "doc") { const fp = await generateDocumentDOC(docData); await shareDocument(fp, `nota_spese_${report.id}.docx`); }
+          if (format === "xlsx") { const fp = await generateDocumentXLSX(docData); await shareDocument(fp, `nota_spese_${report.id}.xlsx`); }
+          else if (format === "doc") { const fp = await generateDocumentDOC(docData); await shareDocument(fp, `nota_spese_${report.id}.docx`); }
           else { const fp = await generateDocumentRTF(docData); await shareDocument(fp, `nota_spese_${report.id}.rtf`); }
         }
         if (orgId) { try { await incrementQuota(orgId); } catch { /* quota esaurita */ } }

@@ -1,4 +1,4 @@
--- VELA Pivot Prodotto — Tabella reminders
+-- Milo Office Pivot Prodotto — Tabella reminders
 -- Migration: 20250800000003_pivot_reminders.sql
 --
 -- VINCOLO: questo file NON modifica organizations.plan né user_plan.plan.

@@ -17,16 +17,16 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "VELA — Fatture e Preventivi Professionali",
-    template: "%s | VELA",
+    default: "Milo Office — Generatore di Documenti Professionali",
+    template: "%s | Milo Office",
   },
   description:
     "Crea fatture e preventivi professionali, gestisci clienti e monitora i pagamenti. L'app mobile per freelance, professionisti e PMI italiane.",
   keywords: ["fatture", "preventivi", "freelance", "partita IVA", "fatturazione", "business"],
-  authors: [{ name: "VELA" }],
+  authors: [{ name: "Milo Office" }],
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
   openGraph: {
-    title: "VELA — Fatture e Preventivi Professionali",
+    title: "Milo Office — Generatore di Documenti Professionali",
     description: "Fatture + preventivi + clienti in un'unica app.",
     type: "website",
     locale: "it_IT",
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "VELA",
+    title: "Milo Office",
   },
   other: {
     "mobile-web-app-capable": "yes",
@@ -63,7 +63,7 @@ export default function RootLayout({
         <meta name="theme-color" content="#0a0b0f" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="VELA" />
+        <meta name="apple-mobile-web-app-title" content="Milo Office" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
       <body className="min-h-full flex flex-col">

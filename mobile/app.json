@@ -1,11 +1,11 @@
 {
   "expo": {
     "name": "Milo Office",
-    "slug": "vela-invoice",
+    "slug": "milo-office",
     "version": "1.0.71",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "vela",
+    "scheme": ["milo-office", "vela"],
     "userInterfaceStyle": "dark",
     "splash": {
       "image": "./assets/splash.png",
@@ -37,7 +37,7 @@
           "action": "VIEW",
           "data": [
             {
-              "scheme": "vela"
+              "scheme": "milo-office"
             }
           ],
           "category": [
@@ -94,7 +94,7 @@
     "extra": {
       "supabaseUrl": "https://xiqebgohgwbbzynhisah.supabase.co",
       "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhpcWViZ29oZ3diYnp5bmhpc2FoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwODY4MjIsImV4cCI6MjA5NDY2MjgyMn0.xxWSzUd3zuuQeqMr0MVHCAll4nF3JkyEYND8S0uSy_A",
-      "apiUrl": "https://vela.app",
+      "apiUrl": "https://milo.mindprint.it",
       "revenueCatApiKey": "goog_jQbcLtPLxDFDpSxwHblTiWwaDhw",
       "revenueCatApiKeyIOS": "appl_YOUR_IOS_KEY_HERE",
       "eas": {

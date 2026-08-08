@@ -1,4 +1,4 @@
--- VELA v43: Row Level Security for clients & invoices + delete_own_account fix
+-- Milo Office v43: Row Level Security for clients & invoices + delete_own_account fix
 --
 -- SECURITY FIX (P0):
 --   1. Enable RLS on `clients` and `invoices` tables (previously unprotected —

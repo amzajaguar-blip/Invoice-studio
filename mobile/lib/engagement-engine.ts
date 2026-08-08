@@ -68,37 +68,37 @@ const MILESTONE_COPY: Record<MilestoneType, Omit<MilestoneEvent, 'type'>> = {
   invoices_10: {
     iconName: 'trophy-outline',
     iconColor: '#f59e0b',
-    title: '10 fatture create!',
+    title: '10 documenti creati!',
     body:  'Stai costruendo una solida base clienti. Continua così!',
   },
   invoices_25: {
     iconName: 'trophy-outline',
     iconColor: '#f59e0b',
-    title: '25 fatture create!',
+    title: '25 documenti creati!',
     body:  'Un traguardo importante. Stai crescendo!',
   },
   invoices_50: {
     iconName: 'rocket-outline',
     iconColor: '#6c63ff',
-    title: '50 fatture create!',
+    title: '50 documenti creati!',
     body:  'Sei un professionista in piena attività. Impressionante!',
   },
   invoices_100: {
     iconName: 'diamond-outline',
     iconColor: '#06b6d4',
-    title: '100 fatture create!',
+    title: '100 documenti creati!',
     body:  'Un professionista affermato. Straordinario!',
   },
   invoices_500: {
     iconName: 'star-outline',
     iconColor: '#f59e0b',
-    title: '500 fatture create!',
+    title: '500 documenti creati!',
     body:  'Sei una leggenda del freelancing. Incredibile!',
   },
   invoices_1000: {
     iconName: 'trophy-outline',
     iconColor: '#f59e0b',
-    title: '1000 fatture create!',
+    title: '1000 documenti creati!',
     body:  'Un risultato epico. Complimenti!',
   },
   clients_100: {
@@ -110,7 +110,7 @@ const MILESTONE_COPY: Record<MilestoneType, Omit<MilestoneEvent, 'type'>> = {
   review_ask: {
     iconName: 'star-outline',
     iconColor: '#f59e0b',
-    title: 'Ti piace VELA?',
+    title: 'Ti piace Milo Office?',
     body:  'Lascia una recensione e aiuta altri freelancer a scoprirci!',
   },
 };

@@ -7,7 +7,7 @@
  * - Risorse sbloccate (+3 fatture, +1 cliente, +1 preventivo)
  * - Countdown scadenza boost (24 ore)
  * - Messaggio incoraggiante
- * - CTA "Crea la mia fattura" → chiama onClose
+ * - CTA "Crea il mio documento" → chiama onClose
  *
  * Animazione: scala 1→1.08→1 + opacity 0→1, max 400ms, useNativeDriver: true
  * Skip se reduceMotion === true (letto da AccessibilityInfo).

@@ -697,4 +697,20 @@ export const en = {
 "quota.reward_failed":"Error. Please try again later.",
 "quota.reward_unavailable":"No video available right now. Please try again later.",
 "quota.reward_limit_reached":"You've already unlocked today's 3 extra documents. Try again tomorrow.",
+
+// Export multi-formato (PDF / Excel / Word)
+"documents.new.format_badge":"Format: {format}",
+"documents.new.export.cta":"Generate {format}",
+"documents.new.export.skip":"Later",
+"documents.new.export.failed_title":"Export failed",
+"documents.new.export.failed_msg":"Could not generate the {format} file. The document was saved anyway.",
+"documents.detail.export.section":"EXPORT",
+"documents.detail.export.a11y":"Export as {format}",
+"documents.detail.export.failed_title":"Export failed",
+"documents.detail.export.failed_msg":"Could not generate the {format} file. Try again.",
+"format_picker.xlsx":"Excel (XLSX)",
+"format_picker.pdf_desc":"Printable document, fixed layout",
+"format_picker.xlsx_desc":"Spreadsheet with editable rows and totals",
+"format_picker.doc_desc":"Word document, editable text",
+"format_picker.rtf_desc":"Rich text, compatible everywhere",
 };

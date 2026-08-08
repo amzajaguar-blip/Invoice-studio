@@ -54,6 +54,13 @@ COL_LINE = (82, 80, 91, 255)         # #52505b
 COL_DOC_EDGE = (58, 58, 72, 255)     # #3a3a48 — bordo del documento
 COL_BG = (10, 11, 15, 255)           # #0a0b0f — sfondo app e splash
 
+# Palette del solo foreground adaptive: carta chiara su tile scuro. Nell'artwork
+# completo il documento si stacca grazie alla card e al glow; senza quelli serve
+# invertire il corpo, altrimenti #1a1a22 su #0a0b0f e' indistinguibile.
+COL_ADAPT_BODY = (244, 244, 250, 255)  # #f4f4fa — carta
+COL_ADAPT_EDGE = (214, 213, 226, 255)  # #d6d5e2
+COL_ADAPT_LINE = (150, 148, 165, 255)  # #9694a5
+
 # Safe zone adaptive icon: dei 108dp del foreground Android garantisce solo i
 # 66dp centrali. Su un canvas 1024 sono 626px, e un launcher circolare vi
 # inscrive un cerchio dello stesso diametro: il glifo deve starci in diagonale.
@@ -67,11 +74,18 @@ FRONTEND = ROOT.parent / "frontend"
 SS = 4  # supersampling: si disegna a 4x e si riduce, per bordi puliti
 
 
-def draw_glyph(size_px: int) -> Image.Image:
+def draw_glyph(size_px: int, body=None, edge=None, line=None) -> Image.Image:
     """Disegna il documento su canvas trasparente quadrato di lato size_px.
 
     Il glifo e' inscritto nel canvas mantenendo le proporzioni originali.
+    `body`/`edge`/`line` permettono di sovrascrivere la palette: il foreground
+    adaptive poggia sul backgroundColor scuro e ha bisogno di un corpo chiaro,
+    altrimenti documento e sfondo hanno lo stesso valore e nel launcher si vede
+    solo un quadrato nero con una striscia viola.
     """
+    body = body or COL_DOC_BODY
+    edge = edge or COL_DOC_EDGE
+    line = line or COL_LINE
     gw = DOC[2] - DOC[0]
     gh = DOC[3] - DOC[1]
     scale = size_px * SS / max(gw, gh)
@@ -90,8 +104,8 @@ def draw_glyph(size_px: int) -> Image.Image:
     d.rounded_rectangle(
         [0, 0, w - 1, h - 1],
         radius=DOC_RADIUS * scale,
-        fill=COL_DOC_BODY,
-        outline=COL_DOC_EDGE,
+        fill=body,
+        outline=edge,
         width=max(round(3 * scale), 1),
     )
 
@@ -117,7 +131,7 @@ def draw_glyph(size_px: int) -> Image.Image:
     # Righe di testo
     for x0, y0, x1, y1 in LINES:
         a, b = rel(x0, y0), rel(x1, y1)
-        d.rounded_rectangle([a[0], a[1], b[0], b[1]], radius=(b[1] - a[1]) / 2, fill=COL_LINE)
+        d.rounded_rectangle([a[0], a[1], b[0], b[1]], radius=(b[1] - a[1]) / 2, fill=line)
 
     out = Image.new("RGBA", (size_px * SS, size_px * SS), (0, 0, 0, 0))
     out.paste(img, ((size_px * SS - w) // 2, (size_px * SS - h) // 2), img)
@@ -128,11 +142,13 @@ def build_adaptive_icon() -> None:
     """Foreground adaptive: glifo inscritto nel cerchio di safe zone."""
     gw, gh = DOC[2] - DOC[0], DOC[3] - DOC[1]
     diagonal = (gw**2 + gh**2) ** 0.5
-    # Il lato del quadrato che contiene il glifo, scalato perche' la sua
-    # diagonale non superi il cerchio garantito.
-    box = round(max(gw, gh) * SAFE_DIAMETER / diagonal)
+    # Inscrivere la diagonale nel cerchio di safe zone e' matematicamente sicuro
+    # ma produce un glifo del 44% del canvas: nel launcher si vede un francobollo
+    # perso nel tile. I launcher mostrano ~72% del foreground, quindi si punta a
+    # riempire la safe zone lasciando che solo gli angoli arrotondati la sfiorino.
+    box = round(max(gw, gh) * (SAFE_DIAMETER * 1.15) / diagonal)
 
-    glyph = draw_glyph(box)
+    glyph = draw_glyph(box, body=COL_ADAPT_BODY, edge=COL_ADAPT_EDGE, line=COL_ADAPT_LINE)
     canvas = Image.new("RGBA", (CANVAS, CANVAS), (0, 0, 0, 0))
     off = (CANVAS - box) // 2
     canvas.paste(glyph, (off, off), glyph)

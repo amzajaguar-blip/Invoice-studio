@@ -1,8 +1,16 @@
 /**
- * document-format-engine.ts — Generazione documenti DOCX e RTF
+ * document-format-engine.ts — Generazione documenti PDF, XLSX, DOCX e RTF
  *
  * Produce file reali nei formati dichiarati (non PDF rinominati).
- * PDF è gestito da pdf-utils.ts. Questo modulo copre DOCX e RTF.
+ * Entry-point unificato: `generateDocument(data, format)` — usato da tutte le
+ * schermate che offrono i pulsanti "Genera PDF / Excel / Word".
+ *
+ * PDF: via expo-print (Print.printToFileAsync su HTML strutturato)
+ *   — magic bytes: 25 50 44 46 (%PDF)
+ *
+ * XLSX: via SheetJS (`xlsx` 0.18.5, JS puro, Metro compatibile)
+ *   — foglio "Documento" con righe, quantità, prezzi e totali
+ *   — magic bytes: 50 4B 03 04 (PK ZIP — standard OOXML/XLSX)
  *
  * DOCX: via pacchetto `docx` (8.5.0, JS puro, Metro compatibile)
  *   — include metadati: creator = 'Milo Office', company = 'Milo Office'
@@ -19,6 +27,8 @@
 
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
+import * as Print from 'expo-print';
+import * as XLSX from 'xlsx';
 import {
   Document,
   Packer,
@@ -35,7 +45,51 @@ import {
 
 // ─── Tipi ─────────────────────────────────────────────────────────────────────
 
-export type OutputFormat = 'pdf' | 'doc' | 'rtf';
+export type OutputFormat = 'pdf' | 'xlsx' | 'doc' | 'rtf';
+
+/**
+ * Metadati per formato: estensione reale, MIME type e UTI iOS.
+ * Unica fonte di verità — usata da generateDocument() e shareDocument().
+ */
+export const FORMAT_META: Record<
+  OutputFormat,
+  { ext: string; mimeType: string; uti: string; label: string }
+> = {
+  pdf: {
+    ext: 'pdf',
+    mimeType: 'application/pdf',
+    uti: 'com.adobe.pdf',
+    label: 'PDF',
+  },
+  xlsx: {
+    ext: 'xlsx',
+    mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    uti: 'org.openxmlformats.spreadsheetml.sheet',
+    label: 'Excel',
+  },
+  doc: {
+    ext: 'docx',
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    uti: 'org.openxmlformats.wordprocessingml.document',
+    label: 'Word',
+  },
+  rtf: {
+    ext: 'rtf',
+    mimeType: 'application/rtf',
+    uti: 'public.rtf',
+    label: 'RTF',
+  },
+};
+
+/** Normalizza un valore arbitrario (deep link, query param) in un OutputFormat. */
+export function parseOutputFormat(value: unknown, fallback: OutputFormat = 'pdf'): OutputFormat {
+  const raw = String(value ?? '').toLowerCase();
+  if (raw === 'pdf') return 'pdf';
+  if (raw === 'xlsx' || raw === 'xls' || raw === 'excel') return 'xlsx';
+  if (raw === 'doc' || raw === 'docx' || raw === 'word') return 'doc';
+  if (raw === 'rtf') return 'rtf';
+  return fallback;
+}
 
 export interface DocumentLineItem {
   description: string;
@@ -450,18 +504,294 @@ export async function shareDocument(filepath: string, filename: string): Promise
     console.warn(`shareDocument: sharing not available. File accessible at: ${filepath}`);
     return;
   }
+  const ext = filename.split('.').pop()?.toLowerCase() ?? '';
+  const meta =
+    Object.values(FORMAT_META).find((m) => m.ext === ext) ?? FORMAT_META.pdf;
+
   await Sharing.shareAsync(filepath, {
-    mimeType: filename.endsWith('.docx')
-      ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-      : 'application/rtf',
+    mimeType: meta.mimeType,
     dialogTitle: 'Condividi documento',
-    UTI: filename.endsWith('.docx')
-      ? 'org.openxmlformats.wordprocessingml.document'
-      : 'public.rtf',
+    UTI: meta.uti,
   });
 }
 
+/**
+ * Genera un file PDF reale via expo-print e restituisce il path assoluto.
+ * Magic bytes: 25 50 44 46 (%PDF).
+ */
+export async function generateDocumentPdfFile(
+  data: DocumentFormatData,
+  options: Omit<DocumentFormatOptions, 'format'> = {}
+): Promise<string> {
+  const html = buildDocumentHtml(
+    { ...data, companyName: data.companyName ?? 'Milo Office' },
+    options
+  );
+
+  let sourceUri: string;
+  try {
+    const printed = await Print.printToFileAsync({ html });
+    sourceUri = printed.uri;
+  } catch (err) {
+    throw new Error(`PDF generation failed: ${String(err)}`);
+  }
+
+  const filename = `${_safeName(data.title)}_${Date.now()}.pdf`;
+  const filepath = `${FileSystem.documentDirectory}${filename}`;
+  await FileSystem.moveAsync({ from: sourceUri, to: filepath });
+
+  return filepath;
+}
+
+/**
+ * Genera un file XLSX reale via SheetJS e restituisce il path assoluto.
+ * Il foglio "Documento" contiene intestazione, righe e totali.
+ * Magic bytes: 50 4B 03 04 (PK ZIP / OOXML).
+ */
+export async function generateDocumentXLSX(
+  data: DocumentFormatData,
+  options: Omit<DocumentFormatOptions, 'format'> = {}
+): Promise<string> {
+  const company = data.companyName ?? 'Milo Office';
+  const currency = data.totals.currency || 'EUR';
+
+  const rows: (string | number)[][] = [
+    [company],
+    [data.customTitle ?? data.title ?? 'Documento'],
+  ];
+
+  if (data.number) rows.push(['Numero', data.number]);
+  if (data.issueDate) rows.push(['Data', data.issueDate]);
+  if (data.dueDate) rows.push(['Scadenza', data.dueDate]);
+  if (data.validUntil) rows.push(['Valido fino al', data.validUntil]);
+  if (data.client?.name) rows.push(['Cliente', data.client.name]);
+  if (data.client?.email) rows.push(['Email', data.client.email]);
+  if (data.client?.address) rows.push(['Indirizzo', data.client.address]);
+  if (data.client?.taxId) rows.push(['P.IVA / CF', data.client.taxId]);
+
+  rows.push([]);
+  rows.push(['Descrizione', 'Quantità', `Prezzo (${currency})`, `Importo (${currency})`]);
+
+  for (const item of data.lineItems) {
+    rows.push([
+      _sanitizeCell(item.description),
+      item.quantity,
+      item.rate,
+      item.amount,
+    ]);
+  }
+
+  rows.push([]);
+  rows.push(['', '', 'Subtotale', data.totals.subtotal]);
+  if (typeof data.totals.taxAmount === 'number') {
+    rows.push([
+      '',
+      '',
+      `IVA${typeof data.totals.taxRate === 'number' ? ` ${data.totals.taxRate}%` : ''}`,
+      data.totals.taxAmount,
+    ]);
+  }
+  rows.push(['', '', 'TOTALE', data.totals.grandTotal]);
+
+  if (data.notes) {
+    rows.push([]);
+    rows.push(['Note', _sanitizeCell(data.notes)]);
+  }
+  if (options.translatedLabel) {
+    rows.push([]);
+    rows.push([options.translatedLabel]);
+  }
+
+  const worksheet = XLSX.utils.aoa_to_sheet(rows);
+  worksheet['!cols'] = [{ wch: 44 }, { wch: 12 }, { wch: 16 }, { wch: 16 }];
+
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Documento');
+
+  const binary: string = XLSX.write(workbook, { bookType: 'xlsx', type: 'base64' });
+
+  const filename = `${_safeName(data.title)}_${Date.now()}.xlsx`;
+  const filepath = `${FileSystem.documentDirectory}${filename}`;
+  await FileSystem.writeAsStringAsync(filepath, binary, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+
+  return filepath;
+}
+
+/**
+ * Entry-point unificato: genera il documento nel formato richiesto.
+ * È la funzione che le schermate devono chiamare — evita che un pulsante
+ * "Genera Excel" produca in realtà un altro formato.
+ */
+export async function generateDocument(
+  data: DocumentFormatData,
+  format: OutputFormat,
+  options: Omit<DocumentFormatOptions, 'format'> = {}
+): Promise<{ filepath: string; filename: string; format: OutputFormat }> {
+  let filepath: string;
+  switch (format) {
+    case 'pdf':
+      filepath = await generateDocumentPdfFile(data, options);
+      break;
+    case 'xlsx':
+      filepath = await generateDocumentXLSX(data, options);
+      break;
+    case 'doc':
+      filepath = await generateDocumentDOC(data, options);
+      break;
+    case 'rtf':
+      filepath = await generateDocumentRTF(data, options);
+      break;
+    default: {
+      const exhaustive: never = format;
+      throw new Error(`Formato non supportato: ${String(exhaustive)}`);
+    }
+  }
+  const filename = filepath.split('/').pop() ?? `documento.${FORMAT_META[format].ext}`;
+  return { filepath, filename, format };
+}
+
+/**
+ * Genera il documento nel formato richiesto e apre subito il foglio di
+ * condivisione nativo. Ritorna il filename prodotto.
+ */
+export async function generateAndShareDocument(
+  data: DocumentFormatData,
+  format: OutputFormat,
+  options: Omit<DocumentFormatOptions, 'format'> = {}
+): Promise<string> {
+  const { filepath, filename } = await generateDocument(data, format, options);
+  await shareDocument(filepath, filename);
+  return filename;
+}
+
+// ─── HTML condiviso (sorgente del PDF) ───────────────────────────────────────
+
+function buildDocumentHtml(
+  data: DocumentFormatData,
+  options: Omit<DocumentFormatOptions, 'format'>
+): string {
+  const company = data.companyName ?? 'Milo Office';
+  const symbol = data.totals.currency === 'EUR' ? '€' : data.totals.currency;
+  const money = (n: number) => `${symbol} ${n.toFixed(2)}`;
+  const title = data.customTitle ?? data.title ?? 'Documento';
+
+  const metaRows = [
+    data.number ? ['Numero', data.number] : null,
+    data.issueDate ? ['Data', data.issueDate] : null,
+    data.dueDate ? ['Scadenza', data.dueDate] : null,
+    data.validUntil ? ['Valido fino al', data.validUntil] : null,
+  ].filter(Boolean) as string[][];
+
+  const clientRows = [
+    data.client?.name ? ['Cliente', data.client.name] : null,
+    data.client?.email ? ['Email', data.client.email] : null,
+    data.client?.address ? ['Indirizzo', data.client.address] : null,
+    data.client?.taxId ? ['P.IVA / CF', data.client.taxId] : null,
+  ].filter(Boolean) as string[][];
+
+  const logoHtml = options.logoUrl
+    ? `<img class="logo" src="${_escHtml(options.logoUrl)}" alt="Logo" />`
+    : '';
+
+  const itemsHtml = data.lineItems
+    .map(
+      (item) => `<tr>
+        <td>${_escHtml(item.description)}</td>
+        <td class="num">${item.quantity}</td>
+        <td class="num">${money(item.rate)}</td>
+        <td class="num">${money(item.amount)}</td>
+      </tr>`
+    )
+    .join('');
+
+  const taxHtml =
+    typeof data.totals.taxAmount === 'number'
+      ? `<tr><td>IVA${
+          typeof data.totals.taxRate === 'number' ? ` ${data.totals.taxRate}%` : ''
+        }</td><td class="num">${money(data.totals.taxAmount)}</td></tr>`
+      : '';
+
+  return `<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<title>${_escHtml(title)}</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+         color: #1a1a1a; margin: 0; padding: 40px; font-size: 13px; }
+  .logo { max-height: 60px; max-width: 160px; margin-bottom: 10px; display: block; }
+  h1 { font-size: 24px; margin: 0 0 4px; letter-spacing: .5px; }
+  .company { font-size: 15px; font-weight: 600; color: #6c63ff; margin-bottom: 24px; }
+  .meta { width: 100%; margin-bottom: 24px; }
+  .meta td { padding: 3px 0; }
+  .meta td:first-child { color: #666; width: 140px; }
+  table.items { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+  table.items th { text-align: left; background: #f3f3f7; padding: 8px;
+                   border-bottom: 2px solid #6c63ff; font-size: 12px; }
+  table.items td { padding: 8px; border-bottom: 1px solid #e6e6ec; }
+  .num { text-align: right; white-space: nowrap; }
+  table.totals { margin-left: auto; min-width: 240px; border-collapse: collapse; }
+  table.totals td { padding: 5px 0; }
+  table.totals tr:last-child td { font-size: 16px; font-weight: 700;
+                                  border-top: 2px solid #1a1a1a; padding-top: 8px; }
+  .notes { margin-top: 28px; padding-top: 12px; border-top: 1px solid #e6e6ec;
+           white-space: pre-wrap; color: #444; }
+  .footer { margin-top: 32px; font-size: 11px; color: #888; text-align: center; }
+</style>
+</head>
+<body>
+  ${logoHtml}
+  <div class="company">${_escHtml(company)}</div>
+  <h1>${_escHtml(title)}</h1>
+  <table class="meta">
+    ${[...metaRows, ...clientRows]
+      .map(([k, v]) => `<tr><td>${_escHtml(k)}</td><td>${_escHtml(v)}</td></tr>`)
+      .join('')}
+  </table>
+  <table class="items">
+    <thead>
+      <tr><th>Descrizione</th><th class="num">Q.tà</th><th class="num">Prezzo</th><th class="num">Importo</th></tr>
+    </thead>
+    <tbody>${itemsHtml}</tbody>
+  </table>
+  <table class="totals">
+    <tr><td>Subtotale</td><td class="num">${money(data.totals.subtotal)}</td></tr>
+    ${taxHtml}
+    <tr><td>TOTALE</td><td class="num">${money(data.totals.grandTotal)}</td></tr>
+  </table>
+  ${data.notes ? `<div class="notes">${_escHtml(data.notes)}</div>` : ''}
+  <div class="footer">${_escHtml(company)}${
+    options.translatedLabel ? ` — ${_escHtml(options.translatedLabel)}` : ''
+  }</div>
+</body>
+</html>`;
+}
+
 // ─── Helper interno ───────────────────────────────────────────────────────────
+
+function _escHtml(value: string): string {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function _safeName(value?: string): string {
+  return (value ?? 'documento').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 60) || 'documento';
+}
+
+/**
+ * Previene la formula injection nei fogli di calcolo: un valore che inizia con
+ * = + - @ verrebbe interpretato come formula da Excel/LibreOffice/Sheets.
+ */
+function _sanitizeCell(value: string): string {
+  const text = String(value ?? '');
+  return /^[=+\-@]/.test(text) ? `'${text}` : text;
+}
 
 function _arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);

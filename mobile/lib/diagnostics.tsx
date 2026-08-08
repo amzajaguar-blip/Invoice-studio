@@ -111,7 +111,7 @@ function DiagnosticScreen({ error }: { error: Error }): React.JSX.Element {
         ⚠ Boot Error
       </Text>
       <Text style={{ color: "#8e95a2", fontSize: 13, marginBottom: 20 }}>
-        VELA Diagnostic Mode
+        Milo Office Diagnostic Mode
       </Text>
 
       {/* Device Info */}

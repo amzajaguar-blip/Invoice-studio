@@ -20,7 +20,7 @@ import { extractFragmentAuthParams } from "@/lib/auth-deep-link";
  * Reset password screen — passo 2 del flusso.
  *
  * L'utente arriva qui dal link email di Supabase (deep link tipo
- * `vela://(auth)/reset-password#access_token=...&refresh_token=...&type=recovery`).
+ * `milo-office://(auth)/reset-password#access_token=...&refresh_token=...&type=recovery`).
  *
  * La sessione di recovery popola automaticamente lo storage di Supabase
  * via il Supabase client stesso (detectSessionInUrl gestisce il fragment
