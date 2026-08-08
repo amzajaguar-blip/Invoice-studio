@@ -41,7 +41,7 @@ export async function generateInvoicePDF(
     const {
       includeQRCode = true,
       companyName = 'Milo Office',
-      companyEmail = 'info@invoicestudio.app',
+      companyEmail = 'supporto@milo.mindprint.it',
       companyPhone = '+1 (555) 000-0000',
       companyAddress = '123 Business St, City, State 12345',
     } = options;
@@ -82,7 +82,7 @@ function generateInvoiceHTML(
     includeQRCode: boolean;
   }
 ): string {
-  const invoiceLink = `https://invoicestudio.app/invoice/${invoice.id}`;
+  const invoiceLink = `https://milo.mindprint.it/invoice/${invoice.id}`;
   const lineItemsHTML = invoice.lineItems
     .map(
       item => `
@@ -485,7 +485,7 @@ function generateInvoiceDocumentHTML(
   options: PDFGenerationOptionsExtended & { documentType: DocumentType }
 ): string {
   const companyName = options.companyName ?? 'Milo Office';
-  const companyEmail = options.companyEmail ?? 'info@invoicestudio.app';
+  const companyEmail = options.companyEmail ?? 'supporto@milo.mindprint.it';
   const companyPhone = options.companyPhone ?? '+1 (555) 000-0000';
   const companyAddress = options.companyAddress ?? '123 Business St, City, State 12345';
 
@@ -625,7 +625,7 @@ function generateQuoteDocumentHTML(
   options: PDFGenerationOptionsExtended & { documentType: DocumentType }
 ): string {
   const companyName = options.companyName ?? 'Milo Office';
-  const companyEmail = options.companyEmail ?? 'info@invoicestudio.app';
+  const companyEmail = options.companyEmail ?? 'supporto@milo.mindprint.it';
   const companyPhone = options.companyPhone ?? '+1 (555) 000-0000';
   const companyAddress = options.companyAddress ?? '123 Business St, City, State 12345';
 
@@ -761,7 +761,7 @@ function generateExpenseReportDocumentHTML(
   options: PDFGenerationOptionsExtended & { documentType: DocumentType }
 ): string {
   const companyName = options.companyName ?? 'Milo Office';
-  const companyEmail = options.companyEmail ?? 'info@invoicestudio.app';
+  const companyEmail = options.companyEmail ?? 'supporto@milo.mindprint.it';
   const companyPhone = options.companyPhone ?? '+1 (555) 000-0000';
   const companyAddress = options.companyAddress ?? '123 Business St, City, State 12345';
 

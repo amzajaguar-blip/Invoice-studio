@@ -343,7 +343,7 @@ export async function registerPushTokenWithBackend(
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (sessionToken) headers['Authorization'] = `Bearer ${sessionToken}`;
 
-    await fetch('https://invoicestudio.app/api/push-token', {
+    await fetch('https://milo.mindprint.it/api/push-token', {
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -361,7 +361,7 @@ export async function registerPushTokenWithBackend(
  */
 export async function unregisterPushToken(sessionToken: string): Promise<void> {
   try {
-    await fetch('https://invoicestudio.app/api/push-token', {
+    await fetch('https://milo.mindprint.it/api/push-token', {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${sessionToken}` },
     });

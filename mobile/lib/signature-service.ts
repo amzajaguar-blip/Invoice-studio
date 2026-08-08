@@ -284,7 +284,7 @@ function generateVerificationHash(signatureImage: string, email: string): string
  */
 async function sendSigningEmail(request: SignatureRequest): Promise<void> {
   try {
-    const signingLink = `https://invoicestudio.app/sign/${request.id}`;
+    const signingLink = `https://milo.mindprint.it/sign/${request.id}`;
 
     await fetch('/api/emails/send', {
       method: 'POST',

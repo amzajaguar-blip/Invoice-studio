@@ -117,7 +117,7 @@ export async function shareInvoice(
  */
 export function generateInvoiceLink(invoiceId: string): string {
   // This will be used when cloud sync is implemented
-  return `https://invoicestudio.app/invoice/${invoiceId}`;
+  return `https://milo.mindprint.it/invoice/${invoiceId}`;
 }
 
 /**

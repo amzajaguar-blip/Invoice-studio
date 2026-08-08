@@ -180,7 +180,7 @@ export default function InvoiceDetailScreen() {
       `Stato: ${STATUS_LABELS[data?.status ?? "draft"]}`,
       "",
       "Visualizza su Milo Office",
-      `https://invoicestudio.app`,
+      `https://milo.mindprint.it`,
     ];
     return lines.join("\n");
   };
