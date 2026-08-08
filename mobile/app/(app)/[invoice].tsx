@@ -76,7 +76,7 @@ export default function InvoiceDetailScreen() {
       router.back();
       return;
     }
-    apiFetch<InvoiceDetail>(`/api/invoices/${invoiceId}`)
+    apiFetch<InvoiceDetail>(`/api/documents/${invoiceId}`)
       .then(({ data }) => setData(data))
       .finally(() => setLoading(false));
   }, [invoiceId]);
@@ -91,7 +91,7 @@ export default function InvoiceDetailScreen() {
 
     setUpdatingStatus(true);
     const { data: updated, error } = await apiFetch<InvoiceDetail>(
-      `/api/invoices/${invoiceId}`,
+      `/api/documents/${invoiceId}`,
       { method: "PATCH", body: JSON.stringify({ status: next }) }
     );
     setUpdatingStatus(false);
@@ -111,7 +111,7 @@ export default function InvoiceDetailScreen() {
   // ─── Condivisione nativa ──────────────────────────────────────────────────
   const buildShareText = () => {
     const lines = [
-      `Fattura #${invoiceNum}`,
+      `Documento #${invoiceNum}`,
       `Cliente: ${data?.client_name ?? "—"}`,
       `Importo: ${fmt(data?.total ?? 0)}`,
       `Scadenza: ${data?.due_date ? new Date(data.due_date).toLocaleDateString("it-IT") : "—"}`,
@@ -128,7 +128,7 @@ export default function InvoiceDetailScreen() {
     try {
       await Share.share({
         message: buildShareText(),
-        title: `Fattura #${invoiceNum}`,
+        title: `Documento #${invoiceNum}`,
       });
     } catch {
       // utente ha annullato — nessun errore
@@ -145,7 +145,7 @@ export default function InvoiceDetailScreen() {
     }
     await MailComposer.composeAsync({
       recipients: data?.client_email ? [data.client_email] : [],
-      subject: `Fattura #${invoiceNum} — ${fmt(data?.total ?? 0)}`,
+      subject: `Documento #${invoiceNum} — ${fmt(data?.total ?? 0)}`,
       body: buildShareText(),
     });
   };
@@ -165,7 +165,7 @@ export default function InvoiceDetailScreen() {
   // ─── Delete ───────────────────────────────────────────────────────────────
   const handleDelete = () => {
     Alert.alert(
-      "Elimina fattura",
+      "Elimina documento",
       "Sei sicuro? L'operazione non può essere annullata.",
       [
         { text: "Annulla", style: "cancel" },
@@ -173,7 +173,7 @@ export default function InvoiceDetailScreen() {
           text: "Elimina",
           style: "destructive",
           onPress: async () => {
-            const { error } = await apiFetch(`/api/invoices/${invoiceId}`, { method: "DELETE" });
+            const { error } = await apiFetch(`/api/documents/${invoiceId}`, { method: "DELETE" });
             if (error) { Alert.alert(t("error"), error); return; }
             router.back();
           },
@@ -194,7 +194,7 @@ export default function InvoiceDetailScreen() {
   if (!data) {
     return (
       <View style={s.center}>
-        <Text style={s.errorText}>Fattura non trovata</Text>
+        <Text style={s.errorText}>Documento non trovato</Text>
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={s.link}>← Indietro</Text>
         </TouchableOpacity>
@@ -213,7 +213,7 @@ export default function InvoiceDetailScreen() {
 
       {/* Title + status */}
       <View style={s.titleRow}>
-        <Text style={s.title}>Fattura #{invoiceNum}</Text>
+        <Text style={s.title}>Documento #{invoiceNum}</Text>
         <View style={[s.badge, {
           borderColor: STATUS_COLORS[data.status] + "40",
           backgroundColor: STATUS_COLORS[data.status] + "12",
@@ -303,7 +303,7 @@ export default function InvoiceDetailScreen() {
 
       {/* Elimina */}
       <TouchableOpacity style={s.deleteBtn} onPress={handleDelete}>
-        <Text style={s.deleteBtnText}>Elimina fattura</Text>
+        <Text style={s.deleteBtnText}>Elimina documento</Text>
       </TouchableOpacity>
     </ScrollView>
   );

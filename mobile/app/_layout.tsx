@@ -22,6 +22,7 @@ import * as Notifications from "expo-notifications";
 import * as Linking from "expo-linking";
 import { initializePushNotifications } from "@/lib/notifications-service";
 import { initAds } from "@/lib/ads";
+import { initRevenueCatIdentity } from "@/lib/revenuecat-identity";
 
 const logBoot = (msg: string, data?: any) => {
   if (__DEV__) {
@@ -167,6 +168,8 @@ export default function RootLayout() {
 
     logBoot("BOOT_002 RootLayout useEffect running");
 
+    let rcIdentityUnsubscribe: (() => void) | undefined;
+
     // Configure RevenueCat for both iOS and Android
     try {
       // Read platform-specific API keys from app.json extra with env fallback
@@ -182,6 +185,10 @@ export default function RootLayout() {
       if (apiKey) {
         Purchases.configure({ apiKey });
         logBoot(`BOOT_002a RevenueCat configured for ${Platform.OS}`);
+        // Senza questo l'App User ID resta anonimo e il webhook RevenueCat
+        // rigetta ogni evento come "Invalid organization ID" (vedi
+        // lib/revenuecat-identity.ts).
+        rcIdentityUnsubscribe = initRevenueCatIdentity();
       } else {
         logBootError(`RevenueCat init failed: Missing API key for ${Platform.OS}`, null);
       }
@@ -193,6 +200,8 @@ export default function RootLayout() {
     initAds()
       .then(() => logBoot("BOOT_002b AdMob Google Mobile Ads SDK initialized"))
       .catch((err) => logBootError("AdMob init failed (non-fatal)", err));
+
+    return () => rcIdentityUnsubscribe?.();
   }, []);
 
   return (

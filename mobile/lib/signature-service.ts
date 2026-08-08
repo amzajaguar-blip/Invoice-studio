@@ -336,7 +336,7 @@ async function sendDeclineNotification(request: SignatureRequest, reason?: strin
  */
 async function updateInvoiceSignatureStatus(invoiceId: string, signed: boolean): Promise<void> {
   try {
-    await fetch(`/api/invoices/${invoiceId}`, {
+    await fetch(`/api/documents/${invoiceId}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',

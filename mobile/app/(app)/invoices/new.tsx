@@ -3,7 +3,7 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiFetch } from "@/lib/ai";
 import { useLocale } from "@/components/LocaleProvider";
@@ -37,6 +37,8 @@ export default function NewInvoiceScreen() {
   const router = useRouter();
   const { t } = useLocale();
   const { isPremium } = usePlan();
+  const params = useLocalSearchParams<{ document_type?: string }>();
+  const documentType = (params.document_type as string) || "custom";
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [showClientPicker, setShowClientPicker] = useState(false);
@@ -137,19 +139,19 @@ export default function NewInvoiceScreen() {
 
     setLoading(true);
     const payload = {
+      document_type: documentType,
       client_id: selectedClientId,
       status,
       tax_rate: parseFloat(taxRate) || 0,
       notes: notes.trim() || null,
-      line_items: validItems.map((i) => ({
+      items: validItems.map((i) => ({
         description: i.description.trim(),
         quantity: parseFloat(i.quantity) || 1,
-        rate: parseFloat(i.rate) || 0,
-        amount: (parseFloat(i.quantity) || 1) * (parseFloat(i.rate) || 0),
+        unit_price: parseFloat(i.rate) || 0,
       })),
     };
 
-    const { data, error } = await apiFetch("/api/invoices", {
+    const { data, error } = await apiFetch("/api/documents", {
       method: "POST",
       body: JSON.stringify(payload),
     });
@@ -175,7 +177,7 @@ export default function NewInvoiceScreen() {
         const now = new Date();
         const periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
         const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
-        const { data: countResp } = await apiFetch<{ count?: number; data?: { id: string }[] }>('/api/invoices?status=all', {
+        const { data: countResp } = await apiFetch<{ count?: number; data?: { id: string }[] }>('/api/documents?status=all', {
           method: 'GET',
         });
         // Best-effort count — if the API shape isn't what we expect we skip the ad.
@@ -225,13 +227,13 @@ export default function NewInvoiceScreen() {
         {/* Header */}
         <View style={s.header}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-            <Text style={s.backText}>{t("invoices.new.back")}</Text>
+            <Text style={s.backText}>{t("documents.new.back")}</Text>
           </TouchableOpacity>
-          <Text style={s.title}>{t("invoices.new.title")}</Text>
+          <Text style={s.title}>{t("documents.new.title")}</Text>
         </View>
 
         {/* Cliente */}
-        <Text style={s.sectionLabel}>{t("invoices.new.section.client")}</Text>
+        <Text style={s.sectionLabel}>{t("documents.new.section.client")}</Text>
 
         {/* Smart Pre-fill: recently-used chips strip */}
         <LastClientChips clients={recentChips} onSelect={selectClientFromChip} />
@@ -240,7 +242,7 @@ export default function NewInvoiceScreen() {
         {clients.length > 0 && (
           <TextInput
             style={s.clientSearchInput}
-            placeholder={t("invoicePrefill.recent_clients")}
+            placeholder={t("documentPrefill.recent_clients")}
             placeholderTextColor="#4b5563"
             autoCapitalize="none"
             autoCorrect={false}
@@ -261,7 +263,7 @@ export default function NewInvoiceScreen() {
           onPress={() => setShowClientPicker(!showClientPicker)}
         >
           <Text style={s.clientName}>
-            {selectedClient ? selectedClient.name : t("invoices.new.client.select_placeholder")}
+            {selectedClient ? selectedClient.name : t("documents.new.client.select_placeholder")}
           </Text>
           <Text style={s.chevron}>{showClientPicker ? "▲" : "▼"}</Text>
         </TouchableOpacity>
@@ -304,31 +306,31 @@ export default function NewInvoiceScreen() {
 
         {/* Smart Pre-fill defaults hint */}
         <Text style={s.prefillHint}>
-          {t("invoicePrefill.defaults_explainer")}
+          {t("documentPrefill.defaults_explainer")}
         </Text>
 
         {/* Voci */}
-        <Text style={s.sectionLabel}>{t("invoices.new.section.items")}</Text>
+        <Text style={s.sectionLabel}>{t("documents.new.section.items")}</Text>
         {lineItems.map((item, index) => (
           <View key={item.id} style={s.lineItemCard}>
             <View style={s.lineItemHeader}>
-              <Text style={s.lineItemNum}>{t("invoices.new.item_number_prefix")} {index + 1}</Text>
+              <Text style={s.lineItemNum}>{t("documents.new.item_number_prefix")} {index + 1}</Text>
               {lineItems.length > 1 && (
                 <TouchableOpacity onPress={() => removeItem(item.id)}>
-                  <Text style={s.removeText}>{t("invoices.new.item_remove")}</Text>
+                  <Text style={s.removeText}>{t("documents.new.item_remove")}</Text>
                 </TouchableOpacity>
               )}
             </View>
             <TextInput
               style={s.input}
-              placeholder={t("invoices.new.item.description.placeholder")}
+              placeholder={t("documents.new.item.description.placeholder")}
               placeholderTextColor="#4b5563"
               value={item.description}
               onChangeText={(v) => updateItem(item.id, "description", v)}
             />
             <View style={s.lineItemRow}>
               <View style={s.inputHalf}>
-                <Text style={s.inputLabel}>{t("invoices.new.item.quantity.label")}</Text>
+                <Text style={s.inputLabel}>{t("documents.new.item.quantity.label")}</Text>
                 <TextInput
                   style={s.input}
                   placeholder="1"
@@ -339,7 +341,7 @@ export default function NewInvoiceScreen() {
                 />
               </View>
               <View style={s.inputHalf}>
-                <Text style={s.inputLabel}>{t("invoices.new.item.price.label")}</Text>
+                <Text style={s.inputLabel}>{t("documents.new.item.price.label")}</Text>
                 <TextInput
                   style={s.input}
                   placeholder="0,00"
@@ -352,18 +354,18 @@ export default function NewInvoiceScreen() {
             </View>
             {parseFloat(item.rate) > 0 && (
               <Text style={s.lineTotal}>
-                {t("invoices.new.item.line_total_prefix")} {fmt((parseFloat(item.quantity) || 1) * (parseFloat(item.rate) || 0))}
+                {t("documents.new.item.line_total_prefix")} {fmt((parseFloat(item.quantity) || 1) * (parseFloat(item.rate) || 0))}
               </Text>
             )}
           </View>
         ))}
 
         <TouchableOpacity style={s.addItemBtn} onPress={addItem}>
-          <Text style={s.addItemText}>{t("invoices.new.add_item.button")}</Text>
+          <Text style={s.addItemText}>{t("documents.new.add_item.button")}</Text>
         </TouchableOpacity>
 
         {/* IVA */}
-        <Text style={s.sectionLabel}>{t("invoices.new.section.tax")}</Text>
+        <Text style={s.sectionLabel}>{t("documents.new.section.tax")}</Text>
         <TextInput
           style={s.input}
           placeholder="22"
@@ -374,10 +376,10 @@ export default function NewInvoiceScreen() {
         />
 
         {/* Note */}
-        <Text style={s.sectionLabel}>{t("invoices.new.section.notes")}</Text>
+        <Text style={s.sectionLabel}>{t("documents.new.section.notes")}</Text>
         <TextInput
           style={[s.input, s.notesInput]}
-          placeholder={t("invoices.new.notes.placeholder")}
+          placeholder={t("documents.new.notes.placeholder")}
           placeholderTextColor="#4b5563"
           multiline
           value={notes}
@@ -387,11 +389,11 @@ export default function NewInvoiceScreen() {
         {/* Riepilogo */}
         <View style={s.summaryCard}>
           <View style={s.summaryRow}>
-            <Text style={s.summaryLabel}>{t("invoices.new.summary.subtotal.label")}</Text>
+            <Text style={s.summaryLabel}>{t("documents.new.summary.subtotal.label")}</Text>
             <Text style={s.summaryValue}>{fmt(subtotal)}</Text>
           </View>
           <View style={s.summaryRow}>
-            <Text style={s.summaryLabel}>{t("invoices.new.summary.tax.label_template").replace("{rate}", String(taxRate))}</Text>
+            <Text style={s.summaryLabel}>{t("documents.new.summary.tax.label_template").replace("{rate}", String(taxRate))}</Text>
             <Text style={s.summaryValue}>{fmt(taxAmount)}</Text>
           </View>
           <View style={[s.summaryRow, s.summaryTotal]}>
@@ -410,7 +412,7 @@ export default function NewInvoiceScreen() {
             {loading ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
-              <Text style={s.btnText}>{t("invoices.new.button.draft")}</Text>
+              <Text style={s.btnText}>{t("documents.new.button.draft")}</Text>
             )}
           </TouchableOpacity>
           <TouchableOpacity
@@ -421,7 +423,7 @@ export default function NewInvoiceScreen() {
             {loading ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
-              <Text style={s.btnText}>{t("invoices.new.button.send")}</Text>
+              <Text style={s.btnText}>{t("documents.new.button.send")}</Text>
             )}
           </TouchableOpacity>
         </View>

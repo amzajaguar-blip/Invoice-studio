@@ -60,7 +60,7 @@ export interface DocumentClientInfo {
 }
 
 export interface DocumentFormatData {
-  type: 'invoice' | 'quote' | 'expense_report';
+  type: 'invoice' | 'quote' | 'expense_report' | 'custom';
   title: string;
   number?: string;
   issueDate?: string;
@@ -71,6 +71,9 @@ export interface DocumentFormatData {
   totals: DocumentTotals;
   notes?: string;
   companyName?: string;
+  // Custom document fields
+  bodyMarkdown?: string;
+  customTitle?: string;
 }
 
 export interface DocumentFormatOptions {
@@ -87,9 +90,11 @@ function buildDocxDocument(data: DocumentFormatData): Document {
 
   const typeLabel =
     data.type === 'invoice'
-      ? 'FATTURA'
+      ? 'DOCUMENTO'
       : data.type === 'quote'
-      ? 'PREVENTIVO'
+      ? 'BOZZA'
+      : data.type === 'custom'
+      ? (data.customTitle ?? 'DOCUMENTO')
       : 'NOTA SPESE';
 
   const headerParagraphs = [
@@ -306,9 +311,11 @@ function buildRtfDocument(data: DocumentFormatData): string {
 
   const typeLabel =
     data.type === 'invoice'
-      ? 'FATTURA'
+      ? 'DOCUMENTO'
       : data.type === 'quote'
-      ? 'PREVENTIVO'
+      ? 'BOZZA'
+      : data.type === 'custom'
+      ? (data.customTitle ?? 'DOCUMENTO')
       : 'NOTA SPESE';
 
   const esc = (s: string) =>

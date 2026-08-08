@@ -119,7 +119,7 @@ export default function NewReminderScreen() {
         <Text style={s.label}>TITOLO *</Text>
         <TextInput
           style={s.input}
-          placeholder="es. Scadenza fattura n. 12"
+          placeholder="es. Scadenza documento n. 12"
           placeholderTextColor="#4b5563"
           value={title}
           onChangeText={setTitle}

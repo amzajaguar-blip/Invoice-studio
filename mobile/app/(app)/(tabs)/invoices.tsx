@@ -59,11 +59,11 @@ export default function InvoicesScreen() {
 
   // Translated status labels (built after t is available)
   const STATUS_LABELS: Record<string, string> = {
-    draft: t("tabs.invoices.status.draft"),
-    sent: t("tabs.invoices.status.sent"),
-    paid: t("tabs.invoices.status.paid"),
-    overdue: t("tabs.invoices.status.overdue"),
-    cancelled: t("tabs.invoices.status.cancelled"),
+    draft: t("tabs.documents.status.draft"),
+    sent: t("tabs.documents.status.sent"),
+    paid: t("tabs.documents.status.paid"),
+    overdue: t("tabs.documents.status.overdue"),
+    cancelled: t("tabs.documents.status.cancelled"),
   };
 
   // ─── Data state ─────────────────────────────────────────────────────────
@@ -109,7 +109,7 @@ export default function InvoicesScreen() {
   const prevInvoiceCountRef = useRef<number | null>(null);
 
   const load = useCallback(async () => {
-    const { data } = await apiFetch<{ data: Invoice[] }>("/api/invoices?limit=50");
+    const { data } = await apiFetch<{ data: Invoice[] }>("/api/documents?limit=50");
     if (data) {
       const list = Array.isArray(data) ? data : (data as { data: Invoice[] }).data || [];
       setInvoices(list);
@@ -144,7 +144,7 @@ export default function InvoicesScreen() {
       const prevCount = prevInvoiceCountRef.current;
 
       void (async () => {
-        const { data } = await apiFetch<{ data: Invoice[] }>("/api/invoices?limit=50");
+        const { data } = await apiFetch<{ data: Invoice[] }>("/api/documents?limit=50");
         if (!data) return;
         const list = Array.isArray(data) ? data : (data as { data: Invoice[] }).data || [];
         setInvoices(list);
@@ -242,8 +242,8 @@ export default function InvoicesScreen() {
       return (
         <EmptyState
           icon="search-outline"
-          title={t("tabs.invoices.empty.query.title")}
-          hint={t("tabs.invoices.empty.query.hint").replace("{query}", filters.query)}
+          title={t("tabs.documents.empty.query.title")}
+          hint={t("tabs.documents.empty.query.hint").replace("{query}", filters.query)}
         />
       );
     }
@@ -251,8 +251,8 @@ export default function InvoicesScreen() {
       return (
         <EmptyState
           icon="checkmark-circle-outline"
-          title={t("tabs.invoices.empty.overdue.title")}
-          hint={t("tabs.invoices.empty.overdue.hint")}
+          title={t("tabs.documents.empty.overdue.title")}
+          hint={t("tabs.documents.empty.overdue.hint")}
         />
       );
     }
@@ -260,8 +260,8 @@ export default function InvoicesScreen() {
       return (
         <EmptyState
           icon="cash-outline"
-          title={t("tabs.invoices.empty.paid.title")}
-          hint={t("tabs.invoices.empty.paid.hint")}
+          title={t("tabs.documents.empty.paid.title")}
+          hint={t("tabs.documents.empty.paid.hint")}
         />
       );
     }
@@ -269,8 +269,8 @@ export default function InvoicesScreen() {
       return (
         <EmptyState
           icon="document-text-outline"
-          title={t("tabs.invoices.empty.draft.title")}
-          hint={t("tabs.invoices.empty.draft.hint")}
+          title={t("tabs.documents.empty.draft.title")}
+          hint={t("tabs.documents.empty.draft.hint")}
         />
       );
     }
@@ -278,9 +278,9 @@ export default function InvoicesScreen() {
     return (
       <EmptyState
         icon="document-text-outline"
-        title={t("tabs.invoices.empty.default.title")}
-        hint={t("tabs.invoices.empty.default.hint")}
-        cta={t("tabs.invoices.empty.default.cta")}
+        title={t("tabs.documents.empty.default.title")}
+        hint={t("tabs.documents.empty.default.hint")}
+        cta={t("tabs.documents.empty.default.cta")}
         onCTA={handleNewInvoice}
       />
     );
@@ -295,8 +295,8 @@ export default function InvoicesScreen() {
       {/* Header */}
       <View style={s.header}>
         <View>
-          <Text style={s.title}>{t("tabs.invoices.title")}</Text>
-          <Text style={s.sub}>{t("tabs.invoices.sub_count").replace("{n}", String(invoices.length)).replace("{a|e}", invoices.length === 1 ? "a" : "e")}</Text>
+          <Text style={s.title}>{t("tabs.documents.title")}</Text>
+          <Text style={s.sub}>{t("tabs.documents.sub_count").replace("{n}", String(invoices.length)).replace("{a|e}", invoices.length === 1 ? "a" : "e")}</Text>
         </View>
 
         {/* Quota badge — ora usa i limiti V34 da PlanContext */}
@@ -304,10 +304,10 @@ export default function InvoicesScreen() {
           style={[s.quotaBadge, !canCreate && s.quotaBadgeWarn]}
           onPress={handleNewInvoice}
           accessibilityRole="button"
-          accessibilityLabel={t("tabs.invoices.quota.a11y")}
+          accessibilityLabel={t("tabs.documents.quota.a11y")}
         >
           <Text style={[s.quotaText, !canCreate && s.quotaTextWarn]}>
-            {t("tabs.invoices.quota_text").replace("{used}", String(invoiceLimits?.used ?? 0)).replace("{base}", String(invoiceLimits?.base ?? 5))}
+            {t("tabs.documents.quota_text").replace("{used}", String(invoiceLimits?.used ?? 0)).replace("{base}", String(invoiceLimits?.base ?? 5))}
           </Text>
         </TouchableOpacity>
       </View>
@@ -315,7 +315,7 @@ export default function InvoicesScreen() {
       {/* Pulsante nuova fattura */}
       <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
         <TouchableOpacity style={s.newBtn} onPress={handleNewInvoice} activeOpacity={0.85}>
-          <Text style={s.newBtnText}>{t("tabs.invoices.new_button")}</Text>
+          <Text style={s.newBtnText}>{t("tabs.documents.new_button")}</Text>
         </TouchableOpacity>
       </Animated.View>
 

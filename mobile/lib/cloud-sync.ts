@@ -143,7 +143,7 @@ export async function syncPendingChanges(): Promise<SyncStatus> {
  */
 async function syncQueueItem(item: SyncQueue): Promise<boolean> {
   try {
-    const endpoint = item.type === 'invoice' ? '/api/invoices' : '/api/clients';
+    const endpoint = item.type === 'invoice' ? '/api/documents' : '/api/clients';
 
     let method = 'POST';
     let url = endpoint;

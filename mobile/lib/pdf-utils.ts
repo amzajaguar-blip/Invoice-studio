@@ -294,7 +294,7 @@ export async function exportInvoiceHTML(
 // generateInvoicePDF e shareInvoicePDF NON vengono modificati
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type DocumentType = 'invoice' | 'quote' | 'expense_report';
+export type DocumentType = 'invoice' | 'quote' | 'expense_report' | 'custom';
 
 export interface PDFGenerationOptionsExtended extends PDFGenerationOptions {
   documentType?: DocumentType; // default: 'invoice' se omesso
@@ -516,7 +516,7 @@ function generateInvoiceDocumentHTML(
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fattura #${escHtml(invoice.invoiceNumber)}</title>
+  <title>Documento #${escHtml(invoice.invoiceNumber)}</title>
   <style>${DOCUMENT_CSS}</style>
 </head>
 <body>
@@ -532,9 +532,9 @@ function generateInvoiceDocumentHTML(
         </div>
       </div>
       <div class="invoice-meta">
-        <h2>FATTURA</h2>
+        <h2>DOCUMENTO</h2>
         <div class="meta-row">
-          <span class="meta-label">Fattura N°:</span>
+          <span class="meta-label">Documento N°:</span>
           <span class="meta-value">${escHtml(invoice.invoiceNumber)}</span>
         </div>
         <div class="meta-row">
@@ -652,7 +652,7 @@ function generateQuoteDocumentHTML(
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Preventivo #${escHtml(quote.quoteNumber)}</title>
+  <title>Bozza #${escHtml(quote.quoteNumber)}</title>
   <style>${DOCUMENT_CSS}</style>
 </head>
 <body>
@@ -668,9 +668,9 @@ function generateQuoteDocumentHTML(
         </div>
       </div>
       <div class="invoice-meta">
-        <h2>PREVENTIVO</h2>
+        <h2>BOZZA</h2>
         <div class="meta-row">
-          <span class="meta-label">Preventivo N°:</span>
+          <span class="meta-label">Bozza N°:</span>
           <span class="meta-value">${escHtml(quote.quoteNumber)}</span>
         </div>
         <div class="meta-row">
@@ -878,6 +878,70 @@ function generateExpenseReportDocumentHTML(
 }
 
 /**
+ * Genera HTML per documentType='custom' — documento generico senza struttura fiscale.
+ */
+function generateCustomDocumentHTML(
+  data: any,
+  options: PDFGenerationOptionsExtended & { documentType: DocumentType }
+): string {
+  const companyName = options.companyName ?? data.companyName ?? 'Milo Office';
+  const companyAddress = options.companyAddress ?? data.companyAddress ?? '';
+  const companyEmail = options.companyEmail ?? data.companyEmail ?? '';
+  const companyPhone = options.companyPhone ?? data.companyPhone ?? '';
+  const customTitle = data.customTitle ?? data.title ?? 'Documento';
+  const bodyText = data.bodyMarkdown ?? data.notes ?? '';
+  const number = data.number ?? data.id?.slice(0, 8) ?? '';
+  const issueDate = data.issueDate ? new Date(data.issueDate).toLocaleDateString('it-IT') : '';
+
+  const logoHtml = options.logoUrl
+    ? `<img src="${options.logoUrl}" alt="Logo" style="max-height: 60px; max-width: 160px; margin-bottom: 8px; display: block;" />`
+    : '';
+
+  // Simple Markdown-to-HTML conversion for body text
+  const bodyHtml = bodyText
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n\n/g, '</p><p style="margin: 8px 0;">')
+    .replace(/\n/g, '<br>');
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${escHtml(customTitle)}</title>
+  <style>${DOCUMENT_CSS}</style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="company-info">
+        ${logoHtml}
+        <h1>${companyName}</h1>
+        <div class="company-details">
+          <div>${companyAddress}</div>
+          <div>${companyEmail}</div>
+          <div>${companyPhone}</div>
+        </div>
+      </div>
+      <div class="invoice-meta">
+        <h2>${escHtml(customTitle)}</h2>
+        ${number ? `<div class="meta-row"><span class="meta-label">N°:</span><span class="meta-value">${escHtml(number)}</span></div>` : ''}
+        ${issueDate ? `<div class="meta-row"><span class="meta-label">Data:</span><span class="meta-value">${issueDate}</span></div>` : ''}
+      </div>
+    </div>
+    <div class="content">
+      <p style="margin: 8px 0;">${bodyHtml}</p>
+    </div>
+    <div class="footer">
+      <p style="color: #9ca3af; font-size: 11px; text-align: center; margin-top: 32px;">Generato da ${companyName}</p>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+/**
  * Entry-point unificato per la generazione di PDF multi-documento.
  *
  * NON chiama generateInvoicePDF internamente (retrocompatibilità isolata).
@@ -910,6 +974,9 @@ export async function generateDocumentPDF(
       }
       htmlContent = generateExpenseReportDocumentHTML(data, options);
       filename = `expense_report_${data.reportNumber}_${Date.now()}.pdf`;
+    } else if (documentType === 'custom') {
+      htmlContent = generateCustomDocumentHTML(data as any, options);
+      filename = `document_${Date.now()}.pdf`;
     } else {
       throw new Error(`Unsupported documentType: ${documentType}`);
     }

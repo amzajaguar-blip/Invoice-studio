@@ -90,32 +90,30 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return false;
 
-      // Risolvi org_id
-      const orgId = (user.user_metadata?.org_id as string | undefined) ?? null;
+      // Risolvi org_id: prima dai user_metadata, poi da org_members
+      let orgId = (user.user_metadata?.org_id as string | undefined) ?? null;
       if (!orgId) {
-        // Fallback: query org_members
         const { data: memberData } = await supabase
           .from('org_members')
           .select('org_id')
           .eq('user_id', user.id)
           .maybeSingle();
 
-        if (!memberData?.org_id) return false;
-
-        const { error } = await supabase
-          .from('user_plan')
-          .update({ plan: 'premium' })
-          .eq('org_id', memberData.org_id);
-
-        return !error;
+        orgId = memberData?.org_id ?? null;
       }
+      if (!orgId) return false;
 
-      const { error } = await supabase
+      // .select() è indispensabile: un UPDATE che non trova righe (org senza
+      // riga user_plan) non è un errore per PostgREST, quindi senza contare le
+      // righe toccate la scrittura risulterebbe riuscita, il flag di retry
+      // verrebbe cancellato e l'utente resterebbe free lato server per sempre.
+      const { data, error } = await supabase
         .from('user_plan')
         .update({ plan: 'premium' })
-        .eq('org_id', orgId);
+        .eq('org_id', orgId)
+        .select('org_id');
 
-      return !error;
+      return !error && (data?.length ?? 0) > 0;
     } catch {
       return false;
     }

@@ -9,7 +9,16 @@ import Purchases, { PurchasesPackage, PurchasesOffering } from "react-native-pur
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocale } from "@/components/LocaleProvider";
 
-const PURCHASE_TIMEOUT_MS = 15_000;
+/**
+ * Timeout sul solo caricamento delle offering RevenueCat.
+ *
+ * NON copre purchasePackage(): da quando si apre la sheet di Google Play il
+ * tempo lo detta l'utente — aggiunta di un metodo di pagamento, conferma SCA/3DS
+ * della banca. Un timeout su quella fase mostrava "errore" su un acquisto ancora
+ * in corso, e colpiva molto più spesso il piano annuale (39,99 €, quasi sempre
+ * soggetto a verifica) che il mensile (4,99 €, addebito immediato).
+ */
+const OFFERINGS_TIMEOUT_MS = 15_000;
 /** Duration of the success animation before auto-navigating back. Max 500ms. */
 const SUCCESS_ANIM_DURATION_MS = 400;
 const SUCCESS_DISPLAY_MS = 500;
@@ -62,6 +71,8 @@ export default function ProUpgradeScreen() {
   const [errorMessage, setErrorMessage] = useState("");
   const [reduceMotion, setReduceMotion] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** True mentre un acquisto è in volo — blocca il rientro da "Riprova". */
+  const purchaseInFlight = useRef(false);
   // Offering RC caricata all'avvio: usata per mostrare il trial SOLO se
   // configurato su RevenueCat / Google Play (introPrice con prezzo 0).
   const [rcOffering, setRcOffering] = useState<PurchasesOffering | null>(null);
@@ -128,18 +139,33 @@ export default function ProUpgradeScreen() {
     { id: "yearly" as const, title: t("modal.pro_upgrade.plan.yearly.title"), price: t("modal.pro_upgrade.plan.yearly.price"), recurring: t("modal.pro_upgrade.plan.yearly.recurring"), tag: t("modal.pro_upgrade.plan.yearly.tag"), productId: PRODUCT_IDS.yearly },
   ];
 
+  /** Carica le offering con timeout, senza estenderlo al flusso di acquisto. */
+  const loadOfferingsWithTimeout = async () => {
+    return new Promise<Awaited<ReturnType<typeof Purchases.getOfferings>>>((resolve, reject) => {
+      timeoutRef.current = setTimeout(
+        () => reject(new Error(t("modal.pro_upgrade.error.timeout"))),
+        OFFERINGS_TIMEOUT_MS,
+      );
+      Purchases.getOfferings()
+        .then(resolve, reject)
+        .finally(() => {
+          if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        });
+    });
+  };
+
   const handleSubscribe = async () => {
+    // Guardia di rientro: senza questa, "Riprova" durante un acquisto ancora
+    // aperto manda una seconda purchasePackage a RevenueCat, che risponde con
+    // un errore di operazione già in corso e lascia orfano il timer precedente.
+    if (purchaseInFlight.current) return;
+    purchaseInFlight.current = true;
+
     setPurchaseState("loading");
     setErrorMessage("");
 
-    // Timeout di sicurezza
-    timeoutRef.current = setTimeout(() => {
-      setPurchaseState("error");
-      setErrorMessage(t("modal.pro_upgrade.error.timeout"));
-    }, PURCHASE_TIMEOUT_MS);
-
     try {
-      const offerings = await Purchases.getOfferings();
+      const offerings = await loadOfferingsWithTimeout();
       if (!offerings.current) {
         throw new Error(t("modal.pro_upgrade.error.loading_prices"));
       }
@@ -153,30 +179,57 @@ export default function ProUpgradeScreen() {
       );
 
       if (!pkg) {
-        throw new Error(t("modal.pro_upgrade.error.product_not_found"));
+        // Diagnostica: distingue "prodotto assente dall'offering" da un
+        // mismatch di identifier, i due casi che si presentano identici a video.
+        console.warn(
+          `[ProUpgrade] nessun package per "${targetId}" — identifier disponibili nell'offering "${offerings.current.identifier}":`,
+          offerings.current.availablePackages.map((p: PurchasesPackage) => p.product.identifier),
+        );
+        throw new Error(`${t("modal.pro_upgrade.error.product_not_found")} (${targetId})`);
       }
 
       const { customerInfo } = await Purchases.purchasePackage(pkg);
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
       if (customerInfo.entitlements.active['pro']) {
         setPurchaseState("success");
       } else {
+        // L'acquisto è andato a buon fine su Google Play ma RevenueCat non ha
+        // attivato l'entitlement 'pro': tipicamente il prodotto non è agganciato
+        // all'entitlement nel progetto RevenueCat.
+        console.warn(
+          `[ProUpgrade] acquisto completato ma entitlement 'pro' assente per "${pkg.product.identifier}" — entitlement attivi:`,
+          Object.keys(customerInfo.entitlements.active),
+        );
         setPurchaseState("error");
         setErrorMessage(t("modal.pro_upgrade.error.subscription_not_detected"));
       }
     } catch (e: any) {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      if (!e.userCancelled) {
-        setPurchaseState("error");
-        setErrorMessage(e.message || t("modal.pro_upgrade.error.unknown"));
-      } else {
+      if (e?.userCancelled) {
         setPurchaseState("idle");
+        return;
       }
+      // Il codice RevenueCat (ProductNotAvailableForPurchaseError,
+      // PurchaseNotAllowedError, ReceiptAlreadyInUseError…) è l'unica
+      // informazione che rende diagnosticabile un fallimento da remoto:
+      // senza, ogni causa diversa arriva come lo stesso messaggio generico.
+      const code = e?.code ?? e?.userInfo?.readableErrorCode;
+      console.warn("[ProUpgrade] acquisto fallito", {
+        plan: selectedPlan,
+        productId: PRODUCT_IDS[selectedPlan],
+        code,
+        message: e?.message,
+        underlying: e?.underlyingErrorMessage,
+      });
+      setPurchaseState("error");
+      const base = e?.message || t("modal.pro_upgrade.error.unknown");
+      setErrorMessage(code ? `${base} [${code}]` : base);
+    } finally {
+      purchaseInFlight.current = false;
     }
   };
 
   const handleRetry = () => {
+    if (purchaseInFlight.current) return;
     setPurchaseState("idle");
     setErrorMessage("");
     handleSubscribe();

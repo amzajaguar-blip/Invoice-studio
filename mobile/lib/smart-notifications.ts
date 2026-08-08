@@ -390,7 +390,7 @@ export async function maybeNotifyProductivity(
     if (!data) {
       return sendSmartNotification(orgId, {
         category: 'productivity',
-        title:    'Prima fattura creata!',
+        title:    'Primo documento creato!',
         body:     'Hai fatto il primo passo — first invoice! Il tuo business è ufficialmente partito!',
       });
     }
@@ -483,7 +483,7 @@ export async function maybeNotifyReminder(
     return sendSmartNotification(orgId, {
       category: 'reminder',
       title:    '⏰ Scadenza imminente',
-      body:     `La fattura #${opts.invoiceNumber} scade tra ${hoursLeft} ore. Ricorda di sollecitare il pagamento.`,
+      body:     `Il documento #${opts.invoiceNumber} scade tra ${hoursLeft} ore. Ricorda di sollecitare il pagamento.`,
     });
   }
 

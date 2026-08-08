@@ -40,17 +40,7 @@ export default function TabLayout() {
       />
       <Tabs.Screen
         name="quotes"
-        options={{
-          title: t("quotes"),
-          headerShown: false,
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons
-              name={focused ? "document-text" : "document-text-outline"}
-              size={size}
-              color={color}
-            />
-          ),
-        }}
+        options={{ href: null }}
       />
       <Tabs.Screen
         name="expenses"

@@ -34,10 +34,9 @@ import { useLocale } from "@/components/LocaleProvider";
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface DashboardStats {
-  invoiceCount: number;
-  totalRevenue: number;
-  pendingCount: number;
-  paidCount: number;
+  totalDocuments: number;
+  convertedCount: number;
+  exportsCount: number;
 }
 
 interface Invoice {
@@ -80,11 +79,11 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const STATUS_KEY_MAP: Record<string, string> = {
-  draft: "tabs.invoices.status.draft",
-  sent: "tabs.invoices.status.sent",
-  paid: "tabs.invoices.status.paid",
-  overdue: "tabs.invoices.status.overdue",
-  cancelled: "tabs.invoices.status.cancelled",
+  draft: "tabs.documents.status.draft",
+  sent: "tabs.documents.status.sent",
+  paid: "tabs.documents.status.paid",
+  overdue: "tabs.documents.status.overdue",
+  cancelled: "tabs.documents.status.cancelled",
 };
 
 // ─── Monthly Report Helpers ───────────────────────────────────────────────────
@@ -233,10 +232,9 @@ export default function DashboardScreen() {
   }, [t]);
 
   const [stats, setStats] = useState<DashboardStats>({
-    invoiceCount: 0,
-    totalRevenue: 0,
-    pendingCount: 0,
-    paidCount: 0,
+    totalDocuments: 0,
+    convertedCount: 0,
+    exportsCount: 0,
   });
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [monthlyReport, setMonthlyReport] = useState<MonthlyReport | null>(null);
@@ -258,7 +256,7 @@ export default function DashboardScreen() {
     // quindi un limit troppo basso produce statistiche mensili errate
     // per utenti con storico > limit. 1000 è il trade-off sicuro.
     const { data } = await apiFetch<{ data: any[]; total: number }>(
-      "/api/invoices?limit=1000"
+      "/api/documents?limit=1000"
     );
 
     if (data) {
@@ -266,16 +264,15 @@ export default function DashboardScreen() {
         ? data
         : (data as { data: any[] }).data ?? [];
 
-      const invoiceCount = rawInvoices.length;
-      const totalRevenue = rawInvoices
-        .filter((inv) => inv.status === "paid")
-        .reduce((s, inv) => s + (inv.total ?? 0), 0);
-      const paidCount = rawInvoices.filter((inv) => inv.status === "paid").length;
-      const pendingCount = rawInvoices.filter(
-        (inv) => inv.status === "sent" || inv.status === "overdue"
+      const totalDocuments = rawInvoices.length;
+      const convertedCount = rawInvoices.filter(
+        (doc) => doc.converted_from_quote_id != null
+      ).length;
+      const exportsCount = rawInvoices.filter(
+        (doc) => doc.status === "sent"
       ).length;
 
-      setStats({ invoiceCount, totalRevenue, pendingCount, paidCount });
+      setStats({ totalDocuments, convertedCount, exportsCount });
       setInvoices(rawInvoices as Invoice[]);
       setMonthlyReport(computeMonthlyReport(rawInvoices as Invoice[], t));
       setTrend(getMonthlyRevenueTrend(rawInvoices, 6));
@@ -300,11 +297,6 @@ export default function DashboardScreen() {
     setRefreshing(false);
   }, [fetchStats]);
 
-  const handleNewInvoice = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push("/(app)/invoices/new");
-  };
-
   // ─── Dashboard State ───────────────────────────────────────────────────────
 
   const dashboardState = useMemo<'new' | 'near_limit' | 'premium' | 'growing'>(() => {
@@ -313,9 +305,9 @@ export default function DashboardScreen() {
     const effectiveLimit = limits.invoices.base + limits.invoices.boost;
     const nearLimitThreshold = Math.floor(effectiveLimit * 0.8);
     if (!limits.isLoading && limits.invoices.used >= nearLimitThreshold && limits.invoices.used > 0) return 'near_limit';
-    if (stats.invoiceCount === 0) return 'new';
+    if (stats.totalDocuments === 0) return 'new';
     return 'growing';
-  }, [loading, isPremium, limits, stats.invoiceCount]);
+  }, [loading, isPremium, limits, stats.totalDocuments]);
 
   const prevDashboardStateRef = useRef(dashboardState);
   useEffect(() => {
@@ -331,18 +323,30 @@ export default function DashboardScreen() {
   const QUICK_ACTIONS = useMemo(() => [
     {
       icon: "document-text-outline" as const,
-      label: t("tabs.dashboard.quick_actions.new_invoice.label"),
-      onPress: handleNewInvoice,
-      accessibilityLabel: t("tabs.dashboard.quick_actions.new_invoice.a11y"),
-    },
-    {
-      icon: "person-add-outline" as const,
-      label: t("tabs.dashboard.quick_actions.new_client.label"),
+      label: t("tabs.dashboard.quick_actions.generate_pdf"),
       onPress: () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        router.push("/(app)/clients/add");
+        router.push("/(app)/invoices/new?document_type=custom&format=pdf" as never);
       },
-      accessibilityLabel: t("tabs.dashboard.quick_actions.new_client.a11y"),
+      accessibilityLabel: t("tabs.dashboard.quick_actions.generate_pdf_a11y"),
+    },
+    {
+      icon: "grid-outline" as const,
+      label: t("tabs.dashboard.quick_actions.generate_excel"),
+      onPress: () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        router.push("/(app)/invoices/new?document_type=custom&format=xlsx" as never);
+      },
+      accessibilityLabel: t("tabs.dashboard.quick_actions.generate_excel_a11y"),
+    },
+    {
+      icon: "document-outline" as const,
+      label: t("tabs.dashboard.quick_actions.generate_word"),
+      onPress: () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        router.push("/(app)/invoices/new?document_type=custom&format=docx" as never);
+      },
+      accessibilityLabel: t("tabs.dashboard.quick_actions.generate_word_a11y"),
     },
     {
       icon: "camera-outline" as const,
@@ -434,12 +438,11 @@ export default function DashboardScreen() {
 
                 {/* KPI Cards */}
                 <View style={styles.cards}>
-                  <KPICard index={0} reduceMotion={reduceMotion} value={stats.invoiceCount} label={t("tabs.dashboard.kpi.invoice_count")} />
-                  <KPICard index={1} reduceMotion={reduceMotion} value={fmt(stats.totalRevenue)} label={t("tabs.dashboard.kpi.revenue")} valueColor="#6c63ff" />
+                  <KPICard index={0} reduceMotion={reduceMotion} value={stats.totalDocuments} label={t("tabs.dashboard.kpi.total_documents")} />
+                  <KPICard index={1} reduceMotion={reduceMotion} value={stats.convertedCount} label={t("tabs.dashboard.kpi.converted")} valueColor="#6c63ff" />
                 </View>
                 <View style={styles.cards}>
-                  <KPICard index={2} reduceMotion={reduceMotion} value={stats.paidCount} label={t("tabs.dashboard.kpi.paid")} valueColor="#22c55e" borderColor="#22c55e30" />
-                  <KPICard index={3} reduceMotion={reduceMotion} value={stats.pendingCount} label={t("tabs.dashboard.kpi.pending_overdue")} valueColor="#f59e0b" borderColor="#f59e0b30" />
+                  <KPICard index={2} reduceMotion={reduceMotion} value={stats.exportsCount} label={t("tabs.dashboard.kpi.exports")} valueColor="#22c55e" borderColor="#22c55e30" />
                 </View>
 
                 {/* Usage progress bar (growing/near_limit only) */}

@@ -64,7 +64,7 @@ export function LastClientChips({
     <View style={styles.wrapper}>
       <View style={styles.headerRow}>
         <Ionicons name="time-outline" size={14} color="#9ca3af" />
-        <Text style={styles.header}>{t("invoicePrefill.recent_clients")}</Text>
+        <Text style={styles.header}>{t("documentPrefill.recent_clients")}</Text>
       </View>
       <ScrollView
         horizontal
@@ -77,7 +77,7 @@ export function LastClientChips({
             style={styles.chip}
             onPress={() => handlePress(c.id)}
             accessibilityRole="button"
-            accessibilityLabel={t("invoicePrefill.recent_clients") + ": " + c.name}
+            accessibilityLabel={t("documentPrefill.recent_clients") + ": " + c.name}
           >
             <Ionicons name="person-circle-outline" size={14} color="#6c63ff" />
             <Text style={styles.chipText} numberOfLines={1}>

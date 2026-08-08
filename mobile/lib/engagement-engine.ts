@@ -62,7 +62,7 @@ const MILESTONE_COPY: Record<MilestoneType, Omit<MilestoneEvent, 'type'>> = {
   first_invoice: {
     iconName: 'document-text-outline',
     iconColor: '#22c55e',
-    title: 'Prima fattura creata!',
+    title: 'Primo documento creato!',
     body:  'Hai fatto il primo passo. Il tuo business è ufficialmente partito!',
   },
   invoices_10: {

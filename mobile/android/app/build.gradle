@@ -94,8 +94,8 @@ android {
         applicationId 'com.Invoice_Studio.myapp'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 69
-        versionName "1.0.69"
+        versionCode 71
+        versionName "1.0.71"
     }
     signingConfigs {
         debug {

@@ -53,7 +53,7 @@ export const MILESTONE_COPY: Record<
   first_invoice: {
     iconName: 'checkmark-circle',
     iconColor: '#22c55e',
-    title: 'Prima fattura creata!',
+    title: 'Primo documento creato!',
     body:  'Hai fatto il primo passo. Il tuo business è ufficialmente partito!',
   },
   invoices_10: {

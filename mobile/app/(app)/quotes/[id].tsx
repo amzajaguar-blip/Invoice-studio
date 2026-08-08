@@ -80,7 +80,7 @@ export default function QuoteDetailScreen() {
 
   useEffect(() => {
     if (!id) return;
-    apiFetch<{ data: Quote }>(`/api/quotes/${id}`).then(({ data }) => {
+    apiFetch<{ data: Quote }>(`/api/documents/${id}`).then(({ data }) => {
       if (data) setQuote((data as any).data ?? data);
       setLoading(false);
     });
@@ -107,7 +107,7 @@ export default function QuoteDetailScreen() {
     }));
     return {
       type: "quote",
-      title: fields?.title ?? `Preventivo ${quote.quote_number ?? quote.id}`,
+      title: fields?.title ?? `Bozza ${quote.quote_number ?? quote.id}`,
       number: quote.quote_number ?? quote.id,
       issueDate: new Date(quote.issue_date).toLocaleDateString("it-IT"),
       validUntil: new Date(quote.valid_until).toLocaleDateString("it-IT"),
@@ -175,17 +175,17 @@ export default function QuoteDetailScreen() {
           const filepath = await generateDocumentPDF(pdfData, { documentType: "quote" });
           if (!filepath) { Alert.alert(t("error"), "Impossibile generare il PDF."); return; }
           const canShare = await Sharing.isAvailableAsync();
-          if (canShare) await Sharing.shareAsync(filepath, { mimeType: "application/pdf", dialogTitle: `Preventivo ${quoteNum}` });
+          if (canShare) await Sharing.shareAsync(filepath, { mimeType: "application/pdf", dialogTitle: `Bozza ${quoteNum}` });
           else Alert.alert("PDF generato", `File: ${filepath}`);
         } else {
           const docData = buildDocumentData();
           if (!docData) throw new Error("Dati non disponibili");
           if (format === "doc") {
             const fp = await generateDocumentDOC(docData);
-            await shareDocument(fp, `preventivo_${quoteNum}.docx`);
+            await shareDocument(fp, `bozza_${quoteNum}.docx`);
           } else {
             const fp = await generateDocumentRTF(docData);
-            await shareDocument(fp, `preventivo_${quoteNum}.rtf`);
+            await shareDocument(fp, `bozza_${quoteNum}.rtf`);
           }
         }
         // Incrementa quota dopo generazione riuscita
@@ -206,7 +206,7 @@ export default function QuoteDetailScreen() {
     setTranslating(true);
     try {
       const fields = extractTranslatableFields({
-        title: `Preventivo ${quote.quote_number ?? quote.id}`,
+        title: `Bozza ${quote.quote_number ?? quote.id}`,
         lineItemDescriptions: (quote.line_items ?? []).map((i) => i.description),
         notes: quote.notes ?? undefined,
       });
@@ -229,7 +229,7 @@ export default function QuoteDetailScreen() {
   const handleUpdateStatus = useCallback(async (newStatus: string) => {
     if (!quote) return;
     setUpdatingStatus(true);
-    const { error } = await apiFetch(`/api/quotes/${quote.id}`, {
+    const { error } = await apiFetch(`/api/documents/${quote.id}`, {
       method: "PATCH", body: JSON.stringify({ status: newStatus }),
     });
     setUpdatingStatus(false);
@@ -240,7 +240,7 @@ export default function QuoteDetailScreen() {
   const showStatusPicker = useCallback(() => {
     if (!quote) return;
     const transitions = STATUS_TRANSITIONS[quote.status] ?? [];
-    if (!transitions.length) { Alert.alert("Stato finale", "Questo preventivo non può cambiare stato."); return; }
+    if (!transitions.length) { Alert.alert("Stato finale", "Questa bozza non può cambiare stato."); return; }
     Alert.alert("Cambia stato", `Stato: ${STATUS_LABELS[quote.status]}`, [
       ...transitions.map((s) => ({ text: STATUS_LABELS[s] ?? s, onPress: () => handleUpdateStatus(s) })),
       { text: t("cancel"), style: "cancel" as const },
@@ -253,6 +253,7 @@ export default function QuoteDetailScreen() {
     router.push({
       pathname: "/(app)/invoices/new" as any,
       params: {
+        document_type: "custom",
         prefill_client_id: quote.client_snapshot?.id ?? "",
         prefill_client_name: quote.client_snapshot?.name ?? "",
         prefill_line_items: JSON.stringify(quote.line_items ?? []),
@@ -340,7 +341,7 @@ export default function QuoteDetailScreen() {
           <TouchableOpacity style={[s.actionBtn, s.actionBtnGreen, { marginBottom: 16 }]}
             onPress={handleConvertToInvoice} accessibilityRole="button">
             <Ionicons name="swap-horizontal-outline" size={18} color="#fff" />
-            <Text style={s.actionBtnText}>Converti in Fattura</Text>
+            <Text style={s.actionBtnText}>Converti in Documento</Text>
           </TouchableOpacity>
         )}
 

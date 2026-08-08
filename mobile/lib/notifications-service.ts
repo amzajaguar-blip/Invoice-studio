@@ -181,7 +181,7 @@ export async function scheduleInvoiceReminder(
       invoiceNumber: invoice.invoiceNumber,
       clientName: invoice.client?.name,
       amount: invoice.total,
-      message: `Promemoria: Fattura #${invoice.invoiceNumber} scade tra ${daysBeforeDue} giorni (${formatCurrency(invoice.total)})`,
+      message: `Promemoria: Documento #${invoice.invoiceNumber} scade tra ${daysBeforeDue} giorni (${formatCurrency(invoice.total)})`,
       deepLink: `/(app)/${invoice.id}`,
       timestamp: new Date(),
       triggerDate: reminderDate,
@@ -255,7 +255,7 @@ export async function scheduleOverdueNotifications(invoices: any[]): Promise<voi
             invoiceNumber: invoice.invoiceNumber,
             clientName: invoice.client?.name,
             amount: invoice.total,
-            message: `Fattura #${invoice.invoiceNumber} scaduta da ${daysOverdue} giorni (${formatCurrency(invoice.total)})`,
+            message: `Documento #${invoice.invoiceNumber} scaduta da ${daysOverdue} giorni (${formatCurrency(invoice.total)})`,
             deepLink: `/(app)/${invoice.id}`,
             timestamp: new Date(),
           });
@@ -381,7 +381,7 @@ export async function notifyPaymentReceived(invoice: any, paymentAmount: number)
     invoiceNumber: invoice.invoice_number ?? invoice.invoiceNumber,
     clientName: invoice.clients?.name ?? invoice.client?.name,
     amount: paymentAmount,
-    message: `💰 Pagamento di ${formatCurrency(paymentAmount)} ricevuto per la fattura #${invoice.invoice_number ?? invoice.invoiceNumber}`,
+    message: `💰 Pagamento di ${formatCurrency(paymentAmount)} ricevuto per il documento #${invoice.invoice_number ?? invoice.invoiceNumber}`,
     deepLink: `/(app)/${invoice.id}`,
     timestamp: new Date(),
   });
@@ -397,7 +397,7 @@ export async function notifyInvoiceSent(invoice: any): Promise<void> {
     invoiceNumber: invoice.invoice_number ?? invoice.invoiceNumber,
     clientName: invoice.clients?.name ?? invoice.client?.name,
     amount: invoice.total,
-    message: `Fattura #${invoice.invoice_number ?? invoice.invoiceNumber} inviata a ${invoice.clients?.name ?? invoice.client?.name ?? 'cliente'}`,
+    message: `Documento #${invoice.invoice_number ?? invoice.invoiceNumber} inviata a ${invoice.clients?.name ?? invoice.client?.name ?? 'cliente'}`,
     deepLink: `/(app)/${invoice.id}`,
     timestamp: new Date(),
   });
@@ -412,7 +412,7 @@ export async function notifyInvoiceViewed(invoice: any): Promise<void> {
     invoiceId: invoice.id,
     invoiceNumber: invoice.invoice_number ?? invoice.invoiceNumber,
     clientName: invoice.clients?.name ?? invoice.client?.name,
-    message: `👁️ Fattura #${invoice.invoice_number ?? invoice.invoiceNumber} visualizzata da ${invoice.clients?.name ?? invoice.client?.name ?? 'cliente'}`,
+    message: `👁️ Documento #${invoice.invoice_number ?? invoice.invoiceNumber} visualizzata da ${invoice.clients?.name ?? invoice.client?.name ?? 'cliente'}`,
     deepLink: `/(app)/${invoice.id}`,
     timestamp: new Date(),
   });

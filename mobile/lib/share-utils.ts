@@ -19,7 +19,7 @@ export function formatInvoiceForEmail(invoice: Invoice, client?: Client): string
     .join('\n');
 
   return `
-Fattura #${invoice.invoiceNumber}
+Documento #${invoice.invoiceNumber}
 Data: ${new Date(invoice.issueDate).toLocaleDateString("it-IT")}
 Scadenza: ${new Date(invoice.dueDate).toLocaleDateString("it-IT")}
 

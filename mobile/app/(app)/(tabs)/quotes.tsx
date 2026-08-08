@@ -157,7 +157,7 @@ export default function QuotesScreen() {
   // ─── Data loading ────────────────────────────────────────────────────────
   const load = useCallback(async () => {
     try {
-      const { data } = await apiFetch<{ data: Quote[] }>("/api/quotes?limit=100");
+      const { data } = await apiFetch<{ data: Quote[] }>("/api/documents?limit=100");
       if (data) {
         const list = Array.isArray(data)
           ? data
@@ -190,7 +190,7 @@ export default function QuotesScreen() {
 
       void (async () => {
         try {
-          const { data } = await apiFetch<{ data: Quote[] }>("/api/quotes?limit=100");
+          const { data } = await apiFetch<{ data: Quote[] }>("/api/documents?limit=100");
           if (!data) return;
           const list = Array.isArray(data)
             ? data
@@ -249,7 +249,7 @@ export default function QuotesScreen() {
       return;
     }
 
-    router.push("/(app)/quotes/new" as never);
+    router.push("/(app)/invoices/new?document_type=custom" as never);
   }, [monthlyLimitReached, router]);
 
   // ─── Liste filtrate ───────────────────────────────────────────────────────
@@ -261,17 +261,17 @@ export default function QuotesScreen() {
       return (
         <EmptyState
           icon="document-text-outline"
-          title="Nessun preventivo"
-          hint={`Nessun preventivo con stato "${FILTER_LABELS[activeFilter]}".`}
+          title="Nessuna bozza"
+          hint={`Nessuna bozza con stato "${FILTER_LABELS[activeFilter]}".`}
         />
       );
     }
     return (
       <EmptyState
         icon="document-text-outline"
-        title="Crea il tuo primo preventivo"
-        hint="Converti facilmente i preventivi in fatture."
-        cta="+ Nuovo preventivo"
+        title="Crea la tua prima bozza"
+        hint="Converti facilmente le bozze in documenti."
+        cta="+ Nuova bozza"
         onCTA={handleNewQuote}
       />
     );
@@ -323,7 +323,7 @@ export default function QuotesScreen() {
         accessibilityRole="button"
         accessibilityLabel={t("tabs.quotes.new.a11y")}
       >
-        <Text style={s.newBtnText}>+ Nuovo preventivo</Text>
+        <Text style={s.newBtnText}>+ Nuova bozza</Text>
       </TouchableOpacity>
 
       {/* Filter pills */}
@@ -388,7 +388,7 @@ export default function QuotesScreen() {
               onPress={() => router.push(`/(app)/quotes/${item.id}` as never)}
               activeOpacity={0.8}
               accessibilityRole="button"
-              accessibilityLabel={`Preventivo ${getQuoteNumber(item)}, cliente ${getClientName(item)}, stato ${STATUS_LABELS[item.status] || item.status}, totale ${fmt(item.total, item.currency)}`}
+              accessibilityLabel={`Bozza ${getQuoteNumber(item)}, cliente ${getClientName(item)}, stato ${STATUS_LABELS[item.status] || item.status}, totale ${fmt(item.total, item.currency)}`}
             >
               {/* Riga 1: numero preventivo + badge stato */}
               <View style={s.row}>

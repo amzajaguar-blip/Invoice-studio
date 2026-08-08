@@ -76,7 +76,7 @@ export default function ClientDetailScreen() {
     const { data: clientData } = await apiFetch<Client>(`/api/clients/${clientId}`);
     if (clientData) setData(clientData);
 
-    const { data: invData } = await apiFetch<{ data: InvoiceLite[] }>("/api/invoices?limit=50");
+    const { data: invData } = await apiFetch<{ data: InvoiceLite[] }>("/api/documents?limit=50");
     if (invData) {
       const list = Array.isArray(invData) ? invData : (invData as { data: InvoiceLite[] }).data || [];
       setInvoices(list.filter((inv) => (inv as any).client_id === clientId));
@@ -177,7 +177,7 @@ export default function ClientDetailScreen() {
         ) : null}
         <TouchableOpacity style={s.quickBtn} onPress={handleNewInvoice}>
           <Ionicons name="add-circle-outline" size={20} color="#6c63ff" />
-          <Text style={s.quickBtnText}>Nuova fattura</Text>
+          <Text style={s.quickBtnText}>Nuovo documento</Text>
         </TouchableOpacity>
       </View>
 
@@ -185,7 +185,7 @@ export default function ClientDetailScreen() {
       {invoices.length > 0 && (
         <View style={s.statsRow}>
           <View style={s.statBox}>
-            <Text style={s.statLabel}>FATTURATO TOTALE</Text>
+            <Text style={s.statLabel}>DOCUMENTATO TOTALE</Text>
             <Text style={s.statValue}>{fmt(totalInvoiced, data.currency)}</Text>
           </View>
           <View style={s.statBox}>

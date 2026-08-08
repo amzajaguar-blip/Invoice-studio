@@ -566,7 +566,7 @@ export default function ScannerScreen() {
               />
               <OCRFieldReview
                 field={fieldScores.invoice_number}
-                label={t("scanner.result.label.invoice_number") ?? "Numero fattura"}
+                label={t("scanner.result.label.invoice_number") ?? "Numero documento"}
                 onChange={(v) => updateFieldValue("invoice_number", v)}
                 autoFilledFromCorrection={autoFilledFields.invoice_number}
               />

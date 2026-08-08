@@ -190,26 +190,21 @@ export default function NewQuoteScreen() {
     setLoading(true);
 
     const payload = {
+      document_type: "custom",
       status,
       issue_date: issueDate,
       valid_until: validUntil,
       client_id: selectedClientId,
-      client_snapshot: snapshot,
-      line_items: validItems.map((i) => ({
+      items: validItems.map((i) => ({
         description: i.description.trim(),
         quantity: parseFloat(i.quantity) || 1,
-        rate: parseFloat(i.rate) || 0,
-        amount: (parseFloat(i.quantity) || 1) * (parseFloat(i.rate) || 0),
+        unit_price: parseFloat(i.rate) || 0,
       })),
-      subtotal: computedSubtotal,
       tax_rate: rate,
-      tax_amount: computedTaxAmount,
-      discount_amount: 0,
-      total: computedTotal,
       notes: notes.trim() || null,
     };
 
-    const { error } = await apiFetch("/api/quotes", {
+    const { error } = await apiFetch("/api/documents", {
       method: "POST",
       body: JSON.stringify(payload),
     });
@@ -254,7 +249,7 @@ export default function NewQuoteScreen() {
         </View>
 
         {/* ── CLIENTE ── */}
-        <Text style={s.sectionLabel}>{t("invoices.new.section.client")}</Text>
+        <Text style={s.sectionLabel}>{t("documents.new.section.client")}</Text>
 
         {/* Chips recenti */}
         <LastClientChips clients={recentChips} onSelect={selectClientFromChip} />
@@ -263,7 +258,7 @@ export default function NewQuoteScreen() {
         {clients.length > 0 && (
           <TextInput
             style={s.clientSearchInput}
-            placeholder={t("invoicePrefill.recent_clients")}
+            placeholder={t("documentPrefill.recent_clients")}
             placeholderTextColor="#4b5563"
             autoCapitalize="none"
             autoCorrect={false}
@@ -288,7 +283,7 @@ export default function NewQuoteScreen() {
           <Text style={s.clientName}>
             {selectedClient
               ? selectedClient.name
-              : t("invoices.new.client.select_placeholder")}
+              : t("documents.new.client.select_placeholder")}
           </Text>
           <Text style={s.chevron}>{showClientPicker ? "▲" : "▼"}</Text>
         </TouchableOpacity>
@@ -339,22 +334,22 @@ export default function NewQuoteScreen() {
         )}
 
         {/* ── VOCI ── */}
-        <Text style={s.sectionLabel}>{t("invoices.new.section.items")}</Text>
+        <Text style={s.sectionLabel}>{t("documents.new.section.items")}</Text>
         {lineItems.map((item, index) => (
           <View key={item.id} style={s.lineItemCard}>
             <View style={s.lineItemHeader}>
               <Text style={s.lineItemNum}>
-                {t("invoices.new.item_number_prefix")} {index + 1}
+                {t("documents.new.item_number_prefix")} {index + 1}
               </Text>
               {lineItems.length > 1 && (
                 <TouchableOpacity onPress={() => removeItem(item.id)}>
-                  <Text style={s.removeText}>{t("invoices.new.item_remove")}</Text>
+                  <Text style={s.removeText}>{t("documents.new.item_remove")}</Text>
                 </TouchableOpacity>
               )}
             </View>
             <TextInput
               style={s.input}
-              placeholder={t("invoices.new.item.description.placeholder")}
+              placeholder={t("documents.new.item.description.placeholder")}
               placeholderTextColor="#4b5563"
               value={item.description}
               onChangeText={(v) => updateItem(item.id, "description", v)}
@@ -362,7 +357,7 @@ export default function NewQuoteScreen() {
             <View style={s.lineItemRow}>
               <View style={s.inputHalf}>
                 <Text style={s.inputLabel}>
-                  {t("invoices.new.item.quantity.label")}
+                  {t("documents.new.item.quantity.label")}
                 </Text>
                 <TextInput
                   style={s.input}
@@ -375,7 +370,7 @@ export default function NewQuoteScreen() {
               </View>
               <View style={s.inputHalf}>
                 <Text style={s.inputLabel}>
-                  {t("invoices.new.item.price.label")}
+                  {t("documents.new.item.price.label")}
                 </Text>
                 <TextInput
                   style={s.input}
@@ -389,7 +384,7 @@ export default function NewQuoteScreen() {
             </View>
             {parseFloat(item.rate) > 0 && (
               <Text style={s.lineTotal}>
-                {t("invoices.new.item.line_total_prefix")}{" "}
+                {t("documents.new.item.line_total_prefix")}{" "}
                 {fmt(
                   (parseFloat(item.quantity) || 1) * (parseFloat(item.rate) || 0)
                 )}
@@ -399,7 +394,7 @@ export default function NewQuoteScreen() {
         ))}
 
         <TouchableOpacity style={s.addItemBtn} onPress={addItem}>
-          <Text style={s.addItemText}>{t("invoices.new.add_item.button")}</Text>
+          <Text style={s.addItemText}>{t("documents.new.add_item.button")}</Text>
         </TouchableOpacity>
 
         {/* ── DATA EMISSIONE ── */}
@@ -425,7 +420,7 @@ export default function NewQuoteScreen() {
         />
 
         {/* ── IVA ── */}
-        <Text style={s.sectionLabel}>{t("invoices.new.section.tax")}</Text>
+        <Text style={s.sectionLabel}>{t("documents.new.section.tax")}</Text>
         <TextInput
           style={s.input}
           placeholder="22"

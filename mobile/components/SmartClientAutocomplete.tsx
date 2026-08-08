@@ -99,7 +99,7 @@ export function SmartClientAutocomplete({
 
   if (!match) return null;
 
-  const label = t("invoicePrefill.smart_match").replace(
+  const label = t("documentPrefill.smart_match").replace(
     "{name}",
     match.client.name,
   );
@@ -110,7 +110,7 @@ export function SmartClientAutocomplete({
       onPress={() => onPick(match.client.id)}
       style={styles.banner}
       accessibilityRole="button"
-      accessibilityLabel={label + " — " + t("invoicePrefill.smart_match_yes")}
+      accessibilityLabel={label + " — " + t("documentPrefill.smart_match_yes")}
     >
       <View style={styles.iconWrap}>
         <Ionicons name="sparkles" size={16} color="#6c63ff" />
@@ -121,7 +121,7 @@ export function SmartClientAutocomplete({
         </Text>
       </View>
       <View style={styles.ctaWrap}>
-        <Text style={styles.cta}>{t("invoicePrefill.smart_match_yes")}</Text>
+        <Text style={styles.cta}>{t("documentPrefill.smart_match_yes")}</Text>
         <Ionicons name="chevron-forward" size={14} color="#6c63ff" />
       </View>
     </TouchableOpacity>
