@@ -35,6 +35,7 @@ import { usePlan } from "@/context/PlanContext";
 import { useLocale } from "@/components/LocaleProvider";
 import { useEngagementContext } from "@/context/EngagementContext";
 import * as Haptics from "@/lib/haptics";
+import { plural } from "@/lib/plural";
 
 // ─── Costanti ─────────────────────────────────────────────────────────────────
 
@@ -287,9 +288,7 @@ export default function QuotesScreen() {
         <View style={s.headerLeft}>
           <Text style={s.title}>{t("quotes")}</Text>
           <Text style={s.sub}>
-            {t("tabs.quotes.sub_count")
-              .replace("{n}", String(quotes.length))
-              .replace("{o|i}", quotes.length === 1 ? "o" : "i")}
+            {plural(t("tabs.quotes.sub_count"), quotes.length)}
           </Text>
         </View>
 

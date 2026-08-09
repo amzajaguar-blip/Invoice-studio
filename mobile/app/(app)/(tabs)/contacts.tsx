@@ -23,6 +23,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { EmptyState } from "@/components/EmptyState";
 import EditClientSheet from "@/app/(app)/clients/EditClientSheet";
+import { plural } from "@/lib/plural";
 
 interface Client {
   id: string;
@@ -129,9 +130,7 @@ export default function ContactsScreen() {
         </TouchableOpacity>
       </View>
       <Text style={s.sub}>
-        {t("tabs.contacts.sub_count")
-          .replace("{n}", String(clients.length))
-          .replace("{e|i}", clients.length === 1 ? "e" : "i")}
+        {plural(t("tabs.contacts.sub_count"), clients.length)}
       </Text>
 
       <FlatList

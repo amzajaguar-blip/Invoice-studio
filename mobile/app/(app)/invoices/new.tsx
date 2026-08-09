@@ -58,7 +58,10 @@ export default function NewInvoiceScreen() {
     { id: generateId(), description: "", quantity: "1", rate: "" },
   ]);
   const [notes, setNotes] = useState("");
-  const [taxRate, setTaxRate] = useState("22");
+  // Milo Office non e' un'app di fatturazione: nessuna aliquota, nessun
+  // imponibile. Il campo resta a 0 perche' l'API /api/documents accetta
+  // ancora tax_rate, ma non e' piu' ne' chiesto ne' mostrato all'utente.
+  const taxRate = "0";
   const [loading, setLoading] = useState(false);
   const [loadingClients, setLoadingClients] = useState(true);
   const [clientSearch, setClientSearch] = useState("");
@@ -136,10 +139,6 @@ export default function NewInvoiceScreen() {
   }, []);
 
   const handleSave = async (status: "draft" | "sent") => {
-    if (!selectedClientId) {
-      Alert.alert(t("missing_client"), t("missing_client_msg"));
-      return;
-    }
     const validItems = lineItems.filter(
       (i) => i.description.trim() && parseFloat(i.rate) > 0
     );
@@ -151,7 +150,7 @@ export default function NewInvoiceScreen() {
     setLoading(true);
     const payload = {
       document_type: documentType,
-      client_id: selectedClientId,
+      client_id: selectedClientId || null,
       status,
       tax_rate: parseFloat(taxRate) || 0,
       notes: notes.trim() || null,
@@ -175,7 +174,7 @@ export default function NewInvoiceScreen() {
     }
 
     // Smart Pre-fill: remember this client as recently used.
-    void recordUsage(selectedClientId);
+    if (selectedClientId) void recordUsage(selectedClientId);
 
     // Post-save: maybe show an interstitial (every Nth invoice of the month).
     // We don't wait for the ad to finish before acknowledging the save — the
@@ -445,16 +444,6 @@ export default function NewInvoiceScreen() {
           <Text style={s.addItemText}>{t("documents.new.add_item.button")}</Text>
         </TouchableOpacity>
 
-        {/* IVA */}
-        <Text style={s.sectionLabel}>{t("documents.new.section.tax")}</Text>
-        <TextInput
-          style={s.input}
-          placeholder="22"
-          placeholderTextColor="#4b5563"
-          keyboardType="decimal-pad"
-          value={taxRate}
-          onChangeText={setTaxRate}
-        />
 
         {/* Note */}
         <Text style={s.sectionLabel}>{t("documents.new.section.notes")}</Text>
@@ -472,10 +461,6 @@ export default function NewInvoiceScreen() {
           <View style={s.summaryRow}>
             <Text style={s.summaryLabel}>{t("documents.new.summary.subtotal.label")}</Text>
             <Text style={s.summaryValue}>{fmt(subtotal)}</Text>
-          </View>
-          <View style={s.summaryRow}>
-            <Text style={s.summaryLabel}>{t("documents.new.summary.tax.label_template").replace("{rate}", String(taxRate))}</Text>
-            <Text style={s.summaryValue}>{fmt(taxAmount)}</Text>
           </View>
           <View style={[s.summaryRow, s.summaryTotal]}>
             <Text style={s.summaryTotalLabel}>TOTALE</Text>

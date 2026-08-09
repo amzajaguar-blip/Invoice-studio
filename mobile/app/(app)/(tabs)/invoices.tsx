@@ -32,6 +32,7 @@ import BoostSuccessModal from "@/components/BoostSuccessModal";
 import InAppContextualCard from "@/components/InAppContextualCard";
 import { useSmartCards } from "@/hooks/useSmartCards";
 import { useEngagementContext } from "@/context/EngagementContext";
+import { plural } from "@/lib/plural";
 
 // ─── Tipi ─────────────────────────────────────────────────────────────────────
 
@@ -296,7 +297,7 @@ export default function InvoicesScreen() {
       <View style={s.header}>
         <View>
           <Text style={s.title}>{t("tabs.documents.title")}</Text>
-          <Text style={s.sub}>{t("tabs.documents.sub_count").replace("{n}", String(invoices.length)).replace("{a|e}", invoices.length === 1 ? "a" : "e")}</Text>
+          <Text style={s.sub}>{plural(t("tabs.documents.sub_count"), invoices.length)}</Text>
         </View>
 
         {/* Quota badge — ora usa i limiti V34 da PlanContext */}

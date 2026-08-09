@@ -129,12 +129,18 @@ export interface PreloadOptions {
 }
 
 /**
- * No-op: rewarded ads were removed for Play Store prep.
- * Reports the boost ads as temporarily unavailable so the UI degrades
- * gracefully (state → 'error' / 'unavailable').
+ * No-op: i rewarded ad sono stati rimossi in preparazione della pubblicazione
+ * sullo store e non sono mai stati riattivati. Riporta il boost come non
+ * disponibile perche' la UI degradi in modo pulito (state -> 'error').
+ *
+ * Emette una CHIAVE i18n, non una frase: il messaggio arrivava all'utente in
+ * inglese perche' questa stringa era scritta a mano qui dentro e non passava
+ * da nessuna traduzione. Chi consuma `onError` deve risolverla con `t()`.
  */
+export const BOOST_UNAVAILABLE_KEY = 'boost_unavailable_video_hint';
+
 export function preloadBoostAd(options: PreloadOptions): () => void {
-  options.onError('Business Boost ads are temporarily unavailable');
+  options.onError(BOOST_UNAVAILABLE_KEY);
   return () => {};
 }
 

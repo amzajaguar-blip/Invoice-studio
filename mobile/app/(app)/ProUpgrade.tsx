@@ -266,7 +266,7 @@ export default function ProUpgradeScreen() {
       <View style={s.featuresBox}>
         <FeatureItem text={t("modal.pro_upgrade.feature.unlimited")} />
         <FeatureItem text={t("modal.pro_upgrade.feature.email_pdf")} />
-        <FeatureItem text={t("modal.pro_upgrade.feature.ritenuta")} />
+        <FeatureItem text={t("modal.pro_upgrade.feature.formats")} />
         <FeatureItem text={t("modal.pro_upgrade.feature.support")} />
         <FeatureItem text={t("modal.pro_upgrade.feature.cancel_anytime")} />
       </View>

@@ -30,6 +30,7 @@ import { BannerAdWrapper } from "@/components/BannerAdWrapper";
 import MilestoneCelebration from "@/components/MilestoneCelebration";
 import InAppContextualCard from "@/components/InAppContextualCard";
 import { useLocale } from "@/components/LocaleProvider";
+import { plural } from "@/lib/plural";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -428,7 +429,7 @@ export default function DashboardScreen() {
 
                 {/* Streak indicator (growing/premium) */}
                 {engagement.currentStreak > 0 && (() => {
-                  const streakText = t("tabs.dashboard.streak_text").replace("{n}", String(engagement.currentStreak)).replace("{o|i}", engagement.currentStreak === 1 ? 'o' : 'i');
+                  const streakText = plural(t("tabs.dashboard.streak_text"), engagement.currentStreak);
                   return (
                     <View style={[styles.analyticsCard, { marginBottom: 12 }]}>
                       <Text style={styles.analyticsTitle}>{streakText}</Text>

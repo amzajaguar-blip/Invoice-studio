@@ -22,6 +22,7 @@ import { BannerAdWrapper } from "@/components/BannerAdWrapper";
 import InAppContextualCard from "@/components/InAppContextualCard";
 import { useSmartCards } from "@/hooks/useSmartCards";
 import { useEngagementContext } from "@/context/EngagementContext";
+import { plural } from "@/lib/plural";
 
 interface Client {
   id: string;
@@ -212,7 +213,7 @@ export default function ClientsScreen() {
           </TouchableOpacity>
         </Animated.View>
       </View>
-      <Text style={s.sub}>{t("tabs.clients.sub_count").replace("{n}", String(clients.length)).replace("{e|i}", clients.length === 1 ? "e" : "i")}</Text>
+      <Text style={s.sub}>{plural(t("tabs.clients.sub_count"), clients.length)}</Text>
 
       {/* V34 — InAppContextualCard for customers_upsell (Req 9.7, 6.7) */}
       {showContextCard && contextCard && (

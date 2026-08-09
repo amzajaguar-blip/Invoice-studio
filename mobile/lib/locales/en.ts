@@ -322,16 +322,16 @@ export const en = {
 "scanner.actions.preview_retry":"↩ Reshoot",
 "scanner.actions.use_photo":"Use Photo",
 "scanner.paywall.title":"Scan limit reached",
-"scanner.paywall.message":"You've used the 3 free scans this month. Unlock unlimited scans with our subscription.",
+"scanner.paywall.message":"You've used your 3 free scans this month. Go Pro for unlimited scans.",
 "scanner.paywall.go_pro":"Go Pro",
 "scanner.paywall.close":"Close",
 
   // ─── Modal Pro Upgrade ────────────────────────────────────────────────────
 "modal.pro_upgrade.title":"Go Pro",
-"modal.pro_upgrade.subtitle":"Unlimited documents, email/PDF delivery, automatic withholding tax.",
+"modal.pro_upgrade.subtitle":"Unlimited documents, every export format, no ads.",
 "modal.pro_upgrade.feature.unlimited":"Unlimited documents",
-"modal.pro_upgrade.feature.email_pdf":"Direct email and PDF delivery",
-"modal.pro_upgrade.feature.ritenuta":"Automatic withholding tax",
+"modal.pro_upgrade.feature.email_pdf":"Share directly by email",
+"modal.pro_upgrade.feature.formats":"Every format: PDF, Excel, Word, RTF",
 "modal.pro_upgrade.feature.support":"Priority support",
 "modal.pro_upgrade.feature.cancel_anytime":"Cancel anytime",
 "modal.pro_upgrade.plan.monthly.title":"Monthly",
@@ -492,7 +492,7 @@ export const en = {
 "filter.pill.a11y":"Filter by {label}",
 
   // ─── Search ──────────────────────────────────────────────────────────────
-"search.placeholder_default":"Search by number, client, amount…",
+"search.placeholder_default":"Search by title or content…",
 "search.clear.a11y":"Clear search",
 
   // ─── Skeleton ────────────────────────────────────────────────────────────

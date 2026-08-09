@@ -321,18 +321,18 @@ export const es = {
 "scanner.actions.preview_retry":"↩ Riscattare",
 "scanner.actions.use_photo":"Usa Foto",
 "scanner.paywall.title":"Limite di scansioni raggiunto",
-"scanner.paywall.message":"Hai usato le 3 scansioni gratuite del mese. Sblocca scansioni illimitate con il nostro abbonamento.",
+"scanner.paywall.message":"Has usado los 3 escaneos gratuitos del mes. Pasa a Pro para escaneos ilimitados.",
 "scanner.paywall.go_pro":"Vai a Pro",
 "scanner.paywall.close":"Chiudi",
 
   // ─── Modal Pro Upgrade ────────────────────────────────────────────────────
 "modal.pro_upgrade.title":"Passa a Pro",
-"modal.pro_upgrade.subtitle":"Documentos ilimitados, envío email/PDF, impuestos automáticos.",
+"modal.pro_upgrade.subtitle":"Documentos ilimitados, todos los formatos de exportación, sin anuncios.",
 "modal.pro_upgrade.feature.unlimited":"Documentos ilimitados",
-"modal.pro_upgrade.feature.email_pdf":"Invio diretto via email e PDF",
-"modal.pro_upgrade.feature.ritenuta":"Ritenuta d'acconto automatica",
-"modal.pro_upgrade.feature.support":"Supporto prioritario",
-"modal.pro_upgrade.feature.cancel_anytime":"Annulla in qualsiasi momento",
+"modal.pro_upgrade.feature.email_pdf":"Comparte directamente por correo",
+"modal.pro_upgrade.feature.formats":"Todos los formatos: PDF, Excel, Word, RTF",
+"modal.pro_upgrade.feature.support":"Soporte prioritario",
+"modal.pro_upgrade.feature.cancel_anytime":"Cancela cuando quieras",
 "modal.pro_upgrade.plan.monthly.title":"Mensile",
 "modal.pro_upgrade.plan.monthly.price":"€ 4,99",
 "modal.pro_upgrade.plan.monthly.recurring":"€4,99/mese",
@@ -420,7 +420,7 @@ export const es = {
 "modal.invoice_limit.subtitle":"5 documentos creados este mes. Para continuar:",
 "modal.invoice_limit.pro_button_title":"Passa a Pro  €4,99/mese",
 "modal.invoice_limit.pro_a11y_prefix":"Passa a Pro. 19 euro al mese.",
-"modal.invoice_limit.pro_a11y_body":"Documentos ilimitados, envío directo por email y PDF, cancela cuando quieras.",
+"modal.invoice_limit.pro_a11y_body":"Documentos ilimitados, envío directo por correo, cancela cuando quieras.",
 "modal.invoice_limit.pro_a11y_hint":"Apre la pagina di abbonamento",
 "modal.invoice_limit.pro_feature.unlimited":"Documentos ilimitados cada mes",
 "modal.invoice_limit.pro_feature.email_pdf":"Invio diretto via email e PDF",
@@ -491,7 +491,7 @@ export const es = {
 "filter.pill.a11y":"Filtra per {label}",
 
   // ─── Search ──────────────────────────────────────────────────────────────
-"search.placeholder_default":"Cerca per numero, cliente, importo…",
+"search.placeholder_default":"Busca por título o contenido…",
 "search.clear.a11y":"Cancella ricerca",
 
   // ─── Skeleton ────────────────────────────────────────────────────────────

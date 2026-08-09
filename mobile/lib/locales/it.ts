@@ -327,16 +327,16 @@ export const it = {
 "scanner.actions.preview_retry":"↩ Riscattare",
 "scanner.actions.use_photo":"Usa Foto",
 "scanner.paywall.title":"Limite di scansioni raggiunto",
-"scanner.paywall.message":"Hai usato le 3 scansioni gratuite del mese. Sblocca scansioni illimitate con il nostro abbonamento.",
+"scanner.paywall.message":"Hai usato le 3 scansioni gratuite del mese. Passa a Pro per scansioni illimitate.",
 "scanner.paywall.go_pro":"Vai a Pro",
 "scanner.paywall.close":"Chiudi",
 
   // ─── Modal Pro Upgrade ────────────────────────────────────────────────────
 "modal.pro_upgrade.title":"Passa a Pro",
-"modal.pro_upgrade.subtitle":"Documenti illimitate, invio email/PDF, ritenuta d'acconto automatica.",
-"modal.pro_upgrade.feature.unlimited":"Documenti illimitate",
-"modal.pro_upgrade.feature.email_pdf":"Invio diretto via email e PDF",
-"modal.pro_upgrade.feature.ritenuta":"Ritenuta d'acconto automatica",
+"modal.pro_upgrade.subtitle":"Documenti illimitati, tutti i formati di export, zero pubblicità.",
+"modal.pro_upgrade.feature.unlimited":"Documenti illimitati",
+"modal.pro_upgrade.feature.email_pdf":"Condivisione diretta via email",
+"modal.pro_upgrade.feature.formats":"Tutti i formati: PDF, Excel, Word, RTF",
 "modal.pro_upgrade.feature.support":"Supporto prioritario",
 "modal.pro_upgrade.feature.cancel_anytime":"Annulla in qualsiasi momento",
 "modal.pro_upgrade.plan.monthly.title":"Mensile",
@@ -395,7 +395,7 @@ export const it = {
 "modal.premium_preview.locked.export":"Esportazione dati",
 "modal.premium_preview.locked.email":"Invio email diretto",
 "modal.premium_preview.locked.templates":"Template personalizzati",
-"modal.premium_preview.benefit.unlimited_invoices.title":"Documenti illimitate",
+"modal.premium_preview.benefit.unlimited_invoices.title":"Documenti illimitati",
 "modal.premium_preview.benefit.unlimited_invoices.desc":"Crea tutti i documenti che vuoi, ogni mese, senza limiti.",
 "modal.premium_preview.benefit.unlimited_clients.title":"Clienti illimitati",
 "modal.premium_preview.benefit.unlimited_clients.desc":"Gestisci un portfolio clienti senza restrizioni.",
@@ -426,9 +426,9 @@ export const it = {
 "modal.invoice_limit.subtitle":"5 documenti creati questo mese. Per continuare:",
 "modal.invoice_limit.pro_button_title":"Passa a Pro  €4,99/mese",
 "modal.invoice_limit.pro_a11y_prefix":"Passa a Pro. 19 euro al mese.",
-"modal.invoice_limit.pro_a11y_body":"Documenti illimitate, invio diretto via email e PDF, annulla in qualsiasi momento.",
+"modal.invoice_limit.pro_a11y_body":"Documenti illimitati, condivisione diretta via email, annulla in qualsiasi momento.",
 "modal.invoice_limit.pro_a11y_hint":"Apre la pagina di abbonamento",
-"modal.invoice_limit.pro_feature.unlimited":"Documenti illimitate ogni mese",
+"modal.invoice_limit.pro_feature.unlimited":"Documenti illimitati ogni mese",
 "modal.invoice_limit.pro_feature.email_pdf":"Invio diretto via email e PDF",
 "modal.invoice_limit.pro_feature.cancel_anytime":"Annulla in qualsiasi momento",
 "modal.invoice_limit.daily.label":"Crediti oggi: {used}/{max}",
@@ -497,7 +497,7 @@ export const it = {
 "filter.pill.a11y":"Filtra per {label}",
 
   // ─── Search ──────────────────────────────────────────────────────────────
-"search.placeholder_default":"Cerca per numero, cliente, importo…",
+"search.placeholder_default":"Cerca per titolo o contenuto…",
 "search.clear.a11y":"Cancella ricerca",
 
   // ─── Skeleton ────────────────────────────────────────────────────────────

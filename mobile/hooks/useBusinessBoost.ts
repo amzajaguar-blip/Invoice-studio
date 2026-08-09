@@ -20,6 +20,7 @@ import {
 import { usePlan } from '@/context/PlanContext';
 import { useAuth } from '@/hooks/useAuth';
 import type { ResourceType } from '@/lib/rate-limit-engine';
+import { useLocale } from "@/components/LocaleProvider";
 
 // ─── Tipi Pubblici ────────────────────────────────────────────────────────────
 
@@ -42,6 +43,7 @@ export interface UseBusinessBoostReturn {
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useBusinessBoost(): UseBusinessBoostReturn {
+  const { t } = useLocale();
   const { limits } = usePlan();
   const { user } = useAuth();
 
@@ -102,7 +104,9 @@ export function useBusinessBoost(): UseBusinessBoostReturn {
       onError: (msg: string) => {
         if (mountedRef.current) {
           setAdState('error');
-          setErrorMsg(msg);
+          // `msg` e' una chiave i18n (vedi BOOST_UNAVAILABLE_KEY): va tradotta
+          // qui, altrimenti finisce a schermo cruda e in inglese.
+          setErrorMsg(t(msg));
           adRef.current = null;
         }
       },
