@@ -29,6 +29,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as Print from 'expo-print';
 import * as XLSX from 'xlsx';
+import { money, qty, excelCurrencyFormat, EXCEL_QTY_FORMAT } from './format/money';
 import {
   Document,
   Packer,
@@ -545,7 +546,16 @@ export async function generateDocumentPdfFile(
 
 /**
  * Genera un file XLSX reale via SheetJS e restituisce il path assoluto.
- * Il foglio "Documento" contiene intestazione, righe e totali.
+ *
+ * Un foglio di calcolo non e' un layout: gli importi restano `number` e la
+ * valuta la applica il formato cella (`z`), altrimenti l'utente non puo'
+ * sommarli. Per lo stesso motivo qui NON si usa il formatter money().
+ *
+ * SheetJS Community scrive i formati numerici e le larghezze di colonna, ma
+ * non gli stili di cella (grassetto, fill, bordi): quelli sono riservati alla
+ * versione Pro. La gerarchia visiva si ottiene quindi con struttura e
+ * spaziatura, non con il colore.
+ *
  * Magic bytes: 50 4B 03 04 (PK ZIP / OOXML).
  */
 export async function generateDocumentXLSX(
@@ -554,44 +564,52 @@ export async function generateDocumentXLSX(
 ): Promise<string> {
   const company = data.companyName ?? 'Milo Office';
   const currency = data.totals.currency || 'EUR';
+  const currencyFmt = excelCurrencyFormat(currency);
 
-  const rows: (string | number)[][] = [
-    [company],
-    [data.customTitle ?? data.title ?? 'Documento'],
-  ];
+  type Cell = string | number | null;
+  const rows: Cell[][] = [];
 
+  // ── Blocco meta ───────────────────────────────────────────────────────────
+  rows.push([company]);
+  rows.push([data.customTitle ?? data.title ?? 'Documento']);
+  rows.push([]);
   if (data.number) rows.push(['Numero', data.number]);
   if (data.issueDate) rows.push(['Data', data.issueDate]);
   if (data.dueDate) rows.push(['Scadenza', data.dueDate]);
   if (data.validUntil) rows.push(['Valido fino al', data.validUntil]);
-  if (data.client?.name) rows.push(['Cliente', data.client.name]);
-  if (data.client?.email) rows.push(['Email', data.client.email]);
+  if (data.client?.name) rows.push(['Destinatario', data.client.name]);
   if (data.client?.address) rows.push(['Indirizzo', data.client.address]);
-  if (data.client?.taxId) rows.push(['P.IVA / CF', data.client.taxId]);
-
+  if (data.client?.email) rows.push(['Email', data.client.email]);
   rows.push([]);
-  rows.push(['Descrizione', 'Quantità', `Prezzo (${currency})`, `Importo (${currency})`]);
 
+  // ── Intestazione tabella ──────────────────────────────────────────────────
+  rows.push(['Descrizione', 'Quantità', `Prezzo unit.`, `Totale`]);
+
+  // ── Righe ─────────────────────────────────────────────────────────────────
+  const firstDataRow = rows.length;
   for (const item of data.lineItems) {
-    rows.push([
-      _sanitizeCell(item.description),
-      item.quantity,
-      item.rate,
-      item.amount,
-    ]);
+    rows.push([_sanitizeCell(item.description), item.quantity, item.rate, item.amount]);
   }
+  const lastDataRow = rows.length - 1;
 
+  // ── Totali ────────────────────────────────────────────────────────────────
   rows.push([]);
-  rows.push(['', '', 'Subtotale', data.totals.subtotal]);
-  if (typeof data.totals.taxAmount === 'number') {
+  const totalRows: number[] = [];
+  if (data.totals.subtotal !== data.totals.grandTotal) {
+    totalRows.push(rows.length);
+    rows.push([null, null, 'Subtotale', data.totals.subtotal]);
+  }
+  if (data.totals.taxAmount && data.totals.taxAmount > 0) {
+    totalRows.push(rows.length);
     rows.push([
-      '',
-      '',
-      `IVA${typeof data.totals.taxRate === 'number' ? ` ${data.totals.taxRate}%` : ''}`,
+      null,
+      null,
+      `Imposta${data.totals.taxRate ? ` ${data.totals.taxRate}%` : ''}`,
       data.totals.taxAmount,
     ]);
   }
-  rows.push(['', '', 'TOTALE', data.totals.grandTotal]);
+  totalRows.push(rows.length);
+  rows.push([null, null, 'TOTALE', data.totals.grandTotal]);
 
   if (data.notes) {
     rows.push([]);
@@ -603,7 +621,33 @@ export async function generateDocumentXLSX(
   }
 
   const worksheet = XLSX.utils.aoa_to_sheet(rows);
-  worksheet['!cols'] = [{ wch: 44 }, { wch: 12 }, { wch: 16 }, { wch: 16 }];
+
+  // ── Formati numerici: la valuta e' un formato, non testo ──────────────────
+  const setFormat = (row: number, col: number, z: string) => {
+    const ref = XLSX.utils.encode_cell({ r: row, c: col });
+    const cell = worksheet[ref];
+    if (cell && typeof cell.v === 'number') cell.z = z;
+  };
+  for (let r = firstDataRow; r <= lastDataRow; r++) {
+    setFormat(r, 1, EXCEL_QTY_FORMAT);
+    setFormat(r, 2, currencyFmt);
+    setFormat(r, 3, currencyFmt);
+  }
+  for (const r of totalRows) setFormat(r, 3, currencyFmt);
+
+  worksheet['!cols'] = [{ wch: 48 }, { wch: 10 }, { wch: 16 }, { wch: 16 }];
+  worksheet['!merges'] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 3 } },   // ragione sociale
+    { s: { r: 1, c: 0 }, e: { r: 1, c: 3 } },   // titolo documento
+  ];
+  // Nota: il freeze pane NON e' scrivibile con SheetJS Community — impostare
+  // worksheet['!freeze'] non produce alcun <pane> nel foglio (verificato
+  // ispezionando xl/worksheets/sheet1.xml). Niente codice che finge di
+  // funzionare: se servira', va con una libreria diversa.
+  // Margini di stampa in pollici: anche stampando da Excel il risultato regge.
+  worksheet['!margins'] = {
+    left: 0.6, right: 0.6, top: 0.6, bottom: 0.6, header: 0.3, footer: 0.3,
+  };
 
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Documento');
@@ -618,7 +662,6 @@ export async function generateDocumentXLSX(
 
   return filepath;
 }
-
 /**
  * Entry-point unificato: genera il documento nel formato richiesto.
  * È la funzione che le schermate devono chiamare — evita che un pulsante
@@ -672,46 +715,50 @@ function buildDocumentHtml(
   data: DocumentFormatData,
   options: Omit<DocumentFormatOptions, 'format'>
 ): string {
+  const currency = data.totals.currency || 'EUR';
   const company = data.companyName ?? 'Milo Office';
-  const symbol = data.totals.currency === 'EUR' ? '€' : data.totals.currency;
-  const money = (n: number) => `${symbol} ${n.toFixed(2)}`;
   const title = data.customTitle ?? data.title ?? 'Documento';
+  const fmt = (n: number) => money(n, currency);
 
-  const metaRows = [
-    data.number ? ['Numero', data.number] : null,
-    data.issueDate ? ['Data', data.issueDate] : null,
-    data.dueDate ? ['Scadenza', data.dueDate] : null,
-    data.validUntil ? ['Valido fino al', data.validUntil] : null,
-  ].filter(Boolean) as string[][];
+  const metaPairs: [string, string][] = [];
+  if (data.number) metaPairs.push(['Numero', data.number]);
+  if (data.issueDate) metaPairs.push(['Data', data.issueDate]);
+  if (data.dueDate) metaPairs.push(['Scadenza', data.dueDate]);
+  if (data.validUntil) metaPairs.push(['Valido fino al', data.validUntil]);
 
-  const clientRows = [
-    data.client?.name ? ['Cliente', data.client.name] : null,
-    data.client?.email ? ['Email', data.client.email] : null,
-    data.client?.address ? ['Indirizzo', data.client.address] : null,
-    data.client?.taxId ? ['P.IVA / CF', data.client.taxId] : null,
-  ].filter(Boolean) as string[][];
+  const recipientLines = [
+    data.client?.name,
+    data.client?.address,
+    data.client?.email,
+    data.client?.taxId,
+  ].filter(Boolean) as string[];
 
   const logoHtml = options.logoUrl
-    ? `<img class="logo" src="${_escHtml(options.logoUrl)}" alt="Logo" />`
+    ? `<img class="logo" src="${_escHtml(options.logoUrl)}" alt="" />`
     : '';
 
-  const itemsHtml = data.lineItems
+  const rowsHtml = data.lineItems
     .map(
       (item) => `<tr>
-        <td>${_escHtml(item.description)}</td>
-        <td class="num">${item.quantity}</td>
-        <td class="num">${money(item.rate)}</td>
-        <td class="num">${money(item.amount)}</td>
-      </tr>`
+      <td class="desc">${_escHtml(item.description)}</td>
+      <td class="num">${qty(item.quantity)}</td>
+      <td class="num">${fmt(item.rate)}</td>
+      <td class="num strong">${fmt(item.amount)}</td>
+    </tr>`
     )
     .join('');
 
-  const taxHtml =
-    typeof data.totals.taxAmount === 'number'
-      ? `<tr><td>IVA${
-          typeof data.totals.taxRate === 'number' ? ` ${data.totals.taxRate}%` : ''
-        }</td><td class="num">${money(data.totals.taxAmount)}</td></tr>`
+  // La riga imposta sopravvive solo per i documenti vecchi che la contengono.
+  // Milo Office non chiede piu' aliquote: sui documenti nuovi taxAmount e' 0
+  // e questa riga non compare.
+  const taxRow =
+    data.totals.taxAmount && data.totals.taxAmount > 0
+      ? `<tr><td>Imposta${
+          data.totals.taxRate ? ` ${data.totals.taxRate}%` : ''
+        }</td><td class="num">${fmt(data.totals.taxAmount)}</td></tr>`
       : '';
+
+  const showSubtotal = taxRow !== '' || data.totals.subtotal !== data.totals.grandTotal;
 
   return `<!DOCTYPE html>
 <html lang="it">
@@ -719,53 +766,149 @@ function buildDocumentHtml(
 <meta charset="UTF-8" />
 <title>${_escHtml(title)}</title>
 <style>
+  /* Pagina reale, non finestra del browser: A4 con margini di stampa da 15mm.
+     expo-print passa l'HTML a WebView -> PDF, quindi @page e' l'unico posto in
+     cui si dichiara la geometria della carta. */
+  @page { size: A4 portrait; margin: 15mm 14mm 16mm 14mm; }
+
   * { box-sizing: border-box; }
-  body { font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
-         color: #1a1a1a; margin: 0; padding: 40px; font-size: 13px; }
-  .logo { max-height: 60px; max-width: 160px; margin-bottom: 10px; display: block; }
-  h1 { font-size: 24px; margin: 0 0 4px; letter-spacing: .5px; }
-  .company { font-size: 15px; font-weight: 600; color: #6c63ff; margin-bottom: 24px; }
-  .meta { width: 100%; margin-bottom: 24px; }
-  .meta td { padding: 3px 0; }
-  .meta td:first-child { color: #666; width: 140px; }
-  table.items { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-  table.items th { text-align: left; background: #f3f3f7; padding: 8px;
-                   border-bottom: 2px solid #6c63ff; font-size: 12px; }
-  table.items td { padding: 8px; border-bottom: 1px solid #e6e6ec; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 10pt;
+    line-height: 1.35;
+    color: #222;
+    /* Cifre tabulari: le colonne numeriche restano incolonnate anche con
+       glifi di larghezza diversa. */
+    font-variant-numeric: tabular-nums;
+    -webkit-font-feature-settings: "tnum";
+  }
+
+  .sheet { width: 100%; }
+
+  /* ── Intestazione: emittente a sinistra, dati documento a destra ── */
+  .head { display: table; width: 100%; margin-bottom: 22pt; }
+  .head-left, .head-right { display: table-cell; vertical-align: top; }
+  .head-left { width: 58%; }
+  .head-right { width: 42%; text-align: right; }
+  .logo { max-height: 48pt; max-width: 120pt; display: block; margin-bottom: 8pt; }
+  .issuer { font-size: 11pt; font-weight: 700; color: #111; }
+
+  .doc-title {
+    font-size: 22pt; font-weight: 700; color: #111;
+    letter-spacing: -0.5pt; line-height: 1.1; margin: 0 0 8pt;
+  }
+  .meta { display: inline-block; text-align: right; }
+  .meta div { margin-bottom: 4pt; }
+  .label {
+    font-size: 8pt; text-transform: uppercase; letter-spacing: 1pt;
+    color: #666; display: block;
+  }
+  .value { font-size: 10pt; color: #222; }
+
+  /* ── Destinatario: blocco a se', mai in linea con l'emittente ── */
+  .recipient { margin: 0 0 20pt; }
+  .recipient .name { font-weight: 700; color: #111; }
+
+  /* ── Tabella righe ── */
+  table.items { width: 100%; border-collapse: collapse; margin-bottom: 14pt; }
+  table.items thead { display: table-header-group; }   /* header ripetuto a ogni pagina */
+  table.items tr { page-break-inside: avoid; }          /* nessuna riga spezzata */
+  table.items th {
+    font-size: 9pt; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .4pt; background: #f4f4f5; color: #333;
+    padding: 6pt 8pt; text-align: left; border-bottom: 1pt solid #111;
+  }
+  table.items td { padding: 6pt 8pt; border-bottom: .5pt solid #e5e5e5; vertical-align: top; }
+  table.items td.desc { width: 55%; }
   .num { text-align: right; white-space: nowrap; }
-  table.totals { margin-left: auto; min-width: 240px; border-collapse: collapse; }
-  table.totals td { padding: 5px 0; }
-  table.totals tr:last-child td { font-size: 16px; font-weight: 700;
-                                  border-top: 2px solid #1a1a1a; padding-top: 8px; }
-  .notes { margin-top: 28px; padding-top: 12px; border-top: 1px solid #e6e6ec;
-           white-space: pre-wrap; color: #444; }
-  .footer { margin-top: 32px; font-size: 11px; color: #888; text-align: center; }
+  .strong { font-weight: 700; color: #111; }
+
+  /* ── Totali: colonna destra, allineata al bordo della tabella ── */
+  .totals-wrap { width: 100%; page-break-inside: avoid; }
+  table.totals { width: 42%; margin-left: auto; border-collapse: collapse; }
+  table.totals td { padding: 4pt 8pt; }
+  table.totals td:last-child { text-align: right; white-space: nowrap; }
+  table.totals tr.grand td {
+    background: #111; color: #fff; font-size: 12pt; font-weight: 700;
+    padding: 8pt; border-top: 1pt solid #111;
+  }
+
+  .notes { margin-top: 22pt; padding-top: 10pt; border-top: .5pt solid #e5e5e5;
+           white-space: pre-wrap; color: #444; page-break-inside: avoid; }
+  .notes .label { margin-bottom: 4pt; }
+
+  .foot { margin-top: 24pt; padding-top: 8pt; border-top: .5pt solid #e5e5e5;
+          font-size: 8pt; color: #999; text-align: center; }
 </style>
 </head>
 <body>
-  ${logoHtml}
-  <div class="company">${_escHtml(company)}</div>
-  <h1>${_escHtml(title)}</h1>
-  <table class="meta">
-    ${[...metaRows, ...clientRows]
-      .map(([k, v]) => `<tr><td>${_escHtml(k)}</td><td>${_escHtml(v)}</td></tr>`)
+<div class="sheet">
+
+  <div class="head">
+    <div class="head-left">
+      ${logoHtml}
+      <div class="issuer">${_escHtml(company)}</div>
+    </div>
+    <div class="head-right">
+      <h1 class="doc-title">${_escHtml(title)}</h1>
+      <div class="meta">
+        ${metaPairs
+          .map(
+            ([k, v]) =>
+              `<div><span class="label">${_escHtml(k)}</span><span class="value">${_escHtml(
+                v
+              )}</span></div>`
+          )
+          .join('')}
+      </div>
+    </div>
+  </div>
+
+  ${
+    recipientLines.length
+      ? `<div class="recipient">
+    <span class="label">Destinatario</span>
+    <div class="name">${_escHtml(recipientLines[0])}</div>
+    ${recipientLines
+      .slice(1)
+      .map((line) => `<div>${_escHtml(line)}</div>`)
       .join('')}
-  </table>
+  </div>`
+      : ''
+  }
+
   <table class="items">
     <thead>
-      <tr><th>Descrizione</th><th class="num">Q.tà</th><th class="num">Prezzo</th><th class="num">Importo</th></tr>
+      <tr>
+        <th class="desc">Descrizione</th>
+        <th class="num">Q.tà</th>
+        <th class="num">Prezzo unit.</th>
+        <th class="num">Totale</th>
+      </tr>
     </thead>
-    <tbody>${itemsHtml}</tbody>
+    <tbody>${rowsHtml}</tbody>
   </table>
-  <table class="totals">
-    <tr><td>Subtotale</td><td class="num">${money(data.totals.subtotal)}</td></tr>
-    ${taxHtml}
-    <tr><td>TOTALE</td><td class="num">${money(data.totals.grandTotal)}</td></tr>
-  </table>
-  ${data.notes ? `<div class="notes">${_escHtml(data.notes)}</div>` : ''}
-  <div class="footer">${_escHtml(company)}${
-    options.translatedLabel ? ` — ${_escHtml(options.translatedLabel)}` : ''
+
+  <div class="totals-wrap">
+    <table class="totals">
+      ${showSubtotal ? `<tr><td>Subtotale</td><td>${fmt(data.totals.subtotal)}</td></tr>` : ''}
+      ${taxRow}
+      <tr class="grand"><td>TOTALE</td><td>${fmt(data.totals.grandTotal)}</td></tr>
+    </table>
+  </div>
+
+  ${
+    data.notes
+      ? `<div class="notes"><span class="label">Note</span>${_escHtml(data.notes)}</div>`
+      : ''
+  }
+
+  <div class="foot">${_escHtml(company)}${
+    options.translatedLabel ? ` · ${_escHtml(options.translatedLabel)}` : ''
   }</div>
+
+</div>
 </body>
 </html>`;
 }
