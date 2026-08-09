@@ -1,0 +1,102 @@
+From bb292758ad7dfb74c6ea04ad09fe1ac698d3fd70 Mon Sep 17 00:00:00 2001
+From: jaguarsnake <amzajaguar@gmail.com>
+Date: Sat, 8 Aug 2026 22:46:34 +0200
+Subject: [PATCH] =?UTF-8?q?ci:=20artifact=20MiloOffice-v<versione>-{APK,AA?=
+ =?UTF-8?q?B}-<sha>,=20niente=20pi=C3=B9=20nomi=20VELA=20fissi?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Il nome dell'artifact era hardcoded VELA-v43-APK / VELA-v69-AAB-16kb-signed:
+non conteneva né la versione reale né il commit, per cui due build diverse
+producevano cartelle indistinguibili ed era possibile installare un artifact
+vecchio credendolo nuovo. Ora il nome deriva da app.json e porta lo SHA.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ .github/workflows/build-aab.yml | 13 +++++++++++--
+ .github/workflows/build-apk.yml | 15 ++++++++++++---
+ 2 files changed, 23 insertions(+), 5 deletions(-)
+
+diff --git a/.github/workflows/build-aab.yml b/.github/workflows/build-aab.yml
+index 2a6e69b..e1adfc3 100644
+--- a/.github/workflows/build-aab.yml
++++ b/.github/workflows/build-aab.yml
+@@ -1,4 +1,4 @@
+-name: Build AAB Release v69
++name: Build AAB Release
+ 
+ on:
+   workflow_dispatch:
+@@ -14,6 +14,15 @@ jobs:
+     steps:
+       - uses: actions/checkout@v4
+ 
++      - name: Read app version
++        id: appver
++        run: |
++          VERSION_NAME=$(node -p "require('./app.json').expo.version")
++          VERSION_CODE=$(node -p "require('./app.json').expo.android.versionCode")
++          echo "name=$VERSION_NAME" >> $GITHUB_OUTPUT
++          echo "code=$VERSION_CODE" >> $GITHUB_OUTPUT
++          echo "Version $VERSION_NAME (versionCode $VERSION_CODE)"
++
+       - uses: actions/setup-node@v4
+         with:
+           node-version: 20
+@@ -399,7 +408,7 @@ jobs:
+       - name: Upload AAB Release
+         uses: actions/upload-artifact@v4
+         with:
+-          name: VELA-v69-AAB-16kb-signed
++          name: MiloOffice-v${{ steps.appver.outputs.name }}-AAB-signed-${{ github.sha }}
+           path: mobile/android/app/build/outputs/bundle/release/app-release.aab
+           if-no-files-found: error
+           retention-days: 14
+diff --git a/.github/workflows/build-apk.yml b/.github/workflows/build-apk.yml
+index 3efef61..ea03b89 100644
+--- a/.github/workflows/build-apk.yml
++++ b/.github/workflows/build-apk.yml
+@@ -1,4 +1,4 @@
+-name: Build APK Release v43
++name: Build APK Release
+ 
+ on:
+   push:
+@@ -7,7 +7,7 @@ on:
+ 
+ jobs:
+   apk-debug:
+-    name: APK Debug — installabile su Android
++    name: APK — installabile su Android
+     runs-on: ubuntu-latest
+     defaults:
+       run:
+@@ -16,6 +16,15 @@ jobs:
+     steps:
+       - uses: actions/checkout@v4
+ 
++      - name: Read app version
++        id: appver
++        run: |
++          VERSION_NAME=$(node -p "require('./app.json').expo.version")
++          VERSION_CODE=$(node -p "require('./app.json').expo.android.versionCode")
++          echo "name=$VERSION_NAME" >> $GITHUB_OUTPUT
++          echo "code=$VERSION_CODE" >> $GITHUB_OUTPUT
++          echo "Version $VERSION_NAME (versionCode $VERSION_CODE)"
++
+       - uses: actions/setup-node@v4
+         with:
+           node-version: 20
+@@ -109,7 +118,7 @@ jobs:
+       - name: Upload APK Debug
+         uses: actions/upload-artifact@v4
+         with:
+-          name: VELA-v43-APK
++          name: MiloOffice-v${{ steps.appver.outputs.name }}-APK-${{ github.sha }}
+           path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+           if-no-files-found: error
+           retention-days: 14
+-- 
+2.47.3
+

@@ -7,10 +7,10 @@ documento e lettering "MILO | PDF GENERATOR").
 
 Output:
   assets/adaptive-icon.png       1024x1024 RGBA — foreground adaptive Android.
-                                 SOLO il glifo documento, ridisegnato in modo
-                                 vettoriale e contenuto nella safe zone: il
-                                 lettering non entra perche' cadrebbe fuori dal
-                                 cerchio garantito dai launcher circolari.
+                                 L'artwork COMPLETO di icon.png, lettering
+                                 incluso, scalato dentro la safe zone.
+  assets/monochrome-icon.png     1024x1024 RGBA — silhouette bianca per le
+                                 'Icone a tema' di Android 13+.
   assets/notification-icon.png    192x192 RGBA — silhouette bianca su
                                  trasparente per le notifiche Android (Android
                                  appiattisce l'icona sul canale alpha: un asset
@@ -139,22 +139,49 @@ def draw_glyph(size_px: int, body=None, edge=None, line=None) -> Image.Image:
 
 
 def build_adaptive_icon() -> None:
-    """Foreground adaptive: glifo inscritto nel cerchio di safe zone."""
-    gw, gh = DOC[2] - DOC[0], DOC[3] - DOC[1]
-    diagonal = (gw**2 + gh**2) ** 0.5
-    # Inscrivere la diagonale nel cerchio di safe zone e' matematicamente sicuro
-    # ma produce un glifo del 44% del canvas: nel launcher si vede un francobollo
-    # perso nel tile. I launcher mostrano ~72% del foreground, quindi si punta a
-    # riempire la safe zone lasciando che solo gli angoli arrotondati la sfiorino.
-    box = round(max(gw, gh) * (SAFE_DIAMETER * 1.15) / diagonal)
+    """Foreground adaptive: l'artwork ORIGINALE di icon.png, non un glifo ridisegnato.
 
-    glyph = draw_glyph(box, body=COL_ADAPT_BODY, edge=COL_ADAPT_EDGE, line=COL_ADAPT_LINE)
+    Posky ha chiesto esplicitamente che l'icona dell'app sia quella con il
+    lettering "MILO | PDF GENERATOR". Il lettering vive nella parte bassa
+    dell'artwork, quindi l'artwork intero va scalato dentro la safe zone: dei
+    108dp del foreground Android garantisce solo i 66dp centrali, e un launcher
+    circolare vi inscrive un cerchio dello stesso diametro. Scalare di piu'
+    renderebbe l'icona piu' grande ma taglierebbe la scritta sui launcher a
+    icone tonde.
+    """
+    art = Image.open(ASSETS / "icon.png").convert("RGBA")
+    box = round(SAFE_DIAMETER * 1.06)      # 664px su 1024: contenuto dentro il cerchio
+    art = art.resize((box, box), Image.LANCZOS)
+
     canvas = Image.new("RGBA", (CANVAS, CANVAS), (0, 0, 0, 0))
     off = (CANVAS - box) // 2
-    canvas.paste(glyph, (off, off), glyph)
+    canvas.paste(art, (off, off), art)
     canvas.save(ASSETS / "adaptive-icon.png")
-    print(f"adaptive-icon.png   glifo {box}px in safe zone {SAFE_DIAMETER:.0f}px (diag "
-          f"{(box * diagonal / max(gw, gh)):.0f}px)")
+    print(f"adaptive-icon.png   artwork completo {box}px in safe zone {SAFE_DIAMETER:.0f}px")
+
+
+def build_monochrome_icon() -> None:
+    """Layer monochrome per le 'Icone a tema' di Android 13+.
+
+    Senza questo layer, con le icone a tema attive alcuni launcher non hanno
+    nulla da tingere e ricadono su un rendering generico. Android usa solo il
+    canale alpha: si riusa la silhouette del documento, senza lettering (a
+    quella dimensione il testo diventa una macchia).
+    """
+    gw, gh = DOC[2] - DOC[0], DOC[3] - DOC[1]
+    diagonal = (gw**2 + gh**2) ** 0.5
+    box = round(max(gw, gh) * SAFE_DIAMETER / diagonal)
+
+    glyph = draw_glyph(box, body=(255, 255, 255, 255),
+                       edge=(255, 255, 255, 255), line=(0, 0, 0, 0))
+    alpha = glyph.getchannel("A")
+    mono = Image.new("RGBA", (CANVAS, CANVAS), (0, 0, 0, 0))
+    solid = Image.new("RGBA", glyph.size, (255, 255, 255, 255))
+    solid.putalpha(alpha)
+    off = (CANVAS - box) // 2
+    mono.paste(solid, (off, off), solid)
+    mono.save(ASSETS / "monochrome-icon.png")
+    print(f"monochrome-icon.png  {CANVAS}x{CANVAS} silhouette bianca (Android 13+ themed icons)")
 
 
 def build_notification_icon() -> None:
@@ -217,6 +244,7 @@ def build_favicons() -> None:
 
 if __name__ == "__main__":
     build_adaptive_icon()
+    build_monochrome_icon()
     build_notification_icon()
     build_splash()
     build_favicons()

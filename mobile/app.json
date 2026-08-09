@@ -5,7 +5,7 @@
     "version": "1.0.71",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": ["milo-office", "vela"],
+    "scheme": ["vela", "milo-office"],
     "userInterfaceStyle": "dark",
     "splash": {
       "image": "./assets/splash.png",
@@ -20,6 +20,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
+        "monochromeImage": "./assets/monochrome-icon.png",
         "backgroundColor": "#0a0b0f"
       },
       "package": "com.Invoice_Studio.myapp",
@@ -36,6 +37,9 @@
         {
           "action": "VIEW",
           "data": [
+            {
+              "scheme": "vela"
+            },
             {
               "scheme": "milo-office"
             }

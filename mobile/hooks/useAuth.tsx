@@ -3,6 +3,7 @@ import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
+import { getOAuthCallbackUrl } from "@/lib/auth-redirect";
 
 // NOTE: Do NOT call WebBrowser.maybeCompleteAuthSession() here at module scope.
 // Module-scope execution runs during Hermes bundle evaluation — before React mounts
@@ -82,7 +83,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInWithGoogle = async () => {
-    const redirectUrl = Linking.createURL("/auth/callback");
+    // Schema pinnato alla allowlist di Supabase — vedi lib/auth-redirect.ts
+    const redirectUrl = getOAuthCallbackUrl();
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",

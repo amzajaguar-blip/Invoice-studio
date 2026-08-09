@@ -15,6 +15,7 @@ import { supabase } from "@/lib/supabase";
 import { useLocale } from "@/components/LocaleProvider";
 import { useToast } from "@/lib/toast";
 import { Ionicons } from "@expo/vector-icons";
+import { PASSWORD_RESET_URL } from "@/lib/auth-redirect";
 
 /**
  * Forgot password screen — passo 1 del flusso di reset.
@@ -45,13 +46,13 @@ export default function ForgotPasswordScreen() {
 
     setLoading(true);
     // redirectTo deve essere una deep link che la nostra app può aprire.
-    // Lo schema custom `vela` è registrato in app.json > android > intentFilters
+    // Lo schema è pinnato alla allowlist di Supabase — vedi lib/auth-redirect.ts
     // e in iOS via expo-linking. La rotta /(auth)/reset-password accetta
     // il token via hash fragment (#access_token=...&type=recovery&...).
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(
       email.trim(),
       {
-        redirectTo: "vela://(auth)/reset-password",
+        redirectTo: PASSWORD_RESET_URL,
       }
     );
     setLoading(false);
