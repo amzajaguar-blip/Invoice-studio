@@ -35,6 +35,16 @@ const AuthContext = createContext<AuthContextValue>({
 
 // âââ Provider âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
+/**
+ * Ultimo `redirect_to` inviato a Supabase. Tenuto a livello di modulo per
+ * poterlo allegare al messaggio d'errore: senza cavo USB e' l'unico modo di
+ * leggere la stringa esatta dal telefono.
+ */
+let lastRedirectUrl = "";
+
+/** Ultimo URL con cui il browser e' tornato all'app (o "" se non e' tornato). */
+let lastCallbackUrl = "";
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -86,6 +96,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Schema pinnato alla allowlist di Supabase — vedi lib/auth-redirect.ts
     const redirectUrl = getOAuthCallbackUrl();
 
+    // Diagnostica login: la stringa esatta mandata a Supabase come redirect_to.
+    // Serve a confrontarla carattere per carattere con la allowlist in
+    // Dashboard > Authentication > URL Configuration. Visibile con
+    // `adb logcat -s ReactNativeJS` e ripetuta nel messaggio d'errore, cosi
+    // e' leggibile anche senza cavo.
+    console.log(`[AUTH] redirect_to inviato a Supabase: ${redirectUrl}`);
+    lastRedirectUrl = redirectUrl;
+
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -110,6 +128,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (resolved) return;
         resolved = true;
         clearTimeout(timer);
+        // Allega la diagnostica al messaggio: senza cavo USB e' l'unico modo
+        // di leggere dal telefono le due stringhe che contano.
+        if (result.error) {
+          resolve({
+            error:
+              `${result.error}\n\n` +
+              `redirect_to inviato:\n${lastRedirectUrl}\n\n` +
+              `URL di ritorno:\n${lastCallbackUrl || "(nessuno)"}`,
+          });
+          return;
+        }
         resolve(result);
       };
 
@@ -175,6 +204,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           data.url,
           redirectUrl
         );
+
+        console.log(`[AUTH] openAuthSession -> type=${result.type} url=${(result as { url?: string }).url ?? "(nessuno)"}`);
+        lastCallbackUrl = (result as { url?: string }).url ?? "";
 
         if (result.type === "success" && result.url) {
           await handleUrl(result.url);

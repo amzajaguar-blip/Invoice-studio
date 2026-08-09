@@ -32,17 +32,35 @@
  *    sono piu' installazioni delle versioni vecchie.
  */
 
-import * as Linking from 'expo-linking';
-
 /**
  * Schema usato per i deep link di autenticazione.
  * DEVE corrispondere a quanto e' in allowlist su Supabase Auth.
  */
 export const AUTH_SCHEME = 'vela';
 
-/** URL di callback del login OAuth (Google). */
+/**
+ * URL di callback del login OAuth (Google).
+ *
+ * Costruito a mano, NON con `Linking.createURL()`.
+ *
+ * In una build standalone con custom scheme, `getHostUri()` di expo-linking
+ * ritorna null, quindi `hostUri` diventa '' e viene passato a
+ * `ensureLeadingSlash('', true)` che restituisce '/'. L'URL finale e':
+ *
+ *   `${scheme}:${''}/${hostUri}${path}`
+ *   = 'vela' + ':' + '' + '/' + '/' + '/auth/callback'
+ *   = 'vela:///auth/callback'          <-- TRE slash
+ *
+ * Supabase confronta `redirect_to` con la allowlist carattere per carattere:
+ * `vela:///auth/callback` non combacia con `vela://auth/callback`, e quando
+ * non combacia GoTrue non da' errore — rimanda al Site URL. Il browser torna
+ * alla pagina di login, in silenzio.
+ *
+ * Due slash e' anche la forma usata da PASSWORD_RESET_URL qui sotto e dal
+ * commento in app/_layout.tsx, cioe' quella che ci si aspetta in allowlist.
+ */
 export function getOAuthCallbackUrl(): string {
-  return Linking.createURL('/auth/callback', { scheme: AUTH_SCHEME });
+  return `${AUTH_SCHEME}://auth/callback`;
 }
 
 /** URL di atterraggio del link di reset password inviato via email. */
