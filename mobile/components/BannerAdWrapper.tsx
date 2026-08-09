@@ -1,5 +1,5 @@
 /**
- * BannerAdWrapper.tsx — Banner AdMob per VELA (utenti free).
+ * BannerAdWrapper.tsx — Banner AdMob per Milo Office (utenti free).
  *
  * Mostra un banner AdMob standard (320×50) nelle schermate consentite.
  * Se l'ad non si carica (no fill, rete, ecc.) il componente si nasconde
@@ -15,12 +15,11 @@ import React, { useEffect, useState } from 'react';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
 import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
 import { isAdsInitialized, onAdsInitialized } from '@/lib/ads';
+import { AD_UNITS } from '@/lib/ads-config';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
-const BANNER_AD_UNIT_ID = __DEV__
-  ? TestIds.BANNER
-  : 'ca-app-pub-8156953772676654/4020450686';
+const BANNER_AD_UNIT_ID = AD_UNITS.banner;
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 

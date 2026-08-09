@@ -23,13 +23,12 @@ import mobileAds, {
 } from 'react-native-google-mobile-ads';
 import { Platform } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
+import { AD_UNITS, TEST_DEVICE_IDS, describeAdsMode } from './ads-config';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
 /** Interstitial Ad Unit ID (production). */
-export const INTERSTITIAL_AD_UNIT_ID = __DEV__
-  ? TestIds.INTERSTITIAL
-  : 'ca-app-pub-8156953772676654/6372493305';
+export const INTERSTITIAL_AD_UNIT_ID = AD_UNITS.interstitial;
 
 /** Show an interstitial every Nth invoice saved in the month. */
 export const INTERSTITIAL_EVERY_N_INVOICES = 4;
@@ -81,11 +80,19 @@ export async function initAds(): Promise<void> {
     if (!canRequestAds) return;
 
     // 2. Standard ad-request configuration.
+    //    In modalita' test-device si aggiungono i dispositivi registrati: gli
+    //    ad unit restano quelli REALI, cambia solo il fatto che a questo
+    //    telefono AdMob serve creativita' di test. E' l'unico modo di far
+    //    passare la richiesta dalla configurazione SSV vera senza generare
+    //    traffico non valido.
+    console.log(describeAdsMode());
     await mobileAds().setRequestConfiguration({
       maxAdContentRating: MaxAdContentRating.PG,
       tagForChildDirectedTreatment: false,
       tagForUnderAgeOfConsent: false,
-      ...(Platform.OS === 'ios' ? {} : {}), // reserved for iOS-specific flags
+      ...(TEST_DEVICE_IDS.length > 0
+        ? { testDeviceIdentifiers: TEST_DEVICE_IDS }
+        : {}),
     });
 
     // 3. Boot the SDK.

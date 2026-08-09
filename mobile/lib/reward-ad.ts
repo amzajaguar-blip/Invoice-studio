@@ -37,13 +37,12 @@ import {
 } from 'react-native-google-mobile-ads';
 import NetInfo from '@react-native-community/netinfo';
 import { initAds } from './ads';
+import { AD_UNITS } from './ads-config';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
 /** Rewarded "documents" Ad Unit ID (production). */
-export const REWARDED_DOCUMENTS_AD_UNIT_ID = __DEV__
-  ? TestIds.REWARDED
-  : 'ca-app-pub-8156953772676654/2433248294';
+export const REWARDED_DOCUMENTS_AD_UNIT_ID = AD_UNITS.rewarded;
 
 /** Timeout di caricamento oltre il quale l'ad è dichiarato non disponibile (ms). */
 const REWARD_AD_LOAD_TIMEOUT_MS = 10_000;
