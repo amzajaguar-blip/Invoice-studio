@@ -48,7 +48,7 @@ export interface BoostSession {
   state: BoostAdState;
   /** Messaggio di errore leggibile (se state === 'error' | 'unavailable') */
   errorMsg: string | null;
-  /** Chiama per mostrare l'annuncio (no-op: ads disabilitati) */
+  /** Chiama per mostrare l'annuncio rewarded */
   showAd: () => void;
   /** True se il boost è già attivo (TTL 24h non scaduto) */
   boostActive: boolean;
@@ -134,13 +134,12 @@ export interface PreloadOptions {
 }
 
 /**
- * No-op: i rewarded ad sono stati rimossi in preparazione della pubblicazione
- * sullo store e non sono mai stati riattivati. Riporta il boost come non
- * disponibile perche' la UI degradi in modo pulito (state -> 'error').
+ * Chiave i18n usata quando l'annuncio non e' caricabile (fill rate nullo,
+ * rete assente, cap giornaliero).
  *
- * Emette una CHIAVE i18n, non una frase: il messaggio arrivava all'utente in
- * inglese perche' questa stringa era scritta a mano qui dentro e non passava
- * da nessuna traduzione. Chi consuma `onError` deve risolverla con `t()`.
+ * E' una CHIAVE, non una frase: prima qui c'era una stringa inglese scritta a
+ * mano che non passava da nessuna traduzione e arrivava cosi' com'era
+ * all'utente. Chi consuma `onError` deve risolverla con `t()`.
  */
 export const BOOST_UNAVAILABLE_KEY = 'boost_unavailable_video_hint';
 
