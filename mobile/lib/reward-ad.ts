@@ -93,6 +93,11 @@ export async function preloadDocumentsRewardAd(): Promise<boolean> {
   // Supabase prima di costruire la richiesta. Gli errori sono gia' catturati
   // dal try/catch interno, quindi nessuna promise resta appesa.
   return new Promise<boolean>(async (resolve) => {
+    // Il chiamante che avvia il preload si accoda come gli altri: settleAll()
+    // risolve solo pendingResolvers, quindi senza questa push la promise
+    // restituita a chi ha iniziato il caricamento non si risolverebbe mai.
+    pendingResolvers.push(resolve);
+
     let settled = false;
 
     const settleAll = (ready: boolean) => {
