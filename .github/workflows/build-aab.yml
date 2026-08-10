@@ -153,10 +153,19 @@ jobs:
         run: |
           echo "android.enableShrinkResourcesInReleaseBuilds=false" >> android/gradle.properties
           echo "android.enableR8.fullMode=false" >> android/gradle.properties
-          grep -E 'enableShrinkResources|enableR8' android/gradle.properties
+          # expo prebuild rigenera gradle.properties col default Expo
+          # (-Xmx2048m), che manda in OutOfMemoryError
+          # ':app:collectReleaseDependencies'. L'ultima occorrenza vince,
+          # quindi questa riga sovrascrive il default.
+          echo "org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g -XX:+UseG1GC -Dfile.encoding=UTF-8" >> android/gradle.properties
+          grep -E 'enableShrinkResources|enableR8|jvmargs' android/gradle.properties
 
       - name: Build AAB Release
-        run: cd android && chmod +x gradlew && ./gradlew bundleRelease --no-daemon --stacktrace
+        # -D sulla command line ha la precedenza su gradle.properties: e' la
+        # cintura oltre alle bretelle della riga scritta qui sopra. GRADLE_OPTS
+        # resta perche' copre la JVM launcher, che con --no-daemon e' un
+        # processo distinto da quello che esegue i task.
+        run: cd android && chmod +x gradlew && ./gradlew bundleRelease --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx6g -XX:MaxMetaspaceSize=1g -XX:+UseG1GC -Dfile.encoding=UTF-8"
         env:
           ANDROID_KEYSTORE_PATH: release.keystore
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
