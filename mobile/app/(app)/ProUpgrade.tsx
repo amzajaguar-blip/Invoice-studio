@@ -239,11 +239,15 @@ export default function ProUpgradeScreen() {
           `[ProUpgrade] nessun package per "${targetId}" — offering "${offerings.current.identifier}" contiene:`,
           available,
         );
+        // L'elenco dei product id serve solo a chi sta debuggando: in una
+        // build di store e' rumore incomprensibile davanti a un pagamento.
         throw new Error(
-          `${t("modal.pro_upgrade.error.product_not_found")}\n\n` +
-            `Atteso:\n${targetId}\n\n` +
-            `Offering "${offerings.current.identifier}" contiene:\n` +
-            (available.length ? available.join('\n') : '(nessun prodotto)'),
+          __DEV__
+            ? `${t("modal.pro_upgrade.error.product_not_found")}\n\n` +
+                `Atteso:\n${targetId}\n\n` +
+                `Offering "${offerings.current.identifier}" contiene:\n` +
+                (available.length ? available.join('\n') : '(nessun prodotto)')
+            : t("modal.pro_upgrade.error.product_not_found"),
         );
       }
 
@@ -419,10 +423,14 @@ export default function ProUpgradeScreen() {
       {/* Striscia diagnostica: resta visibile anche quando non c'e' errore.
           "Il pulsante non fa niente" non e' un'informazione — questa riga dice
           se il tap arriva, quale piano e' selezionato e cosa ha risposto
-          RevenueCat. Selezionabile per poterla copiare. */}
-      <Text style={s.diagText} selectable>
-        {`diag: ${diag} · stato=${purchaseState}`}
-      </Text>
+          RevenueCat. Selezionabile per poterla copiare.
+          Solo in dev: su una build di store mostrerebbe contatori di tap e
+          product id a chi sta pagando. */}
+      {__DEV__ && (
+        <Text style={s.diagText} selectable>
+          {`diag: ${diag} · stato=${purchaseState}`}
+        </Text>
+      )}
 
       {/* Error state */}
       {purchaseState === "error" && (
