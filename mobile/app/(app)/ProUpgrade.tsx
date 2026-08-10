@@ -170,6 +170,24 @@ export default function ProUpgradeScreen() {
         throw new Error(t("modal.pro_upgrade.error.loading_prices"));
       }
 
+      // Snapshot completo dell'offering PRIMA di tentare l'acquisto: e' il
+      // dato che dice se il piano annuale esiste davvero lato RevenueCat.
+      console.log(
+        '[ProUpgrade] offering corrente:',
+        JSON.stringify(
+          {
+            offering: offerings.current.identifier,
+            packages: offerings.current.availablePackages.map((p: PurchasesPackage) => ({
+              packageId: p.identifier,
+              productId: p.product.identifier,
+              price: p.product.priceString,
+            })),
+          },
+          null,
+          2,
+        ),
+      );
+
       // Mappiamo il piano selezionato all'ID prodotto RevenueCat/Google Play.
       // Usa startsWith() per coprire sia l'identifier semplice sia il qualified
       // base plan (es. "vela_premium_yearly:vela-premium-yearly-base").
@@ -179,13 +197,28 @@ export default function ProUpgradeScreen() {
       );
 
       if (!pkg) {
-        // Diagnostica: distingue "prodotto assente dall'offering" da un
-        // mismatch di identifier, i due casi che si presentano identici a video.
-        console.warn(
-          `[ProUpgrade] nessun package per "${targetId}" — identifier disponibili nell'offering "${offerings.current.identifier}":`,
-          offerings.current.availablePackages.map((p: PurchasesPackage) => p.product.identifier),
+        // Qui si ferma l'annuale: il fallimento avviene PRIMA di
+        // purchasePackage(), quindi Google Play non viene mai invocato e
+        // l'utente non vede nessuna schermata di pagamento.
+        //
+        // Le due cause si presentano identiche a video — prodotto assente
+        // dall'offering, oppure presente con un identifier diverso da quello
+        // atteso — e si distinguono solo confrontando le stringhe. Per questo
+        // l'elenco reale finisce anche nel messaggio a schermo: su un telefono
+        // senza cavo USB e' l'unico modo di leggerlo.
+        const available = offerings.current.availablePackages.map(
+          (p: PurchasesPackage) => p.product.identifier,
         );
-        throw new Error(`${t("modal.pro_upgrade.error.product_not_found")} (${targetId})`);
+        console.warn(
+          `[ProUpgrade] nessun package per "${targetId}" — offering "${offerings.current.identifier}" contiene:`,
+          available,
+        );
+        throw new Error(
+          `${t("modal.pro_upgrade.error.product_not_found")}\n\n` +
+            `Atteso:\n${targetId}\n\n` +
+            `Offering "${offerings.current.identifier}" contiene:\n` +
+            (available.length ? available.join('\n') : '(nessun prodotto)'),
+        );
       }
 
       const { customerInfo } = await Purchases.purchasePackage(pkg);
@@ -360,7 +393,9 @@ export default function ProUpgradeScreen() {
       {/* Error state */}
       {purchaseState === "error" && (
         <View style={s.errorBanner}>
-          <Text style={s.errorText}>{errorMessage}</Text>
+          {/* selectable: l'elenco dei product id va copiato e confrontato
+              carattere per carattere con Play Console e RevenueCat. */}
+          <Text style={s.errorText} selectable>{errorMessage}</Text>
           <TouchableOpacity onPress={handleRetry} accessibilityRole="button" accessibilityLabel={t("modal.pro_upgrade.retry.a11y")}>
             <Text style={s.retryText}>{t("modal.pro_upgrade.retry.text")}</Text>
           </TouchableOpacity>
