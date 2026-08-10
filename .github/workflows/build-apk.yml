@@ -89,30 +89,30 @@ jobs:
             echo "::warning title=Build non di produzione::Questa build usa ADS_MODE=$ADS_MODE. NON caricarla sullo store."
           fi
 
-      - name: Decode and set up keystore
-        env:
-          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: |
-          echo "$KEYSTORE_BASE64" | base64 -d > keystore.jks
-          mv keystore.jks android/app/
-          echo "ANDROID_KEYSTORE_PATH=$GITHUB_WORKSPACE/android/app/keystore.jks" >> $GITHUB_ENV
-          echo "ANDROID_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> $GITHUB_ENV
-          echo "ANDROID_KEY_ALIAS=$KEY_ALIAS" >> $GITHUB_ENV
-          echo "ANDROID_KEY_PASSWORD=$KEY_PASSWORD" >> $GITHUB_ENV
-
-      - name: Set Gradle properties for release signing and minification
-        run: |
-          echo "android.enableProguardInReleaseBuilds=true" >> android/gradle.properties
-          echo "android.enableShrinkResourcesInReleaseBuilds=true" >> android/gradle.properties
-
       - name: Expo prebuild (genera cartella android/)
         run: npx expo prebuild --platform android --no-install --clean
 
-      - name: Patch build.gradle to embed JS bundle in debug
+      # Il keystore va decodificato DOPO il prebuild: '--clean' cancella e
+      # rigenera android/, quindi un keystore scritto prima sparisce e la
+      # firma di release ricade sul debug.keystore.
+      - name: Decode release keystore from secret (with size assertion + chmod 600)
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/release.keystore
+          ls -la android/app/release.keystore
+          if [ ! -s android/app/release.keystore ]; then
+            echo "❌ Keystore file is empty — ANDROID_KEYSTORE_BASE64 secret missing or malformed"
+            exit 1
+          fi
+          chmod 600 android/app/release.keystore
+          echo "✅ Keystore decoded and secured (mode 600)"
+
+      - name: Patch build.gradle (signing di release + bundle JS embedded)
         run: python3 scripts/patch_build_gradle.py
+        env:
+          ANDROID_KEYSTORE_PATH: release.keystore
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
       - name: Inject Gradle init script to block Sonatype snapshots
         run: |
@@ -147,17 +147,51 @@ jobs:
           }
           INITSCRIPT
 
-      - name: Build APK Debug
-        run: cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon --stacktrace
+      # Stessi flag del workflow AAB: R8 in full mode ha gia' fatto sparire
+      # MainActivity in passato, e qui serve un APK che si installi, non uno
+      # ottimizzato al massimo.
+      - name: Disable shrinkResources and R8 full mode for faster build
+        run: |
+          echo "android.enableShrinkResourcesInReleaseBuilds=false" >> android/gradle.properties
+          echo "android.enableR8.fullMode=false" >> android/gradle.properties
+          # expo prebuild rigenera gradle.properties col default Expo
+          # (-Xmx2048m), che manda in OutOfMemoryError
+          # ':app:collectReleaseDependencies'. L'ultima occorrenza vince.
+          echo "org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g -XX:+UseG1GC -Dfile.encoding=UTF-8" >> android/gradle.properties
+          grep -E 'enableShrinkResources|enableR8|jvmargs' android/gradle.properties
+
+      - name: Build APK Release
+        # Le variabili del keystore servono a Gradle in fase di build, non solo
+        # alla patch: build.gradle le legge con System.getenv().
+        run: cd android && chmod +x gradlew && ./gradlew assembleRelease --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx6g -XX:MaxMetaspaceSize=1g -XX:+UseG1GC -Dfile.encoding=UTF-8"
+        env:
+          ANDROID_KEYSTORE_PATH: release.keystore
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          GRADLE_OPTS: "-Xmx6g -Dfile.encoding=UTF-8 -XX:+UseG1GC -XX:MaxMetaspaceSize=1g"
 
       - name: Locate APK
         if: always()
         run: find android -name "*.apk" 2>/dev/null || echo "APK non trovato"
 
-      - name: Upload APK Debug
+      # Un APK firmato debug e' indistinguibile a occhio da uno di release, ma
+      # Google Play Billing lo rifiuta: meglio far fallire qui la build che
+      # scoprirlo sul telefono.
+      - name: Verify APK is release-signed (not debug)
+        run: |
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          "$ANDROID_HOME"/build-tools/*/apksigner verify --print-certs "$APK" | tee /tmp/certs.txt
+          if grep -q "CN=Android Debug" /tmp/certs.txt; then
+            echo "❌ APK firmato col keystore di debug — Google Play Billing lo rifiutera'"
+            exit 1
+          fi
+          echo "✅ APK firmato con il keystore di release"
+
+      - name: Upload APK Release
         uses: actions/upload-artifact@v4
         with:
-          name: MiloOffice-v${{ steps.appver.outputs.name }}-APK-ads_${{ steps.adsmode.outputs.mode }}-${{ github.sha }}
-          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          name: MiloOffice-v${{ steps.appver.outputs.name }}-APK-release-signed-ads_${{ steps.adsmode.outputs.mode }}-${{ github.sha }}
+          path: mobile/android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 14
