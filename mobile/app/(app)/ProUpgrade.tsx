@@ -24,14 +24,17 @@ const SUCCESS_ANIM_DURATION_MS = 400;
 const SUCCESS_DISPLAY_MS = 500;
 
 // IDs MUST match the RevenueCat / Google Play Console products exactly.
-// Configured on Play Console + RevenueCat as base plans:
-//   monthly → "vela.premium.monthly"
-//   yearly  → "vela_premium_yearly"  (base plan "vela-premium-yearly-base")
-// Match uses startsWith() to be robust against qualified base plan identifiers
-// (e.g. "vela_premium_yearly:vela-premium-yearly-base").
+// Source of truth (Play Console, read 2026-08-10):
+//   monthly → productId "vela.premium.monthly"      + base plan "vela-premium-monthly"
+//   yearly  → productId "milo.premium_yearly.base"  + base plan "milo-premium-yearly-annual"
+// On Android, RevenueCat surfaces the qualified form "<productId>:<basePlanId>":
+//   vela.premium.monthly:vela-premium-monthly
+//   milo.premium_yearly.base:milo-premium-yearly-annual
+// Match uses startsWith() on the productId (which is unique per product) so it
+// works against both the bare identifier and the qualified one.
 const PRODUCT_IDS = {
   monthly: 'vela.premium.monthly',
-  yearly: 'vela_premium_yearly',
+  yearly: 'milo.premium_yearly.base',
 } as const;
 
 /**
@@ -68,6 +71,11 @@ export default function ProUpgradeScreen() {
   const { t } = useLocale();
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "yearly">("yearly");
   const [purchaseState, setPurchaseState] = useState<"idle" | "loading" | "restoring" | "success" | "error">("idle");
+  // Diagnostica visibile a schermo: "il pulsante non fa niente" non dice se
+  // l'handler non parte, se la guardia di rientro lo blocca o se getOfferings
+  // non risponde. Queste tre righe distinguono i tre casi senza cavo USB.
+  const [diag, setDiag] = useState<string>("pronto");
+  const pressCount = useRef(0);
   const [errorMessage, setErrorMessage] = useState("");
   const [reduceMotion, setReduceMotion] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -83,6 +91,10 @@ export default function ProUpgradeScreen() {
 
   useEffect(() => {
     AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
+    // Se un tentativo precedente e' morto senza passare dal finally, la
+    // guardia di rientro resterebbe alzata e il pulsante non risponderebbe
+    // piu' fino alla chiusura dell'app. Si riparte sempre da pulito.
+    purchaseInFlight.current = false;
     return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
   }, []);
 
@@ -155,20 +167,34 @@ export default function ProUpgradeScreen() {
   };
 
   const handleSubscribe = async () => {
+    // Prima di ogni guardia: se questo contatore non avanza al tap, il
+    // problema e' nel pulsante (disabilitato, area non premibile), non nel
+    // flusso d'acquisto.
+    pressCount.current += 1;
+    setDiag(`tap #${pressCount.current} · piano=${selectedPlan} · stato=${purchaseState}`);
+
     // Guardia di rientro: senza questa, "Riprova" durante un acquisto ancora
     // aperto manda una seconda purchasePackage a RevenueCat, che risponde con
     // un errore di operazione già in corso e lascia orfano il timer precedente.
-    if (purchaseInFlight.current) return;
+    if (purchaseInFlight.current) {
+      setDiag(`tap #${pressCount.current} IGNORATO: acquisto gia' in corso`);
+      return;
+    }
     purchaseInFlight.current = true;
 
     setPurchaseState("loading");
     setErrorMessage("");
 
     try {
+      setDiag(`tap #${pressCount.current} · carico offering…`);
       const offerings = await loadOfferingsWithTimeout();
       if (!offerings.current) {
+        setDiag(`offering: NESSUNA offering corrente su RevenueCat`);
         throw new Error(t("modal.pro_upgrade.error.loading_prices"));
       }
+      setDiag(
+        `offering "${offerings.current.identifier}" · ${offerings.current.availablePackages.length} package`,
+      );
 
       // Snapshot completo dell'offering PRIMA di tentare l'acquisto: e' il
       // dato che dice se il piano annuale esiste davvero lato RevenueCat.
@@ -190,7 +216,7 @@ export default function ProUpgradeScreen() {
 
       // Mappiamo il piano selezionato all'ID prodotto RevenueCat/Google Play.
       // Usa startsWith() per coprire sia l'identifier semplice sia il qualified
-      // base plan (es. "vela_premium_yearly:vela-premium-yearly-base").
+      // base plan (es. "milo.premium_yearly.base:milo-premium-yearly-annual").
       const targetId = PRODUCT_IDS[selectedPlan];
       const pkg = offerings.current.availablePackages.find(
         (p: PurchasesPackage) => !!p.product.identifier?.startsWith(targetId)
@@ -390,6 +416,14 @@ export default function ProUpgradeScreen() {
         )}
       </TouchableOpacity>
 
+      {/* Striscia diagnostica: resta visibile anche quando non c'e' errore.
+          "Il pulsante non fa niente" non e' un'informazione — questa riga dice
+          se il tap arriva, quale piano e' selezionato e cosa ha risposto
+          RevenueCat. Selezionabile per poterla copiare. */}
+      <Text style={s.diagText} selectable>
+        {`diag: ${diag} · stato=${purchaseState}`}
+      </Text>
+
       {/* Error state */}
       {purchaseState === "error" && (
         <View style={s.errorBanner}>
@@ -468,6 +502,7 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: "#fca5a544", flexDirection: "row", alignItems: "center", justifyContent: "space-between"
   },
   errorText: { color: "#fca5a5", fontSize: 13, flex: 1 },
+  diagText: { color: "#6b7280", fontSize: 11, marginTop: 10, textAlign: "center" },
   retryText: { color: "#a78bfa", fontSize: 14, fontWeight: "600", marginLeft: 12 },
 
   cancelBtn: { alignItems: "center", paddingVertical: 12 },
