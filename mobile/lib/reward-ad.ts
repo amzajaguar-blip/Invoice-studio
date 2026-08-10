@@ -38,6 +38,7 @@ import {
 import NetInfo from '@react-native-community/netinfo';
 import { initAds } from './ads';
 import { AD_UNITS } from './ads-config';
+import { supabase } from '@/lib/supabase';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -88,7 +89,10 @@ export async function preloadDocumentsRewardAd(): Promise<boolean> {
 
   rewardAdLoading = true;
 
-  return new Promise<boolean>((resolve) => {
+  // L'executor e' async perche' l'identita' per l'SSV va letta dalla sessione
+  // Supabase prima di costruire la richiesta. Gli errori sono gia' catturati
+  // dal try/catch interno, quindi nessuna promise resta appesa.
+  return new Promise<boolean>(async (resolve) => {
     let settled = false;
 
     const settleAll = (ready: boolean) => {
@@ -110,10 +114,35 @@ export async function preloadDocumentsRewardAd(): Promise<boolean> {
     }, REWARD_AD_LOAD_TIMEOUT_MS);
 
     try {
+      // Server-Side Verification: senza questo blocco AdMob chiama la
+      // callback SSV senza sapere a chi accreditare il reward, e la edge
+      // function reward-document-credit scarta la richiesta perche' le manca
+      // user_id. Il credito lato server non arrivava mai — l'utente vedeva il
+      // video e non riceveva nulla.
+      //
+      // La edge function legge dai query param: user_id (UUID Supabase auth) e
+      // custom_data (org_id). Vanno impostati PRIMA di ad.load(): dopo il
+      // caricamento la richiesta e' gia' partita.
+      const ssv = await getRewardSsvIdentity();
+
       const ad = RewardedAd.createForAdRequest(REWARDED_DOCUMENTS_AD_UNIT_ID, {
         // Consenso gestito da UMP in initAds — coerente con ads.ts.
         requestNonPersonalizedAdsOnly: false,
+        ...(ssv
+          ? {
+              serverSideVerificationOptions: {
+                userId: ssv.userId,
+                customData: ssv.orgId ?? '',
+              },
+            }
+          : {}),
       });
+
+      if (!ssv) {
+        // Senza sessione non c'e' nessuno da accreditare: si carica comunque
+        // l'annuncio, ma il reward restera' solo locale.
+        console.warn('[reward-ad] nessuna sessione: SSV non agganciata');
+      }
 
       const unsubLoaded = ad.addAdEventListener(RewardedAdEventType.LOADED, () => {
         unsubLoaded();
@@ -140,6 +169,28 @@ export async function preloadDocumentsRewardAd(): Promise<boolean> {
       settleAll(false);
     }
   });
+}
+
+/**
+ * Identita' da passare ad AdMob per la Server-Side Verification.
+ *
+ * `userId` e' l'UUID dell'utente Supabase, `orgId` finisce in `custom_data`.
+ * Sono esattamente i due campi che la edge function reward-document-credit
+ * legge dai query param della callback.
+ */
+async function getRewardSsvIdentity(): Promise<{ userId: string; orgId?: string } | null> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    if (!userId) return null;
+    const orgId =
+      (session.user.user_metadata?.org_id as string | undefined) ??
+      (session.user.app_metadata?.org_id as string | undefined);
+    return { userId, orgId };
+  } catch (err) {
+    console.warn('[reward-ad] impossibile leggere la sessione per l\'SSV', err);
+    return null;
+  }
 }
 
 // ─── Show ────────────────────────────────────────────────────────────────────

@@ -1,14 +1,19 @@
 /**
- * business-boost.ts — Business Boost Service (rewarded ads removed for Play Store prep).
+ * business-boost.ts — Business Boost Service.
  *
- * The rewarded-ad lifecycle (preload/show) is disabled; the surrounding
- * quota/cooldown logic is preserved. `preloadBoostAd` reports the boost
- * ads as temporarily unavailable so the UI degrades gracefully.
+ * Il ciclo di vita dell'annuncio rewarded era stato disattivato in
+ * preparazione della pubblicazione sullo store e mai riacceso: `preloadBoostAd`
+ * riportava sempre "non disponibile" e il Business Boost risultava rotto
+ * qualunque cosa si configurasse su AdMob. Ora delega a `lib/reward-ad.ts`,
+ * che e' l'implementazione viva ed e' agganciata alla Server-Side
+ * Verification — quindi il credito arriva anche al backend, non solo alla UI.
+ * La logica di quota e cooldown attorno e' rimasta invariata.
  *
  * Requirements: 2.5, 2.6, 12.1, 12.3, 12.4, 12.5, 12.6
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { preloadDocumentsRewardAd, showDocumentsRewardAd } from './reward-ad';
 
 // ─── Costanti compile-time ────────────────────────────────────────────────────
 
@@ -139,9 +144,28 @@ export interface PreloadOptions {
  */
 export const BOOST_UNAVAILABLE_KEY = 'boost_unavailable_video_hint';
 
+/**
+ * Precarica l'annuncio rewarded del Business Boost.
+ *
+ * Ritorna una funzione di annullamento: se il componente si smonta prima che
+ * il caricamento finisca, i callback non vengono piu' invocati.
+ */
 export function preloadBoostAd(options: PreloadOptions): () => void {
-  options.onError(BOOST_UNAVAILABLE_KEY);
-  return () => {};
+  let cancelled = false;
+
+  void preloadDocumentsRewardAd()
+    .then((ready) => {
+      if (cancelled) return;
+      if (ready) options.onReady({});
+      else options.onError(BOOST_UNAVAILABLE_KEY);
+    })
+    .catch(() => {
+      if (!cancelled) options.onError(BOOST_UNAVAILABLE_KEY);
+    });
+
+  return () => {
+    cancelled = true;
+  };
 }
 
 export interface ShowAdOptions {
@@ -152,7 +176,22 @@ export interface ShowAdOptions {
   onShowing?:     () => void;
 }
 
-/** No-op: rewarded ads disabled. */
-export async function showBoostAd(_options: ShowAdOptions): Promise<void> {
-  // Rewarded ads removed for Play Store prep.
+/**
+ * Mostra l'annuncio rewarded e applica il boost solo a reward guadagnato.
+ *
+ * `onBoostApplied` scatta sull'evento EARNED_REWARD dell'SDK, non alla
+ * chiusura dell'annuncio: chi chiude il video prima della fine non ottiene
+ * nulla. Il credito lato server arriva per conto suo via callback SSV.
+ */
+export async function showBoostAd(options: ShowAdOptions): Promise<void> {
+  options.onShowing?.();
+  try {
+    const shown = await showDocumentsRewardAd(() => {
+      options.onBoostApplied();
+    });
+    if (!shown) options.onBoostError();
+  } catch (err) {
+    console.warn('[business-boost] showBoostAd fallita', err);
+    options.onBoostError();
+  }
 }
