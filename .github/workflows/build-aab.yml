@@ -24,6 +24,16 @@ on:
         type: string
         required: false
         default: ''
+      billing_diag:
+        description: >-
+          Diagnostica del paywall a schermo e log RevenueCat VERBOSE. Default
+          false: questo artifact finisce sullo store. Va messo a true solo per
+          un AAB da caricare sul canale di test interno, che e' l'unico modo
+          di leggere la risposta di Google Play Billing su un'app installata
+          da Play. Un AAB con true NON va promosso in produzione.
+        type: boolean
+        required: false
+        default: false
 
 jobs:
   aab-release:
@@ -75,16 +85,31 @@ jobs:
           # sicura.
           ADS_MODE="${ADS_MODE:-production}"
 
+          BILLING_DIAG=0
+          SUFFIX=""
+          if [ "${{ inputs.billing_diag }}" = "true" ]; then
+            BILLING_DIAG=1
+            SUFFIX="-BILLINGDIAG-solo-test-interno"
+          fi
+
           {
             echo "EXPO_PUBLIC_REVENUECAT_API_KEY=${{ secrets.REVENUECAT_API_KEY }}"
             echo "EXPO_PUBLIC_ADS_MODE=$ADS_MODE"
             echo "EXPO_PUBLIC_ADS_TEST_DEVICE_ID=${{ inputs.ads_test_device_id }}"
+            echo "EXPO_PUBLIC_BILLING_DIAG=$BILLING_DIAG"
           } > .env
 
           echo "mode=$ADS_MODE" >> $GITHUB_OUTPUT
-          echo "ADS_MODE=$ADS_MODE"
+          # Il suffisso finisce nel nome dell'artifact: un AAB con la
+          # diagnostica accesa e uno di produzione sono identici a occhio, e
+          # promuovere il primo mostrerebbe contatori di tap a chi paga.
+          echo "diagsuffix=$SUFFIX" >> $GITHUB_OUTPUT
+          echo "ADS_MODE=$ADS_MODE · BILLING_DIAG=$BILLING_DIAG"
           if [ "$ADS_MODE" != "production" ]; then
             echo "::warning title=Build non di produzione::Questa build usa ADS_MODE=$ADS_MODE. NON caricarla sullo store."
+          fi
+          if [ "$BILLING_DIAG" = "1" ]; then
+            echo "::warning title=Diagnostica billing accesa::Questo AAB mostra la diagnostica del paywall. Va solo sul canale di test interno, NON in produzione."
           fi
 
       - name: Expo prebuild
@@ -456,7 +481,7 @@ jobs:
       - name: Upload AAB Release
         uses: actions/upload-artifact@v4
         with:
-          name: MiloOffice-v${{ steps.appver.outputs.name }}-AAB-signed-ads_${{ steps.adsmode.outputs.mode }}-${{ github.sha }}
+          name: MiloOffice-v${{ steps.appver.outputs.name }}-AAB-signed-ads_${{ steps.adsmode.outputs.mode }}${{ steps.adsmode.outputs.diagsuffix }}-${{ github.sha }}
           path: mobile/android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 14
