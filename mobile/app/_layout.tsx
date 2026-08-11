@@ -17,12 +17,13 @@ import { StartupErrorBoundary } from "@/app/components/StartupErrorBoundary";
 import { useEffect } from "react";
 import { Platform } from "react-native";
 import Constants from "expo-constants";
-import Purchases from "react-native-purchases";
+import Purchases, { LOG_LEVEL } from "react-native-purchases";
 import * as Notifications from "expo-notifications";
 import * as Linking from "expo-linking";
 import { initializePushNotifications } from "@/lib/notifications-service";
 import { initAds } from "@/lib/ads";
 import { initRevenueCatIdentity } from "@/lib/revenuecat-identity";
+import { BILLING_DIAG } from "@/lib/billing-diag";
 
 const logBoot = (msg: string, data?: any) => {
   if (__DEV__) {
@@ -173,9 +174,14 @@ export default function RootLayout() {
     // Configure RevenueCat for both iOS and Android
     try {
       // Read platform-specific API keys from app.json extra with env fallback
+      // Il fallback da env leggeva solo EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID,
+      // ma la CI scrive nel .env la chiave senza suffisso: se app.json un
+      // giorno non la portasse piu', il fallback non troverebbe niente e
+      // RevenueCat resterebbe non configurato senza un errore evidente.
       const androidApiKey =
         (Constants.expoConfig?.extra?.revenueCatApiKey as string) ||
-        process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID;
+        process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID ||
+        process.env.EXPO_PUBLIC_REVENUECAT_API_KEY;
       const iosApiKey =
         (Constants.expoConfig?.extra?.revenueCatApiKeyIOS as string) ||
         process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_IOS;
@@ -183,6 +189,14 @@ export default function RootLayout() {
       const apiKey = Platform.OS === "ios" ? iosApiKey : androidApiKey;
 
       if (apiKey) {
+        // VERBOSE stampa la risposta di BillingClient per esteso
+        // (responseCode + debugMessage di onBillingSetupFinished e delle query
+        // sui prodotti). Va impostato PRIMA di configure(), altrimenti la
+        // connessione al Play Store — la parte che interessa — e' gia'
+        // avvenuta al livello di log di default.
+        if (BILLING_DIAG) {
+          Purchases.setLogLevel(LOG_LEVEL.VERBOSE).catch(() => {});
+        }
         Purchases.configure({ apiKey });
         logBoot(`BOOT_002a RevenueCat configured for ${Platform.OS}`);
         // Senza questo l'App User ID resta anonimo e il webhook RevenueCat

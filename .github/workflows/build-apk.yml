@@ -26,6 +26,15 @@ on:
         type: string
         required: false
         default: ''
+      billing_diag:
+        description: >-
+          Diagnostica del paywall visibile a schermo e log RevenueCat VERBOSE
+          (responseCode e debugMessage di BillingClient). Default true: questo
+          APK serve a collaudare, non si carica sullo store. Su una build
+          destinata agli utenti va messo a false.
+        type: boolean
+        required: false
+        default: true
 
 jobs:
   apk-debug:
@@ -77,11 +86,19 @@ jobs:
           # sicura.
           ADS_MODE="${ADS_MODE:-production}"
 
+          # Un push su main non passa inputs: inputs.billing_diag e' vuoto e
+          # la diagnostica resta spenta, che e' il default giusto per una
+          # build non richiesta esplicitamente per il collaudo.
+          BILLING_DIAG=0
+          if [ "${{ inputs.billing_diag }}" = "true" ]; then BILLING_DIAG=1; fi
+
           {
             echo "EXPO_PUBLIC_REVENUECAT_API_KEY=${{ secrets.REVENUECAT_API_KEY }}"
             echo "EXPO_PUBLIC_ADS_MODE=$ADS_MODE"
             echo "EXPO_PUBLIC_ADS_TEST_DEVICE_ID=${{ inputs.ads_test_device_id }}"
+            echo "EXPO_PUBLIC_BILLING_DIAG=$BILLING_DIAG"
           } > .env
+          echo "BILLING_DIAG=$BILLING_DIAG"
 
           echo "mode=$ADS_MODE" >> $GITHUB_OUTPUT
           echo "ADS_MODE=$ADS_MODE"

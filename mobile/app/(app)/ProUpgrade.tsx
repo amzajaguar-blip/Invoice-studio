@@ -8,6 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 import Purchases, { PurchasesPackage, PurchasesOffering } from "react-native-purchases";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocale } from "@/components/LocaleProvider";
+import { BILLING_DIAG, billingDiagnosis, describeBillingError } from "@/lib/billing-diag";
 
 /**
  * Timeout sul solo caricamento delle offering RevenueCat.
@@ -108,6 +109,28 @@ export default function ProUpgradeScreen() {
     return () => { active = false; };
   }, []);
 
+  // Fotografia dello stato del billing all'apertura della schermata, prima di
+  // qualunque tap. canMakePayments() interroga Google Play sulla copia
+  // installata: se risponde false, nessun product ID e nessuna correzione al
+  // flusso d'acquisto puo' far comparire la schermata di pagamento, e saperlo
+  // qui evita di attribuire il fallimento al piano selezionato.
+  useEffect(() => {
+    if (!BILLING_DIAG) return;
+    let active = true;
+    Purchases.canMakePayments()
+      .then((ok) => {
+        if (!active) return;
+        console.log('[ProUpgrade] canMakePayments =', ok);
+        setDiag((prev) => `${prev} · billing=${ok ? 'disponibile' : 'NON disponibile'}`);
+      })
+      .catch((e) => {
+        if (!active) return;
+        console.warn('[ProUpgrade] canMakePayments fallita', e);
+        setDiag((prev) => `${prev} · billing=errore ${describeBillingError(e) || e?.message}`);
+      });
+    return () => { active = false; };
+  }, []);
+
   // Req 18.4: Trigger success animation when purchaseState becomes 'success'
   useEffect(() => {
     if (purchaseState !== "success") return;
@@ -192,8 +215,15 @@ export default function ProUpgradeScreen() {
         setDiag(`offering: NESSUNA offering corrente su RevenueCat`);
         throw new Error(t("modal.pro_upgrade.error.loading_prices"));
       }
+      // I product id reali, non solo il conteggio: se Google Play non
+      // riconosce l'app, RevenueCat consegna l'offering con zero package
+      // (o senza prezzo) e la riga qui sotto lo dice prima ancora di premere.
       setDiag(
-        `offering "${offerings.current.identifier}" · ${offerings.current.availablePackages.length} package`,
+        `offering "${offerings.current.identifier}" · ` +
+          `${offerings.current.availablePackages.length} package: ` +
+          (offerings.current.availablePackages
+            .map((p: PurchasesPackage) => `${p.product.identifier}=${p.product.priceString}`)
+            .join(' | ') || '(nessuno)'),
       );
 
       // Snapshot completo dell'offering PRIMA di tentare l'acquisto: e' il
@@ -242,7 +272,7 @@ export default function ProUpgradeScreen() {
         // L'elenco dei product id serve solo a chi sta debuggando: in una
         // build di store e' rumore incomprensibile davanti a un pagamento.
         throw new Error(
-          __DEV__
+          BILLING_DIAG
             ? `${t("modal.pro_upgrade.error.product_not_found")}\n\n` +
                 `Atteso:\n${targetId}\n\n` +
                 `Offering "${offerings.current.identifier}" contiene:\n` +
@@ -276,6 +306,7 @@ export default function ProUpgradeScreen() {
       // informazione che rende diagnosticabile un fallimento da remoto:
       // senza, ogni causa diversa arriva come lo stesso messaggio generico.
       const code = e?.code ?? e?.userInfo?.readableErrorCode;
+      const details = describeBillingError(e);
       console.warn("[ProUpgrade] acquisto fallito", {
         plan: selectedPlan,
         productId: PRODUCT_IDS[selectedPlan],
@@ -285,7 +316,24 @@ export default function ProUpgradeScreen() {
       });
       setPurchaseState("error");
       const base = e?.message || t("modal.pro_upgrade.error.unknown");
-      setErrorMessage(code ? `${base} [${code}]` : base);
+
+      // Quando la causa e' identificabile la si scrive per esteso invece del
+      // codice nudo: "STORE_PROBLEM [2]" non ha mai fatto capire a nessuno che
+      // il problema e' la firma dell'APK e non il prodotto. Resta pero' un
+      // testo per chi sta collaudando: a un utente che ha installato da Play
+      // lo stesso codice arriva per cause sue (Play da aggiornare, paese non
+      // supportato) e una spiegazione sulle chiavi di firma lo confonderebbe.
+      const diagnosis = BILLING_DIAG ? billingDiagnosis(e) : null;
+      setDiag(
+        `acquisto fallito · piano=${selectedPlan} · ${details || 'nessun codice'}`,
+      );
+      setErrorMessage(
+        [
+          code ? `${base} [${code}]` : base,
+          diagnosis ? `\n\n${diagnosis}` : '',
+          BILLING_DIAG && details ? `\n\n${details}` : '',
+        ].join(''),
+      );
     } finally {
       purchaseInFlight.current = false;
     }
@@ -424,9 +472,9 @@ export default function ProUpgradeScreen() {
           "Il pulsante non fa niente" non e' un'informazione — questa riga dice
           se il tap arriva, quale piano e' selezionato e cosa ha risposto
           RevenueCat. Selezionabile per poterla copiare.
-          Solo in dev: su una build di store mostrerebbe contatori di tap e
-          product id a chi sta pagando. */}
-      {__DEV__ && (
+          Solo con EXPO_PUBLIC_BILLING_DIAG=1 (o in dev): su una build di store
+          mostrerebbe contatori di tap e product id a chi sta pagando. */}
+      {BILLING_DIAG && (
         <Text style={s.diagText} selectable>
           {`diag: ${diag} · stato=${purchaseState}`}
         </Text>
