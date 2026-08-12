@@ -50,6 +50,14 @@ export interface BoostSession {
   errorMsg: string | null;
   /** Chiama per mostrare l'annuncio rewarded */
   showAd: () => void;
+  /**
+   * Riavvia il caricamento dopo un errore.
+   *
+   * Serve un'azione distinta da `showAd`: quest'ultima esce subito se lo stato
+   * non e' 'ready', quindi in stato 'error' — l'unico in cui il bottone
+   * "Riprova" e' a schermo — non poteva fare nulla per costruzione.
+   */
+  retryAd: () => void;
   /** True se il boost è già attivo (TTL 24h non scaduto) */
   boostActive: boolean;
   /** Tempo rimanente al boost, es. "23h 14m"; null se boost non attivo */
@@ -169,7 +177,6 @@ export function preloadBoostAd(options: PreloadOptions): () => void {
 
 export interface ShowAdOptions {
   ad: unknown;
-  orgId: string;
   onBoostApplied: () => void;
   onBoostError:   () => void;
   onShowing?:     () => void;
@@ -181,6 +188,13 @@ export interface ShowAdOptions {
  * `onBoostApplied` scatta sull'evento EARNED_REWARD dell'SDK, non alla
  * chiusura dell'annuncio: chi chiude il video prima della fine non ottiene
  * nulla. Il credito lato server arriva per conto suo via callback SSV.
+ *
+ * Qui NON si passa piu' un `orgId`. Non e' mai stato usato da questa funzione,
+ * ma il chiamante lo pretendeva prima di procedere e usciva in silenzio quando
+ * mancava: il risultato era un bottone "Guarda video" che non reagiva al tap.
+ * L'org a cui accreditare il reward la risolve `getRewardSsvIdentity()` in
+ * reward-ad.ts leggendo la sessione Supabase, che e' la fonte giusta perche' e'
+ * la stessa che AdMob rimanda al server nella callback SSV.
  */
 export async function showBoostAd(options: ShowAdOptions): Promise<void> {
   options.onShowing?.();

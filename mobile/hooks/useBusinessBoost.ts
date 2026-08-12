@@ -18,7 +18,6 @@ import {
   type BoostAdState,
 } from '@/lib/business-boost';
 import { usePlan } from '@/context/PlanContext';
-import { useAuth } from '@/hooks/useAuth';
 import type { ResourceType } from '@/lib/rate-limit-engine';
 import { useLocale } from "@/components/LocaleProvider";
 
@@ -45,7 +44,6 @@ export interface UseBusinessBoostReturn {
 export function useBusinessBoost(): UseBusinessBoostReturn {
   const { t } = useLocale();
   const { limits } = usePlan();
-  const { user } = useAuth();
 
   // ─── Stato modale ──────────────────────────────────────────────────────
   const [showBoostModal, setShowBoostModal]   = useState(false);
@@ -60,6 +58,12 @@ export function useBusinessBoost(): UseBusinessBoostReturn {
 
   // Ref per cleanup del preload (rimuove listener e timeout)
   const cleanupPreloadRef = useRef<(() => void) | null>(null);
+
+  // Contatore di richieste di ricaricamento. Incrementarlo rilancia l'effetto
+  // di preload: e' cio' che rende funzionante il bottone "Riprova" dello stato
+  // di errore, che prima chiamava showAd() — la quale esce subito se lo stato
+  // non e' 'ready', quindi in stato 'error' non poteva mai ricaricare nulla.
+  const [reloadNonce, setReloadNonce] = useState(0);
 
   // Ref per evitare setState su componente unmontato
   const mountedRef = useRef(true);
@@ -133,21 +137,29 @@ export function useBusinessBoost(): UseBusinessBoostReturn {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dailyAdsLeft]);
+  }, [dailyAdsLeft, reloadNonce]);
+
+  // ─── retryAd: riparte dal caricamento dopo un errore ──────────────────
+  const retryAd = useCallback(() => {
+    setReloadNonce((n) => n + 1);
+  }, []);
 
   // ─── showAd: mostra l'annuncio già caricato ───────────────────────────
+  // NB: qui non si legge piu' `user_metadata.org_id`. La guardia che c'era
+  // usciva in silenzio quando quel campo mancava, e il tap sul bottone "Guarda
+  // video" non produceva assolutamente nulla — nessun errore, nessun cambio di
+  // stato, nessun log visibile all'utente. Il campo non e' garantito: nessuna
+  // migrazione o trigger lo scrive, e infatti ogni altro consumatore
+  // (PlanContext, usePlanLimits, revenuecat-identity) lo tratta come un
+  // tentativo con fallback su `org_members`. Per di piu' `showBoostAd` non ha
+  // mai usato quel parametro: la guardia bloccava il bottone per un valore che
+  // nessuno leggeva. L'identita' per l'accredito la risolve reward-ad.ts dalla
+  // sessione Supabase.
   const showAd = useCallback(() => {
     if (adState !== 'ready' || !adRef.current) return;
 
-    const orgId = (user?.user_metadata?.org_id as string | undefined) ?? null;
-    if (!orgId) {
-      console.warn('[useBusinessBoost] showAd chiamato senza orgId disponibile');
-      return;
-    }
-
     showBoostAd({
       ad: adRef.current,
-      orgId,
       onShowing: () => {
         if (mountedRef.current) {
           setAdState('showing');
@@ -167,7 +179,7 @@ export function useBusinessBoost(): UseBusinessBoostReturn {
         }
       },
     });
-  }, [adState, user]);
+  }, [adState]);
 
   // ─── Calcolo boostExpiresIn ───────────────────────────────────────────
   const boostExpiresIn: string | null =
@@ -180,6 +192,7 @@ export function useBusinessBoost(): UseBusinessBoostReturn {
     state:          adState,
     errorMsg,
     showAd,
+    retryAd,
     boostActive:    limits.boostActive,
     boostExpiresIn,
     dailyAdsLeft,

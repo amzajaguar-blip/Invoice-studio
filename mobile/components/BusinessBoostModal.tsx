@@ -55,7 +55,7 @@ export default function BusinessBoostModal({
   const router = useRouter();
   const { t } = useLocale(); // Use the translation hook
 
-  const { state, errorMsg, showAd, dailyAdsLeft } = boostSession;
+  const { state, errorMsg, showAd, retryAd, dailyAdsLeft } = boostSession;
 
   // ─── Animazioni ────────────────────────────────────────────────────────
   const slideAnim  = useRef(new Animated.Value(height)).current;
@@ -239,6 +239,7 @@ export default function BusinessBoostModal({
               errorMsg={errorMsg}
               boostLabel={getBoostLabel()}
               onShowAd={showAd}
+              onRetry={retryAd}
               t={t}
             />
           )}
@@ -313,10 +314,15 @@ interface BoostCTAProps {
   errorMsg:   string | null;
   boostLabel: string;
   onShowAd:   () => void;
+  /**
+   * Riavvia il caricamento. Distinta da `onShowAd`: nello stato di errore non
+   * c'e' nessun annuncio da mostrare, quindi "Riprova" deve ricaricare.
+   */
+  onRetry:    () => void;
   t:          (key: string) => string; // Pass translation function
 }
 
-function BoostCTA({ state, errorMsg, boostLabel, onShowAd, t }: BoostCTAProps) {
+function BoostCTA({ state, errorMsg, boostLabel, onShowAd, onRetry, t }: BoostCTAProps) {
   const isLoading  = state === 'loading';
   const isError    = state === 'error';
   const isReady    = state === 'ready';
@@ -332,7 +338,7 @@ function BoostCTA({ state, errorMsg, boostLabel, onShowAd, t }: BoostCTAProps) {
           </Text>
           <TouchableOpacity
             style={s.retryBtn}
-            onPress={onShowAd}
+            onPress={onRetry}
             accessibilityRole="button"
             accessibilityLabel={t('boost_retry_ad_load')}
           >
