@@ -21,6 +21,13 @@ import { AD_UNITS } from '@/lib/ads-config';
 
 const BANNER_AD_UNIT_ID = AD_UNITS.banner;
 
+/**
+ * Oltre questo tempo senza risposta da AdMob la richiesta è considerata persa.
+ * Stesso valore del rewarded (`REWARD_AD_LOAD_TIMEOUT_MS` in reward-ad.ts): un
+ * banner che non ha risposto entro 10s non risponderà più.
+ */
+const BANNER_LOAD_TIMEOUT_MS = 10_000;
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 export interface BannerAdWrapperProps {
@@ -32,13 +39,34 @@ export interface BannerAdWrapperProps {
 
 export function BannerAdWrapper({ style }: BannerAdWrapperProps) {
   const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const [adsReady, setAdsReady] = useState(isAdsInitialized());
 
   useEffect(() => onAdsInitialized(() => setAdsReady(true)), []);
 
+  // Safety timeout: se il banner non riceve né onAdLoaded né onAdFailedToLoad
+  // (es. AdMob "In preparazione", SDK zombie, rete che risponde con payload
+  // vuoto), la richiesta resterebbe appesa per sempre. Allo scadere del
+  // timeout si passa a failed e il banner si nasconde.
+  //
+  // `loaded` deve stare nella condizione e nelle dipendenze: senza, il timer
+  // continua a correre anche dopo un caricamento riuscito e dopo 10s fa sparire
+  // un annuncio che era a schermo e funzionante.
+  useEffect(() => {
+    if (!adsReady || failed || loaded) return;
+    const t = setTimeout(() => setFailed(true), BANNER_LOAD_TIMEOUT_MS);
+    return () => clearTimeout(t);
+  }, [adsReady, failed, loaded]);
+
   // Niente richiesta prima che consenso UMP + initialize() siano completati;
-  // se l'ad fallisce, non rendiamo nulla per non lasciare spazio vuoto.
-  if (!adsReady || failed) return null;
+  // se l'ad fallisce prima di essersi mai caricato, non rendiamo nulla per non
+  // lasciare spazio vuoto.
+  //
+  // `&& !loaded`: un banner già a schermo non va tolto. AdMob rinfresca il
+  // banner da solo a intervalli configurati in console, e un refresh senza fill
+  // emette onAdFailedToLoad — senza questa condizione un annuncio funzionante
+  // sparirebbe dopo il primo refresh a vuoto, per il resto della sessione.
+  if (!adsReady || (failed && !loaded)) return null;
 
   return (
     <View
@@ -55,7 +83,13 @@ export function BannerAdWrapper({ style }: BannerAdWrapperProps) {
         unitId={BANNER_AD_UNIT_ID}
         size={BannerAdSize.BANNER}
         requestOptions={{ requestNonPersonalizedAdsOnly: false }}
-        onAdFailedToLoad={() => setFailed(true)}
+        onAdLoaded={() => setLoaded(true)}
+        onAdFailedToLoad={() => {
+          // Solo il fallimento della PRIMA richiesta nasconde il banner: dopo
+          // un caricamento riuscito gli errori arrivano dai refresh e vanno
+          // ignorati (l'annuncio precedente resta valido a schermo).
+          if (!loaded) setFailed(true);
+        }}
       />
     </View>
   );
