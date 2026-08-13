@@ -12,13 +12,12 @@ import { SkeletonCard } from "@/components/SkeletonCard";
 import { EmptyState } from "@/components/EmptyState";
 import EditClientSheet from "@/app/(app)/clients/EditClientSheet";
 
-// V34 — gate, modals, banner, contextual card
+// V34 — gate, modals, contextual card
 import { usePlan } from "@/context/PlanContext";
 import { useBusinessBoost } from "@/hooks/useBusinessBoost";
 import { trackEvent } from "@/lib/analytics-events";
 import BusinessBoostModal from "@/components/BusinessBoostModal";
 import BoostSuccessModal from "@/components/BoostSuccessModal";
-import { BannerAdWrapper } from "@/components/BannerAdWrapper";
 import InAppContextualCard from "@/components/InAppContextualCard";
 import { useSmartCards } from "@/hooks/useSmartCards";
 import { useEngagementContext } from "@/context/EngagementContext";
@@ -58,7 +57,9 @@ export default function ClientsScreen() {
   const prevClientCountRef = useRef<number | null>(null);
 
   // V34 — plan gate
-  const { checkCanCreate, isPremium, limits } = usePlan();
+  // `isPremium` non serve piu' da quando il banner non esiste: era l'unica cosa
+  // che lo leggeva in questa schermata.
+  const { checkCanCreate, limits } = usePlan();
   const {
     boostSession,
     showBoostModal,
@@ -266,11 +267,6 @@ export default function ClientsScreen() {
             cta={t("tabs.clients.empty.cta")}
             onCTA={handleAddClient}
           />
-        }
-        ListFooterComponent={
-          /* V34 — BannerAdWrapper at the bottom of the list, only if !isPremium
-             and plan resolution has finished (Req 9.7, 4.1) */
-          !isPremium && !limits.isLoading ? <BannerAdWrapper screen="customers" /> : null
         }
       />
 

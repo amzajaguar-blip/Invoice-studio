@@ -3,8 +3,8 @@
  *
  * Perché esiste
  * ─────────────
- * Gli ID erano scritti in tre file diversi (`ads.ts`, `reward-ad.ts`,
- * `BannerAdWrapper.tsx`), ognuno con il proprio `__DEV__ ? TestIds : '<id
+ * Gli ID erano scritti in piu' file, ognuno con il proprio
+ * `__DEV__ ? TestIds : '<id
  * reale>'`. Due conseguenze: in una build di release non c'era modo di provare
  * gli annunci senza modificare il codice a mano, e ogni swap manuale poteva
  * dimenticarsi uno dei tre punti — spedendo in produzione un ID demo, che non
@@ -46,7 +46,6 @@ export type AdsMode = 'test-demo' | 'test-device' | 'production';
  */
 export const PRODUCTION_AD_UNITS = {
   appId: 'ca-app-pub-8156953772676654~4738629818',
-  banner: 'ca-app-pub-8156953772676654/4020450686',
   interstitial: 'ca-app-pub-8156953772676654/6372493305',
   rewarded: 'ca-app-pub-8156953772676654/2433248294',
 } as const;
@@ -57,7 +56,6 @@ export const PRODUCTION_AD_UNITS = {
  */
 const DEMO_AD_UNITS = {
   appId: 'ca-app-pub-3940256099942544~3347511713',
-  banner: 'ca-app-pub-3940256099942544/6300978111',
   interstitial: 'ca-app-pub-3940256099942544/1033173712',
   rewarded: 'ca-app-pub-3940256099942544/5224354917',
 } as const;
@@ -111,7 +109,7 @@ export const LIBRARY_TEST_IDS = TestIds;
 export function describeAdsMode(): string {
   return (
     `[ADS] mode=${ADS_MODE} realUnits=${USING_REAL_AD_UNITS} ` +
-    `banner=${AD_UNITS.banner} interstitial=${AD_UNITS.interstitial} ` +
-    `rewarded=${AD_UNITS.rewarded} testDevices=${TEST_DEVICE_IDS.length}`
+    `interstitial=${AD_UNITS.interstitial} ` +
+    `testDevices=${TEST_DEVICE_IDS.length}`
   );
 }

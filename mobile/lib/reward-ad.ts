@@ -16,8 +16,8 @@
  *    non conosce lo stato piano e non deve conoscerlo.
  *
  * AdMob:
- *   Ad Unit ID (prod): ca-app-pub-8156953772676654/2433248294 — reward "1 Reward"
- *   In __DEV__ si usa TestIds.REWARDED. Mai l'ID di test in una build release.
+ *   L'ad unit in uso lo sceglie USE_TEST_ADS qui sotto: finche' l'account
+ *   AdMob non e' approvato gli ID di produzione rispondono sempre NO_FILL.
  *
  * Lifecycle (mapping dei callback nativi FullScreenContentCallback):
  *   preloadDocumentsRewardAd()  → load() + LOADED (onAdLoaded) /
@@ -33,18 +33,45 @@ import {
   RewardedAd,
   RewardedAdEventType,
   AdEventType,
-  TestIds,
 } from 'react-native-google-mobile-ads';
 import NetInfo from '@react-native-community/netinfo';
 import { initAds } from './ads';
-import { AD_UNITS } from './ads-config';
 import { describeAdError } from './ads-diag';
 import { supabase } from '@/lib/supabase';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
-/** Rewarded "documents" Ad Unit ID (production). */
-export const REWARDED_DOCUMENTS_AD_UNIT_ID = AD_UNITS.rewarded;
+/**
+ * Interruttore fra ID di test e ID reale.
+ *
+ * `true` finche' l'account AdMob non e' approvato: gli ad unit di produzione
+ * rispondono NO_FILL a ogni richiesta, quindi il video premio risulterebbe
+ * sempre non disponibile pur essendo il codice corretto. Gli ID di test di
+ * Google hanno fill garantito e non dipendono dallo stato del nostro account.
+ *
+ * Per tornare in produzione basta portarlo a `false`: nient'altro da cambiare.
+ */
+const USE_TEST_ADS = true;
+
+/**
+ * Ad unit rewarded ufficiale di test di Google per Android.
+ *
+ * E' una costante pubblica documentata, non un segreto, e serve annunci di
+ * test sempre — anche mentre un account e' in revisione.
+ */
+const TEST_REWARDED_AD_UNIT_ID = 'ca-app-pub-3940256099942544/5224354917';
+
+/**
+ * Ad unit rewarded reale — reward "1 Reward" sul nostro account AdMob.
+ *
+ * TODO: riattivare quando l'account AdMob sarà approvato
+ */
+const REAL_REWARDED_AD_UNIT_ID = 'ca-app-pub-8156953772676654/2433248294';
+
+/** Rewarded "documents" Ad Unit ID effettivamente usato da questa build. */
+export const REWARDED_DOCUMENTS_AD_UNIT_ID = USE_TEST_ADS
+  ? TEST_REWARDED_AD_UNIT_ID
+  : REAL_REWARDED_AD_UNIT_ID;
 
 /** Timeout di caricamento oltre il quale l'ad è dichiarato non disponibile (ms). */
 const REWARD_AD_LOAD_TIMEOUT_MS = 10_000;
@@ -56,18 +83,8 @@ let rewardAdReady = false;
 let rewardAdLoading = false;
 /** Resolver in attesa sull'esito del preload in corso (UI in "Caricamento…"). */
 let pendingResolvers: ((ready: boolean) => void)[] = [];
-/** Dettaglio dell'ultimo fallimento di caricamento, per la diagnostica. */
+/** Dettaglio dell'ultimo fallimento di caricamento, per i log. */
 let lastLoadError: string | null = null;
-
-/**
- * Ultimo errore di caricamento riportato dall'SDK, gia' leggibile.
- *
- * Null se non ci sono ancora stati fallimenti. La UI lo mostra solo quando la
- * diagnostica annunci e' accesa (`ADS_DIAG`).
- */
-export function getLastRewardAdError(): string | null {
-  return lastLoadError;
-}
 
 // ─── Preload ─────────────────────────────────────────────────────────────────
 
@@ -177,9 +194,9 @@ export async function preloadDocumentsRewardAd(): Promise<boolean> {
         unsubError();
         rewardAd = null;
         rewardAdReady = false;
-        // Il dettaglio va conservato, non solo loggato: la UI del Business
-        // Boost puo' mostrarlo, e un codice d'errore letto a schermo evita di
-        // dover indovinare se AdMob non aveva annunci o ha rifiutato l'unit.
+        // Il dettaglio finisce nei log, non a schermo: all'utente basta
+        // sapere che il video non e' disponibile, mentre il codice d'errore
+        // serve a chi sviluppa per distinguere NO_FILL da unit rifiutata.
         lastLoadError = describeAdError(error);
         console.warn('[reward-ad] documents rewarded failed to load', lastLoadError);
         settleAll(false);

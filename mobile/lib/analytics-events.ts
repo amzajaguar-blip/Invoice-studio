@@ -10,8 +10,6 @@ export type AnalyticsEventName =
   | 'business_boost_activated'
   | 'premium_clicked'
   | 'premium_purchase'
-  | 'banner_impression'
-  | 'banner_click'
   | 'notification_opened'
   | 'notification_clicked'
   | 'invoice_created'

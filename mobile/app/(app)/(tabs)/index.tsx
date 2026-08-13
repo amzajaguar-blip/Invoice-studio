@@ -26,7 +26,6 @@ import { SkeletonCard } from "@/components/SkeletonCard";
 import { usePlan } from "@/context/PlanContext";
 import { useEngagementContext } from "@/context/EngagementContext";
 import { useSmartCards } from "@/hooks/useSmartCards";
-import { BannerAdWrapper } from "@/components/BannerAdWrapper";
 import MilestoneCelebration from "@/components/MilestoneCelebration";
 import InAppContextualCard from "@/components/InAppContextualCard";
 import { useLocale } from "@/components/LocaleProvider";
@@ -582,14 +581,6 @@ export default function DashboardScreen() {
             ))}
           </View>
         </View>
-
-        {/* ── BannerAdWrapper — in fondo allo ScrollView, solo per utenti free ── */}
-        {/* !limits.isLoading evita di mostrare il banner a un utente Pro prima
-            che il piano sia stato risolto da RevenueCat/Supabase (isPremium
-            di default è false durante il caricamento). */}
-        {!isPremium && !limits.isLoading && (
-          <BannerAdWrapper screen="dashboard" style={{ marginTop: 24 }} />
-        )}
       </ScrollView>
 
       {/* ── MilestoneCelebration — overlay fuori dallo ScrollView ─────────── */}

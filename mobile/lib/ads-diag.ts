@@ -3,8 +3,8 @@
  *
  * Perche' esiste
  * ──────────────
- * Quando un annuncio non si carica, `BannerAdWrapper` si nasconde e
- * `reward-ad.ts` risolve `false`. Dal punto di vista dell'utente i due casi
+ * Quando un annuncio non si carica, `reward-ad.ts` risolve `false`.
+ * Dal punto di vista dell'utente i due casi
  * "AdMob non ha annunci da servire" e "l'ad unit ID e' sbagliato" sono
  * indistinguibili: in entrambi non compare niente. Senza il codice d'errore
  * dell'SDK, dire quale dei due sia e' una congettura — e una congettura

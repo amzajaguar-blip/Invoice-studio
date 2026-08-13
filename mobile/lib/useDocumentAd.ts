@@ -16,7 +16,7 @@
  *
  * Lo stato Pro viene letto da PlanContext (usePlan), NON da una chiamata
  * diretta a Purchases.getCustomerInfo(): PlanContext è già la source of
- * truth condivisa con BannerAdWrapper/QuotaPaywall, con retry e stato
+ * truth condivisa con QuotaPaywall, con retry e stato
  * "isLoading" tracciato. Interrogare RevenueCat qui in autonomia creava
  * una race indipendente (isPremium locale sempre inizializzato a false) e
  * un fail-open silenzioso: un errore di rete su getCustomerInfo() faceva

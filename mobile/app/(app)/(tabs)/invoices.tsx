@@ -399,11 +399,6 @@ export default function InvoicesScreen() {
         />
       )}
 
-      {/* V34: BannerAdWrapper — invoices non è nella lista allowed delle schermate
-          banner ('dashboard' | 'customers' | 'settings' | 'reports'), quindi
-          BannerAdWrapper renderebbe null automaticamente. Non aggiungere banner
-          su questa schermata. */}
-
       {/* V34: BusinessBoostModal (Req 9.1, 9.11) */}
       <BusinessBoostModal
         visible={showBoostModal}

@@ -138,7 +138,7 @@ export async function getConsentStatus(): Promise<AdsConsentStatus> {
 
 /**
  * True once the SDK has completed initialize() — which in this flow happens
- * only after UMP consent has been gathered. Gates ad components (banners) so
+ * only after UMP consent has been gathered. Gates ad components so
  * they never issue a request before consent + init have resolved.
  */
 export function isAdsInitialized(): boolean {

@@ -4,7 +4,6 @@
  * Phase 2 V34 integration:
  *  - Sezione "Piano": badge Premium Attivo o link Passa a Premium (Req 3.7)
  *  - InAppContextualCard per context 'settings_review_ask' (Req 9.8)
- *  - BannerAdWrapper in fondo alla schermata solo se !isPremium (Req 9.8, 4.1)
  *  - Tip card onboarding per nuovi utenti (Req 17.4)
  *
  * Requirements: 3.7, 9.8, 17.4
@@ -27,9 +26,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useDeleteAccount } from "@/hooks/useDeleteAccount";
 import { showPrivacyOptionsForm } from "@/lib/ads";
 
-// V34 — plan, smart cards, banner
+// V34 — plan, smart cards
 import { usePlan } from "@/context/PlanContext";
-import { BannerAdWrapper } from "@/components/BannerAdWrapper";
 import InAppContextualCard from "@/components/InAppContextualCard";
 import { useSmartCards } from "@/hooks/useSmartCards";
 
@@ -263,11 +261,6 @@ export default function SettingsScreen() {
       >
         <Text style={[styles.buttonText, styles.deleteText]}>{t("deleteAccount")}</Text>
       </TouchableOpacity>
-
-      {/* V34 — BannerAdWrapper in fondo, solo se !isPremium e piano risolto (Req 9.8, 4.1) */}
-      {!isPremium && !limits.isLoading && (
-        <BannerAdWrapper screen="settings" style={styles.bannerAd} />
-      )}
     </ScrollView>
   );
 }
@@ -455,11 +448,5 @@ const styles = StyleSheet.create({
   // ─── V34 — Contextual Card wrapper ────────────────────────────────────────
   contextCardWrapper: {
     marginBottom: 8,
-  },
-
-  // ─── V34 — Banner Ad ──────────────────────────────────────────────────────
-  bannerAd: {
-    marginTop: 24,
-    marginBottom: 4,
   },
 });
