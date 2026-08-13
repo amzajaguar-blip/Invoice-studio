@@ -12,10 +12,11 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { View, type StyleProp, type ViewStyle } from 'react-native';
+import { Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
 import { isAdsInitialized, onAdsInitialized } from '@/lib/ads';
-import { AD_UNITS } from '@/lib/ads-config';
+import { AD_UNITS, ADS_MODE } from '@/lib/ads-config';
+import { ADS_DIAG, describeAdError } from '@/lib/ads-diag';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -41,6 +42,10 @@ export function BannerAdWrapper({ style }: BannerAdWrapperProps) {
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [adsReady, setAdsReady] = useState(isAdsInitialized());
+  // Ultimo errore riportato dall'SDK. Serve solo alla diagnostica: senza, un
+  // banner assente non dice se AdMob non aveva annunci o se ha rifiutato la
+  // richiesta, che sono due problemi con due soluzioni diverse.
+  const [lastError, setLastError] = useState<string | null>(null);
 
   useEffect(() => onAdsInitialized(() => setAdsReady(true)), []);
 
@@ -54,9 +59,37 @@ export function BannerAdWrapper({ style }: BannerAdWrapperProps) {
   // un annuncio che era a schermo e funzionante.
   useEffect(() => {
     if (!adsReady || failed || loaded) return;
-    const t = setTimeout(() => setFailed(true), BANNER_LOAD_TIMEOUT_MS);
+    const t = setTimeout(() => {
+      setFailed(true);
+      // Il silenzio e' esso stesso un'informazione: l'SDK non ha risposto
+      // affatto, che e' diverso da un errore ricevuto.
+      setLastError((prev) => prev ?? 'nessuna risposta dall\'SDK entro 10s');
+    }, BANNER_LOAD_TIMEOUT_MS);
     return () => clearTimeout(t);
   }, [adsReady, failed, loaded]);
+
+  // Con la diagnostica accesa uno spazio vuoto non basta: si mostra il motivo.
+  // Fuori dalla diagnostica il comportamento resta invariato — niente banner,
+  // niente spazio sprecato.
+  if (ADS_DIAG && !adsReady) {
+    return (
+      <View style={style}>
+        <Text style={{ color: '#8a8f98', fontSize: 11 }} selectable>
+          {`[ads] SDK non inizializzato · mode=${ADS_MODE}`}
+        </Text>
+      </View>
+    );
+  }
+
+  if (ADS_DIAG && failed && !loaded) {
+    return (
+      <View style={style}>
+        <Text style={{ color: '#8a8f98', fontSize: 11 }} selectable>
+          {`[ads] banner non caricato · mode=${ADS_MODE}\nunit=${BANNER_AD_UNIT_ID}\n${lastError ?? 'nessun dettaglio'}`}
+        </Text>
+      </View>
+    );
+  }
 
   // Niente richiesta prima che consenso UMP + initialize() siano completati;
   // se l'ad fallisce prima di essersi mai caricato, non rendiamo nulla per non
@@ -84,7 +117,12 @@ export function BannerAdWrapper({ style }: BannerAdWrapperProps) {
         size={BannerAdSize.BANNER}
         requestOptions={{ requestNonPersonalizedAdsOnly: false }}
         onAdLoaded={() => setLoaded(true)}
-        onAdFailedToLoad={() => {
+        onAdFailedToLoad={(error) => {
+          // Il dettaglio si registra sempre, anche quando l'errore viene
+          // ignorato: e' l'unica traccia di cosa ha risposto AdMob.
+          const detail = describeAdError(error);
+          console.warn('[ads] banner failed to load', detail);
+          setLastError(detail);
           // Solo il fallimento della PRIMA richiesta nasconde il banner: dopo
           // un caricamento riuscito gli errori arrivano dai refresh e vanno
           // ignorati (l'annuncio precedente resta valido a schermo).

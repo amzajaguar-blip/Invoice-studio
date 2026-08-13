@@ -108,9 +108,12 @@ export function useBusinessBoost(): UseBusinessBoostReturn {
       onError: (msg: string) => {
         if (mountedRef.current) {
           setAdState('error');
-          // `msg` e' una chiave i18n (vedi BOOST_UNAVAILABLE_KEY): va tradotta
-          // qui, altrimenti finisce a schermo cruda e in inglese.
-          setErrorMsg(t(msg));
+          // `msg` e' normalmente una chiave i18n (vedi BOOST_UNAVAILABLE_KEY) e
+          // va tradotta, altrimenti finisce a schermo cruda e in inglese. Con
+          // la diagnostica accesa arriva invece il dettaglio dell'SDK, che e'
+          // gia' testo e passarlo da t() lo lascerebbe intatto ma solo per
+          // caso: il prefisso lo distingue in modo esplicito.
+          setErrorMsg(msg.startsWith('[ads]') ? msg : t(msg));
           adRef.current = null;
         }
       },

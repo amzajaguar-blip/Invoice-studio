@@ -13,7 +13,12 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { preloadDocumentsRewardAd, showDocumentsRewardAd } from './reward-ad';
+import {
+  preloadDocumentsRewardAd,
+  showDocumentsRewardAd,
+  getLastRewardAdError,
+} from './reward-ad';
+import { ADS_DIAG } from './ads-diag';
 
 // ─── Costanti compile-time ────────────────────────────────────────────────────
 
@@ -160,14 +165,24 @@ export const BOOST_UNAVAILABLE_KEY = 'boost_unavailable_video_hint';
 export function preloadBoostAd(options: PreloadOptions): () => void {
   let cancelled = false;
 
+  // Con la diagnostica accesa l'errore mostrato e' quello vero dell'SDK, non la
+  // frase generica: e' cio' che distingue "AdMob non ha annunci" da "ad unit ID
+  // rifiutato", due cause che a schermo si assomigliano e si risolvono in modi
+  // opposti. Senza diagnostica resta la chiave i18n, che e' quanto deve vedere
+  // un utente vero.
+  const failureMessage = () =>
+    ADS_DIAG
+      ? `[ads] rewarded non caricato · ${getLastRewardAdError() ?? 'nessun dettaglio dall\'SDK'}`
+      : BOOST_UNAVAILABLE_KEY;
+
   void preloadDocumentsRewardAd()
     .then((ready) => {
       if (cancelled) return;
       if (ready) options.onReady({});
-      else options.onError(BOOST_UNAVAILABLE_KEY);
+      else options.onError(failureMessage());
     })
     .catch(() => {
-      if (!cancelled) options.onError(BOOST_UNAVAILABLE_KEY);
+      if (!cancelled) options.onError(failureMessage());
     });
 
   return () => {

@@ -24,6 +24,16 @@ on:
         type: string
         required: false
         default: ''
+      ads_diag:
+        description: >-
+          Diagnostica annunci a schermo: al posto dello spazio vuoto mostra il
+          codice d'errore dell'SDK AdMob, che e' l'unica cosa che distingue
+          "nessun annuncio disponibile" (NO_FILL) da "ad unit ID rifiutato"
+          (INVALID_REQUEST). Default false: su una build per utenti veri non
+          va acceso.
+        type: boolean
+        required: false
+        default: false
       billing_diag:
         description: >-
           Diagnostica del paywall a schermo e log RevenueCat VERBOSE. Default
@@ -87,6 +97,8 @@ jobs:
 
           BILLING_DIAG=0
           SUFFIX=""
+          ADS_DIAG=0
+          if [ "${{ inputs.ads_diag }}" = "true" ]; then ADS_DIAG=1; fi
           if [ "${{ inputs.billing_diag }}" = "true" ]; then
             BILLING_DIAG=1
             SUFFIX="-BILLINGDIAG-solo-test-interno"
@@ -97,6 +109,7 @@ jobs:
             echo "EXPO_PUBLIC_ADS_MODE=$ADS_MODE"
             echo "EXPO_PUBLIC_ADS_TEST_DEVICE_ID=${{ inputs.ads_test_device_id }}"
             echo "EXPO_PUBLIC_BILLING_DIAG=$BILLING_DIAG"
+            echo "EXPO_PUBLIC_ADS_DIAG=$ADS_DIAG"
           } > .env
 
           echo "mode=$ADS_MODE" >> $GITHUB_OUTPUT
@@ -104,7 +117,7 @@ jobs:
           # diagnostica accesa e uno di produzione sono identici a occhio, e
           # promuovere il primo mostrerebbe contatori di tap a chi paga.
           echo "diagsuffix=$SUFFIX" >> $GITHUB_OUTPUT
-          echo "ADS_MODE=$ADS_MODE · BILLING_DIAG=$BILLING_DIAG"
+          echo "ADS_MODE=$ADS_MODE · BILLING_DIAG=$BILLING_DIAG · ADS_DIAG=$ADS_DIAG"
           if [ "$ADS_MODE" != "production" ]; then
             echo "::warning title=Build non di produzione::Questa build usa ADS_MODE=$ADS_MODE. NON caricarla sullo store."
           fi

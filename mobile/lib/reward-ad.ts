@@ -38,6 +38,7 @@ import {
 import NetInfo from '@react-native-community/netinfo';
 import { initAds } from './ads';
 import { AD_UNITS } from './ads-config';
+import { describeAdError } from './ads-diag';
 import { supabase } from '@/lib/supabase';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
@@ -55,6 +56,18 @@ let rewardAdReady = false;
 let rewardAdLoading = false;
 /** Resolver in attesa sull'esito del preload in corso (UI in "Caricamento…"). */
 let pendingResolvers: ((ready: boolean) => void)[] = [];
+/** Dettaglio dell'ultimo fallimento di caricamento, per la diagnostica. */
+let lastLoadError: string | null = null;
+
+/**
+ * Ultimo errore di caricamento riportato dall'SDK, gia' leggibile.
+ *
+ * Null se non ci sono ancora stati fallimenti. La UI lo mostra solo quando la
+ * diagnostica annunci e' accesa (`ADS_DIAG`).
+ */
+export function getLastRewardAdError(): string | null {
+  return lastLoadError;
+}
 
 // ─── Preload ─────────────────────────────────────────────────────────────────
 
@@ -164,7 +177,11 @@ export async function preloadDocumentsRewardAd(): Promise<boolean> {
         unsubError();
         rewardAd = null;
         rewardAdReady = false;
-        console.warn('[reward-ad] documents rewarded failed to load', error);
+        // Il dettaglio va conservato, non solo loggato: la UI del Business
+        // Boost puo' mostrarlo, e un codice d'errore letto a schermo evita di
+        // dover indovinare se AdMob non aveva annunci o ha rifiutato l'unit.
+        lastLoadError = describeAdError(error);
+        console.warn('[reward-ad] documents rewarded failed to load', lastLoadError);
         settleAll(false);
       });
 
