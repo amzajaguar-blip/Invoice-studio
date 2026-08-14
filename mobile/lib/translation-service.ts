@@ -74,10 +74,26 @@ const DATE_ISO_RE = /^\d{4}-\d{2}-\d{2}/;
 const EMAIL_RE = /\S+@\S+\.\S+/;
 const VAT_IT_RE = /^IT\d{11}$/i;
 
+/**
+ * True se la stringa e' *interamente* un numero, in qualunque notazione che
+ * JavaScript sappia leggere.
+ *
+ * NUMERIC_RE da sola non basta: pretende una cifra iniziale, quindi lasciava
+ * passare i negativi ("-1"), "NaN" e "Infinity". Sono esattamente i valori che
+ * la property P11 vieta di spedire a Gemini, e infatti il test li trovava nel
+ * payload. `Number()` su una stringa non numerica da' NaN, quindi qui resta
+ * fuori solo cio' che numero non e'; "NaN" va escluso a mano perche' e'
+ * l'unico caso in cui la conversione riesce dando proprio NaN.
+ */
+function isNumericToken(v: string): boolean {
+  return v === "NaN" || !Number.isNaN(Number(v));
+}
+
 function isSafeToTranslate(value: string): boolean {
   const v = value.trim();
   if (!v) return false;
   if (NUMERIC_RE.test(v)) return false;
+  if (isNumericToken(v)) return false;
   if (DATE_ISO_RE.test(v)) return false;
   if (EMAIL_RE.test(v)) return false;
   if (VAT_IT_RE.test(v)) return false;

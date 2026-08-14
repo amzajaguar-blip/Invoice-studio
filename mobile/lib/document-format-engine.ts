@@ -497,14 +497,25 @@ export async function generateDocumentRTF(
 
 /**
  * Condivide un documento generato tramite il sistema di condivisione nativo.
- * Se la condivisione fallisce, il file rimane accessibile nel documentDirectory.
+ *
+ * **Solleva un'eccezione se la condivisione non riesce.** Il file resta comunque
+ * su disco nel documentDirectory ed e' visibile nella scheda File: chi chiama
+ * deve quindi distinguere questo fallimento da un fallimento di generazione,
+ * altrimenti annuncia un disastro per un documento che esiste. Chi non ha
+ * bisogno di gestire l'eccezione a mano usi `shareDocumentSafely`.
  */
 export async function shareDocument(filepath: string, filename: string): Promise<void> {
   const available = await Sharing.isAvailableAsync();
   if (!available) {
-    console.warn(`shareDocument: sharing not available. File accessible at: ${filepath}`);
-    return;
+    throw new Error(
+      `Condivisione non disponibile su questo dispositivo. Il file è stato generato in: ${filepath}`
+    );
   }
+  // Nessun controllo di permessi qui, ed e' corretto: i file generati vivono
+  // tutti in `documentDirectory`, storage privato dell'app, e `expo-sharing` li
+  // espone con il proprio `${applicationId}.SharingFileProvider`. Su Android un
+  // FileProvider concede l'accesso all'app ricevente per singolo URI, senza che
+  // serva alcun permesso di lettura media o storage.
   const ext = filename.split('.').pop()?.toLowerCase() ?? '';
   const meta =
     Object.values(FORMAT_META).find((m) => m.ext === ext) ?? FORMAT_META.pdf;
@@ -514,6 +525,37 @@ export async function shareDocument(filepath: string, filename: string): Promise
     dialogTitle: 'Condividi documento',
     UTI: meta.uti,
   });
+}
+
+/** Esito di una condivisione che non solleva eccezioni. */
+export interface ShareOutcome {
+  /** true se il foglio di condivisione si e' aperto. */
+  shared: boolean;
+  /** Messaggio grezzo del fallimento, per i log. */
+  error?: string;
+}
+
+/**
+ * Come `shareDocument`, ma non solleva: riporta l'esito.
+ *
+ * Esiste perche' i chiamanti tenevano generazione e condivisione dentro lo
+ * stesso `try`, e da quando `shareDocument` segnala i fallimenti con
+ * un'eccezione l'utente si vedeva dire "errore durante la generazione del
+ * documento" per un file che era gia' su disco — mentre il conteggio quota e
+ * la navigazione successiva venivano saltati. I due passi hanno esiti diversi e
+ * meritano messaggi diversi.
+ */
+export async function shareDocumentSafely(
+  filepath: string,
+  filename: string
+): Promise<ShareOutcome> {
+  try {
+    await shareDocument(filepath, filename);
+    return { shared: true };
+  } catch (err) {
+    console.warn('[document-format-engine] condivisione non riuscita', err);
+    return { shared: false, error: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 /**
@@ -695,18 +737,46 @@ export async function generateDocument(
   return { filepath, filename, format };
 }
 
+/** Esito di generazione + condivisione: sono due passi distinti. */
+export interface GenerateAndShareResult {
+  /** Nome del file prodotto. Se siamo qui, il file esiste su disco. */
+  filename: string;
+  /** Percorso assoluto del file prodotto. */
+  filepath: string;
+  /** true se il foglio di condivisione si e' aperto. */
+  shared: boolean;
+  /** Messaggio grezzo del fallimento di condivisione, per la diagnostica. */
+  shareError?: string;
+}
+
 /**
  * Genera il documento nel formato richiesto e apre subito il foglio di
- * condivisione nativo. Ritorna il filename prodotto.
+ * condivisione nativo.
+ *
+ * I due esiti restano separati di proposito. Da quando `shareDocument` segnala
+ * i fallimenti con un'eccezione invece di tacere, propagarla da qui faceva
+ * leggere ai chiamanti "generazione non riuscita" per un file che era gia' su
+ * disco e gia' visibile nella scheda File: l'utente vedeva un errore, l'alert
+ * di successo non arrivava e la quota non veniva contata. La generazione o
+ * riesce o lancia; la condivisione riporta il suo esito nel risultato.
  */
 export async function generateAndShareDocument(
   data: DocumentFormatData,
   format: OutputFormat,
   options: Omit<DocumentFormatOptions, 'format'> = {}
-): Promise<string> {
+): Promise<GenerateAndShareResult> {
   const { filepath, filename } = await generateDocument(data, format, options);
-  await shareDocument(filepath, filename);
-  return filename;
+  try {
+    await shareDocument(filepath, filename);
+    return { filename, filepath, shared: true };
+  } catch (err) {
+    return {
+      filename,
+      filepath,
+      shared: false,
+      shareError: err instanceof Error ? err.message : String(err),
+    };
+  }
 }
 
 // ─── HTML condiviso (sorgente del PDF) ───────────────────────────────────────
@@ -943,4 +1013,197 @@ function _arrayBufferToBase64(buffer: ArrayBuffer): string {
     binary += String.fromCharCode(bytes[i]);
   }
   return btoa(binary);
+}
+
+// ─── Conversione di un file importato ────────────────────────────────────────
+
+/**
+ * Contenuto normalizzato da `lib/file-import.ts`.
+ *
+ * Ridichiarato qui come tipo strutturale invece di importarlo, per non creare
+ * una dipendenza circolare: file-import legge, questo modulo scrive, e nessuno
+ * dei due deve conoscere l'altro.
+ */
+export interface ConvertibleContent {
+  title: string;
+  kind: 'table' | 'text';
+  rows?: string[][];
+  text?: string;
+  sourceName?: string;
+}
+
+/** Righe non vuote del testo, usate come paragrafi. */
+function _textLines(text: string): string[] {
+  return text.split(/\r?\n/).map((l) => l.trimEnd());
+}
+
+function _convertedHtml(content: ConvertibleContent): string {
+  const title = content.title || 'Documento';
+  const body =
+    content.kind === 'table'
+      ? `<table class="grid">${(content.rows ?? [])
+          .map(
+            (row, i) =>
+              `<tr>${row
+                .map((cell) =>
+                  i === 0
+                    ? `<th>${_escHtml(cell)}</th>`
+                    : `<td>${_escHtml(cell)}</td>`
+                )
+                .join('')}</tr>`
+          )
+          .join('')}</table>`
+      : _textLines(content.text ?? '')
+          .map((line) => (line ? `<p>${_escHtml(line)}</p>` : '<p class="sp"></p>'))
+          .join('');
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8" />
+<title>${_escHtml(title)}</title>
+<style>
+  @page { margin: 18mm 16mm; }
+  body { font-family: 'Times New Roman', serif; color: #111; font-size: 11pt; line-height: 1.45; }
+  h1 { font-size: 18pt; margin: 0 0 4mm; }
+  .src { color: #666; font-size: 9pt; margin: 0 0 8mm; }
+  p { margin: 0 0 2mm; }
+  p.sp { margin: 0 0 4mm; }
+  table.grid { width: 100%; border-collapse: collapse; font-size: 9.5pt; }
+  table.grid th, table.grid td { border: 0.4pt solid #999; padding: 2mm 2.5mm; text-align: left; vertical-align: top; }
+  table.grid th { background: #f2f2f2; font-weight: bold; }
+  .foot { margin-top: 10mm; color: #666; font-size: 8.5pt; }
+</style></head><body>
+<h1>${_escHtml(title)}</h1>
+${content.sourceName ? `<div class="src">Convertito da ${_escHtml(content.sourceName)}</div>` : ''}
+${body}
+<div class="foot">Milo Office</div>
+</body></html>`;
+}
+
+/**
+ * Converte il contenuto importato nel formato richiesto e restituisce il path
+ * del file prodotto.
+ *
+ * Riusa gli stessi motori dei documenti creati a mano — expo-print per il PDF,
+ * SheetJS per l'Excel, `docx` per il Word — così un file convertito e un file
+ * generato escono identici nella resa.
+ */
+export async function generateFromImported(
+  content: ConvertibleContent,
+  format: OutputFormat
+): Promise<string> {
+  const safe = _safeName(content.title);
+  const ext = FORMAT_META[format].ext;
+  const filename = `${safe}_${Date.now()}.${ext}`;
+  const filepath = `${FileSystem.documentDirectory}${filename}`;
+
+  if (format === 'pdf') {
+    const { uri } = await Print.printToFileAsync({ html: _convertedHtml(content) });
+    await FileSystem.moveAsync({ from: uri, to: filepath });
+    return filepath;
+  }
+
+  if (format === 'xlsx') {
+    // Una tabella resta una tabella; un testo diventa una colonna di righe,
+    // che è l'unica resa onesta di un documento testuale in un foglio.
+    const aoa: string[][] =
+      content.kind === 'table'
+        ? (content.rows ?? []).map((row) => row.map((c) => _sanitizeCell(c)))
+        : _textLines(content.text ?? '').map((line) => [_sanitizeCell(line)]);
+
+    const sheet = XLSX.utils.aoa_to_sheet(aoa.length ? aoa : [['']]);
+    const widest = aoa.reduce((max, row) => Math.max(max, row.length), 1);
+    sheet['!cols'] = Array.from({ length: widest }, () => ({ wch: 28 }));
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, sheet, 'Documento');
+    const binary: string = XLSX.write(workbook, { bookType: 'xlsx', type: 'base64' });
+
+    await FileSystem.writeAsStringAsync(filepath, binary, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    return filepath;
+  }
+
+  if (format === 'doc') {
+    const children: (Paragraph | Table)[] = [
+      new Paragraph({ text: content.title || 'Documento', heading: HeadingLevel.HEADING_1 }),
+    ];
+
+    if (content.kind === 'table') {
+      const rows = content.rows ?? [];
+      const widest = rows.reduce((max, r) => Math.max(max, r.length), 1);
+      if (rows.length) {
+        children.push(
+          new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: rows.map(
+              (row, i) =>
+                new TableRow({
+                  children: Array.from({ length: widest }, (_, c) => {
+                    const cell = row[c] ?? '';
+                    return new TableCell({
+                      children: [
+                        new Paragraph({
+                          children: [new TextRun({ text: cell, bold: i === 0 })],
+                        }),
+                      ],
+                    });
+                  }),
+                })
+            ),
+          })
+        );
+      }
+    } else {
+      for (const line of _textLines(content.text ?? '')) {
+        children.push(new Paragraph({ children: [new TextRun({ text: line })] }));
+      }
+    }
+
+    const doc = new Document({
+      creator: 'Milo Office',
+      description: content.sourceName ? `Convertito da ${content.sourceName}` : undefined,
+      title: content.title,
+      sections: [{ children }],
+    });
+
+    let buffer: ArrayBuffer;
+    try {
+      const blob = await Packer.toBlob(doc);
+      buffer = await blob.arrayBuffer();
+    } catch (err) {
+      throw new Error(`DOCX conversion failed: ${String(err)}`);
+    }
+
+    await FileSystem.writeAsStringAsync(filepath, _arrayBufferToBase64(buffer), {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    return filepath;
+  }
+
+  // RTF
+  const esc = (s: string) =>
+    s
+      .replace(/\\/g, '\\\\')
+      .replace(/\{/g, '\\{')
+      .replace(/\}/g, '\\}');
+
+  const bodyLines =
+    content.kind === 'table'
+      ? (content.rows ?? []).map((row) => row.map(esc).join('\\tab '))
+      : _textLines(content.text ?? '').map(esc);
+
+  const rtf = [
+    `{\\rtf1\\ansi\\deff0`,
+    `{\\*\\generator Milo Office}`,
+    `{\\fonttbl{\\f0\\froman\\fcharset0 Times New Roman;}}`,
+    `\\pard\\b\\fs32 ${esc(content.title || 'Documento')}\\b0\\par`,
+    `\\par`,
+    ...bodyLines.map((line) => `\\pard ${line}\\par`),
+    `}`,
+  ].join('\n');
+
+  await FileSystem.writeAsStringAsync(filepath, rtf, {
+    encoding: FileSystem.EncodingType.UTF8,
+  });
+  return filepath;
 }

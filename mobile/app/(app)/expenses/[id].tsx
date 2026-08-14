@@ -19,7 +19,7 @@ import { checkEntitlement } from "@/lib/iap-engine";
 import IAPPaywall from "@/components/IAPPaywall";
 import * as Sharing from "expo-sharing";
 import { FormatPickerModal, DocumentFormat, loadLastDocFormat } from "@/components/FormatPickerModal";
-import { generateDocumentDOC, generateDocumentRTF, generateDocumentXLSX, shareDocument, DocumentFormatData } from "@/lib/document-format-engine";
+import { generateDocumentDOC, generateDocumentRTF, generateDocumentXLSX, shareDocumentSafely, DocumentFormatData } from "@/lib/document-format-engine";
 import { LanguagePickerModal } from "@/components/LanguagePickerModal";
 import { translateDocumentContent, extractTranslatableFields, TranslatableFields } from "@/lib/translation-service";
 import { QuotaPaywall } from "@/components/QuotaPaywall";
@@ -118,6 +118,10 @@ export default function ExpenseDetailScreen() {
     setGenerating(true);
 
     await runWithAd(async () => {
+      // Esito della sola condivisione. Parte da true perche' il ramo PDF ha una
+      // sua gestione e non passa da shareDocumentSafely.
+      let shared = true;
+      let filename = "";
       try {
         if (format === "pdf") {
           const data = {
@@ -140,11 +144,21 @@ export default function ExpenseDetailScreen() {
         } else {
           const docData = buildDocumentData();
           if (!docData) throw new Error("Dati non disponibili");
-          if (format === "xlsx") { const fp = await generateDocumentXLSX(docData); await shareDocument(fp, `nota_spese_${report.id}.xlsx`); }
-          else if (format === "doc") { const fp = await generateDocumentDOC(docData); await shareDocument(fp, `nota_spese_${report.id}.docx`); }
-          else { const fp = await generateDocumentRTF(docData); await shareDocument(fp, `nota_spese_${report.id}.rtf`); }
+          let fp: string;
+          if (format === "xlsx") { fp = await generateDocumentXLSX(docData); filename = `nota_spese_${report.id}.xlsx`; }
+          else if (format === "doc") { fp = await generateDocumentDOC(docData); filename = `nota_spese_${report.id}.docx`; }
+          else { fp = await generateDocumentRTF(docData); filename = `nota_spese_${report.id}.rtf`; }
+          // Il file esiste gia': se la condivisione non parte, non e' la
+          // generazione ad essere fallita e la quota va contata comunque.
+          shared = (await shareDocumentSafely(fp, filename)).shared;
         }
         if (orgId) { try { await incrementQuota(orgId); } catch { /* quota esaurita */ } }
+        if (!shared) {
+          Alert.alert(
+            t("documents.generate.success.title"),
+            t("documents.generate.success.msg_not_shared").replace("{name}", filename)
+          );
+        }
       } catch { Alert.alert(t("error"), "Errore durante la generazione del documento."); }
     });
 

@@ -16,8 +16,10 @@
  *    non conosce lo stato piano e non deve conoscerlo.
  *
  * AdMob:
- *   L'ad unit in uso lo sceglie USE_TEST_ADS qui sotto: finche' l'account
- *   AdMob non e' approvato gli ID di produzione rispondono sempre NO_FILL.
+ *   L'ad unit in uso arriva da ads-config.ts e dipende da EXPO_PUBLIC_ADS_MODE.
+ *   Finche' l'account AdMob non e' approvato gli ID di produzione rispondono
+ *   NO_FILL: per provare il flusso si costruisce con ads_mode=test-demo, non
+ *   modificando il codice.
  *
  * Lifecycle (mapping dei callback nativi FullScreenContentCallback):
  *   preloadDocumentsRewardAd()  → load() + LOADED (onAdLoaded) /
@@ -36,42 +38,28 @@ import {
 } from 'react-native-google-mobile-ads';
 import NetInfo from '@react-native-community/netinfo';
 import { initAds } from './ads';
+import { AD_UNITS } from './ads-config';
 import { describeAdError } from './ads-diag';
 import { supabase } from '@/lib/supabase';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
 /**
- * Interruttore fra ID di test e ID reale.
+ * Rewarded "documents" Ad Unit ID di questa build.
  *
- * `true` finche' l'account AdMob non e' approvato: gli ad unit di produzione
- * rispondono NO_FILL a ogni richiesta, quindi il video premio risulterebbe
- * sempre non disponibile pur essendo il codice corretto. Gli ID di test di
- * Google hanno fill garantito e non dipendono dallo stato del nostro account.
+ * Arriva da ads-config.ts, che e' l'unica fonte di verita' per gli ad unit:
+ * `EXPO_PUBLIC_ADS_MODE=test-demo` serve gli ID demo di Google (fill garantito
+ * anche mentre il nostro account AdMob e' in revisione), `production` serve
+ * l'ID reale.
  *
- * Per tornare in produzione basta portarlo a `false`: nient'altro da cambiare.
+ * Prima la scelta era un booleano hardcodato qui, che scavalcava ads-config:
+ * una build CI lanciata con ads_mode=production spediva comunque annunci demo,
+ * senza il warning previsto e con l'artifact chiamato "production". Gli ID demo
+ * in una release pubblica non generano ricavi e violano le policy AdMob, quindi
+ * la scelta non puo' vivere in una costante nascosta in un modulo: vive nella
+ * modalita' con cui si costruisce la build.
  */
-const USE_TEST_ADS = true;
-
-/**
- * Ad unit rewarded ufficiale di test di Google per Android.
- *
- * E' una costante pubblica documentata, non un segreto, e serve annunci di
- * test sempre — anche mentre un account e' in revisione.
- */
-const TEST_REWARDED_AD_UNIT_ID = 'ca-app-pub-3940256099942544/5224354917';
-
-/**
- * Ad unit rewarded reale — reward "1 Reward" sul nostro account AdMob.
- *
- * TODO: riattivare quando l'account AdMob sarà approvato
- */
-const REAL_REWARDED_AD_UNIT_ID = 'ca-app-pub-8156953772676654/2433248294';
-
-/** Rewarded "documents" Ad Unit ID effettivamente usato da questa build. */
-export const REWARDED_DOCUMENTS_AD_UNIT_ID = USE_TEST_ADS
-  ? TEST_REWARDED_AD_UNIT_ID
-  : REAL_REWARDED_AD_UNIT_ID;
+export const REWARDED_DOCUMENTS_AD_UNIT_ID = AD_UNITS.rewarded;
 
 /** Timeout di caricamento oltre il quale l'ad è dichiarato non disponibile (ms). */
 const REWARD_AD_LOAD_TIMEOUT_MS = 10_000;
@@ -85,6 +73,16 @@ let rewardAdLoading = false;
 let pendingResolvers: ((ready: boolean) => void)[] = [];
 /** Dettaglio dell'ultimo fallimento di caricamento, per i log. */
 let lastLoadError: string | null = null;
+
+/**
+ * Dettaglio dell'ultimo fallimento di caricamento, gia' tradotto da
+ * `describeAdError`. Lo legge la diagnostica a schermo quando ADS_DIAG e'
+ * attivo: senza questo getter il campo era scrivibile e mai leggibile, e il
+ * flag `ads_diag` della CI non aveva piu' alcuna superficie su cui comparire.
+ */
+export function getLastRewardAdError(): string | null {
+  return lastLoadError;
+}
 
 // ─── Preload ─────────────────────────────────────────────────────────────────
 

@@ -27,6 +27,8 @@ import {
 import { useRouter } from 'expo-router';
 import { trackEvent } from '@/lib/analytics-events';
 import type { BoostSession } from '@/lib/business-boost';
+import { ADS_DIAG } from '@/lib/ads-diag';
+import { getLastRewardAdError } from '@/lib/reward-ad';
 import type { ResourceType } from '@/lib/rate-limit-engine';
 import { useLocale } from '@/components/LocaleProvider';
 import { Ionicons } from '@expo/vector-icons';
@@ -327,7 +329,15 @@ function BoostCTA({ state, errorMsg, boostLabel, onShowAd, onRetry, t }: BoostCT
   const isError    = state === 'error';
   const isReady    = state === 'ready';
   const isShowing  = state === 'showing';
-  const isDisabled = isLoading || isShowing;
+  // `!isReady` entra nel calcolo, non solo nella prop `disabled`.
+  //
+  // Prima lo stato 'idle' produceva un bottone a piena opacita', identico a uno
+  // premibile, che pero' aveva `disabled` a true: al tap non succedeva
+  // assolutamente nulla — nessun errore, nessun cambio di stato. E' esattamente
+  // il "tasto Guarda video che non va" segnalato dagli utenti. Finche' non
+  // esiste un annuncio caricato il bottone deve *sembrare* inattivo, perche' lo
+  // e'.
+  const isDisabled = isLoading || isShowing || !isReady;
 
   if (isError) {
     // Stato errore: mostra "Riprova" (Req 2.12)
@@ -336,6 +346,13 @@ function BoostCTA({ state, errorMsg, boostLabel, onShowAd, onRetry, t }: BoostCT
           <Text style={s.boostErrorText}>
             {t(errorMsg ?? 'boost_error_loading_video')}
           </Text>
+          {/* Diagnostica: solo nelle build che la chiedono esplicitamente
+              (EXPO_PUBLIC_ADS_DIAG=1, input ads_diag della CI). All'utente
+              finale resta invisibile. Senza questa riga il flag non aveva piu'
+              alcuna superficie e la build diagnostica era identica alle altre. */}
+          {ADS_DIAG && getLastRewardAdError() && (
+            <Text style={s.boostDiagText}>{`[ads] ${getLastRewardAdError()}`}</Text>
+          )}
           <TouchableOpacity
             style={s.retryBtn}
             onPress={onRetry}
@@ -353,7 +370,7 @@ function BoostCTA({ state, errorMsg, boostLabel, onShowAd, onRetry, t }: BoostCT
     <TouchableOpacity
       style={[s.boostBtn, isDisabled && s.btnDisabled]}
       onPress={onShowAd}
-      disabled={isDisabled || !isReady}
+      disabled={isDisabled}
       activeOpacity={0.8}
       accessibilityRole="button"
       accessibilityLabel={
@@ -541,20 +558,29 @@ const s = StyleSheet.create({
   },
 
   // ── Boost error box ───────────────────────────────────────────────────
+  // Superficie neutra, non allarme rosso: "in questo momento non ci sono
+  // video" non e' un errore dell'utente ne' un guasto dell'app, e colorarlo
+  // come un guasto fa sembrare rotto un prodotto che sta funzionando.
   boostErrorBox: {
-    backgroundColor: '#2a1010',
+    backgroundColor: '#141620',
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#ef444433',
+    borderColor: '#1e2029',
     marginBottom: 12,
     alignItems: 'center',
     gap: 8,
   },
   boostErrorText: {
     fontSize: 13,
-    color: '#fca5a5',
+    color: '#9ca3af',
     textAlign: 'center',
+  },
+  boostDiagText: {
+    fontSize: 11,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginTop: 6,
   },
   retryBtn: {
     flexDirection: 'row',

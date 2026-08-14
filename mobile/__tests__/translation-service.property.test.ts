@@ -17,8 +17,17 @@ jest.mock('@google/generative-ai', () => ({
   })),
 }));
 
-// Imposta una chiave API fittizia per i test
+// Imposta una chiave API fittizia per i test. Va bene assegnarla dopo gli
+// import: translation-service legge la variabile dentro la funzione, non al
+// caricamento del modulo.
 process.env.EXPO_PUBLIC_GEMINI_API_KEY = 'test-key-for-unit-tests';
+
+// Import statico, non `await import(...)` dentro la proprieta': l'ambiente
+// Jest e' CommonJS e un import dinamico ci muore sopra con
+// ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING_FLAG, facendo fallire ogni run a
+// prescindere dal codice sotto test. Il jest.mock() qui sopra resta efficace
+// perche' babel-jest lo solleva sopra gli import.
+import { translateDocumentContent, TranslationTimeoutError } from '../lib/translation-service';
 
 describe('P11: Translation_Service — non invia campi non testuali a Gemini', () => {
   beforeEach(() => {
@@ -52,7 +61,6 @@ describe('P11: Translation_Service — non invia campi non testuali a Gemini', (
             };
           });
 
-          const { translateDocumentContent } = await import('../lib/translation-service');
           await translateDocumentContent(
             {
               title,
@@ -102,8 +110,6 @@ describe('P12: Translation_Service — fallback graceful su timeout', () => {
           ),
         }),
         async ({ title, descriptions }) => {
-          const { translateDocumentContent, TranslationTimeoutError } = await import('../lib/translation-service');
-
           // Mock Gemini che simula timeout con la classe reale
           mockGenerateContent.mockImplementation(() =>
             new Promise((_, reject) =>

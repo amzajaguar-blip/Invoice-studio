@@ -16,3 +16,7 @@ ios/
 
 expo-env.d.ts
 # @end expo-cli
+# Bytecode Python degli script di build: rigenerato a ogni esecuzione,
+# non deve comparire nei diff.
+__pycache__/
+*.pyc

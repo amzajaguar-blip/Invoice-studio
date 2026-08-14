@@ -30,56 +30,47 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="invoices"
+        name="files"
         options={{
-          title: t("invoices"),
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="document-text" size={size} color={color} />
+          title: t("files.tab"),
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? "folder" : "folder-outline"}
+              size={size}
+              color={color}
+            />
           ),
         }}
+      />
+      {/* La lista documenti a database esce dalla tab bar: Milo Office e' un
+          generatore e gestore di file, e la scheda "File" mostra i file veri
+          presenti sul dispositivo. La rotta resta raggiungibile via
+          router.push, quindi nessun link esistente si rompe. */}
+      <Tabs.Screen
+        name="invoices"
+        options={{ href: null }}
       />
       <Tabs.Screen
         name="quotes"
         options={{ href: null }}
       />
+      {/* Note spese, Promemoria e Rubrica escono dalla tab bar per lo stesso
+          motivo di Documenti, Preventivi e Clienti: sono attrezzi da gestionale
+          — rimborsi, scadenze da ricordare, anagrafiche — e stare accanto a
+          "File" raccontava un prodotto che Milo Office non e' piu'. Come le
+          altre, restano raggiungibili via router.push: `href: null` toglie la
+          voce dalla barra, non la rotta. */}
       <Tabs.Screen
         name="expenses"
-        options={{
-          title: "Note spese",
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons
-              name={focused ? "receipt" : "receipt-outline"}
-              size={size}
-              color={color}
-            />
-          ),
-        }}
+        options={{ href: null }}
       />
       <Tabs.Screen
         name="reminders"
-        options={{
-          title: "Promemoria",
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons
-              name={focused ? "alarm" : "alarm-outline"}
-              size={size}
-              color={color}
-            />
-          ),
-        }}
+        options={{ href: null }}
       />
       <Tabs.Screen
         name="contacts"
-        options={{
-          title: "Rubrica",
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons
-              name={focused ? "people" : "people-outline"}
-              size={size}
-              color={color}
-            />
-          ),
-        }}
+        options={{ href: null }}
       />
       <Tabs.Screen
         name="settings"

@@ -363,36 +363,4 @@ export function checkLimit(limits: PlanLimits, resource: ResourceType): CheckLim
   };
 }
 
-// ─── applyBoost ───────────────────────────────────────────────────────────────
 
-/**
- * Applica il Business Boost (+3 fatture, +1 cliente, +1 preventivo, 24h).
- * Atomico via Supabase RPC. Idempotente per callbackId.
- *
- * @precondition orgId valido, callbackId univoco per questo evento reward
- * @postcondition
- *   - Se successo: user_plan.boost_*_extra aggiornati, boost_expires_at = now + 24h
- *   - Idempotente: stessa callbackId non può applicare boost due volte (UNIQUE constraint)
- *   - daily_ads_watched incrementato di 1 (se non supera 3)
- * @sideEffects Scrive su user_plan via Supabase RPC 'atomic_apply_boost'
- *
- * Requirements: 2.1, 2.2, 2.8, 2.13, 10.2
- */
-export async function applyBoost(orgId: string, callbackId: string): Promise<boolean> {
-  try {
-    const { data, error } = await supabase.rpc('atomic_apply_boost', {
-      p_org_id:      orgId,
-      p_callback_id: callbackId,
-    });
-
-    if (error) {
-      console.error('[rate-limit-engine] applyBoost RPC failed:', error.message);
-      return false;
-    }
-
-    return data?.success === true || data !== null;
-  } catch (err) {
-    console.error('[rate-limit-engine] applyBoost exception:', err);
-    return false;
-  }
-}

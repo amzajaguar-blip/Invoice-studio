@@ -14,6 +14,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { preloadDocumentsRewardAd, showDocumentsRewardAd } from './reward-ad';
+import { supabase } from '@/lib/supabase';
 
 // ─── Costanti compile-time ────────────────────────────────────────────────────
 
@@ -187,25 +188,69 @@ export interface ShowAdOptions {
   onShowing?:     () => void;
 }
 
+/** Esito dell'accredito del boost, per distinguere i casi nella UI. */
+export type BoostGrantResult = 'granted' | 'no-org' | 'failed';
+
+/**
+ * Applica davvero il boost chiamando la RPC `atomic_apply_boost`.
+ *
+ * Perche' esiste
+ * ──────────────
+ * Il boost era documentato come "arriva per conto suo via callback SSV", ma
+ * nessun percorso lo accreditava: `onEarnedReward` non veniva mai invocato e
+ * l'unica edge function esistente (`reward-document-credit`) accredita un
+ * documento, non un boost. L'utente guardava il video fino in fondo, vedeva la
+ * UI di successo e non riceveva niente.
+ *
+ * La RPC c'e' gia' lato database e fa esattamente questo lavoro: assegna gli
+ * extra, sposta `boost_expires_at` a 24 ore, incrementa `daily_ads_watched`, ed
+ * e' idempotente sul `callback_id` (vincolo UNIQUE su `boost_callback_ids`),
+ * quindi un doppio invio non raddoppia nulla. Il `callback_id` lo genera il
+ * client perche' il JS layer dell'SDK non espone il token SSV.
+ */
+export async function applyBoostReward(): Promise<BoostGrantResult> {
+  const callbackId = `client-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+  // Nessun org_id viene passato: la RPC lo ricava da auth.uid(). Prima lo
+  // sceglieva il chiamante, e con la sola chiave anon estratta dall'APK si
+  // potevano concedere boost illimitati, anche a organizzazioni altrui.
+  // Risolverlo qui sarebbe comunque sbagliato: il client userebbe una fonte
+  // (user_metadata) diversa da quella del server (org_members) e le due
+  // potrebbero non concordare.
+  const { error } = await supabase.rpc('atomic_apply_boost', {
+    p_callback_id: callbackId,
+  });
+
+  if (error) {
+    console.warn('[business-boost] atomic_apply_boost fallita', error.message);
+    return error.message.includes('nessuna organizzazione') ? 'no-org' : 'failed';
+  }
+
+  return 'granted';
+}
+
 /**
  * Mostra l'annuncio rewarded e applica il boost solo a reward guadagnato.
  *
- * `onBoostApplied` scatta sull'evento EARNED_REWARD dell'SDK, non alla
- * chiusura dell'annuncio: chi chiude il video prima della fine non ottiene
- * nulla. Il credito lato server arriva per conto suo via callback SSV.
+ * L'accredito parte dall'evento EARNED_REWARD dell'SDK, non dalla chiusura
+ * dell'annuncio: chi chiude il video prima della fine non ottiene nulla.
+ * `onBoostApplied` viene invocato solo quando la RPC ha confermato: prima
+ * scattava a prescindere, dichiarando un successo che non era avvenuto.
  *
- * Qui NON si passa piu' un `orgId`. Non e' mai stato usato da questa funzione,
- * ma il chiamante lo pretendeva prima di procedere e usciva in silenzio quando
- * mancava: il risultato era un bottone "Guarda video" che non reagiva al tap.
- * L'org a cui accreditare il reward la risolve `getRewardSsvIdentity()` in
- * reward-ad.ts leggendo la sessione Supabase, che e' la fonte giusta perche' e'
- * la stessa che AdMob rimanda al server nella callback SSV.
+ * Qui NON si passa un `orgId`. Il chiamante lo pretendeva prima di procedere e
+ * usciva in silenzio quando mancava: il risultato era un bottone "Guarda video"
+ * che non reagiva al tap. L'org la ricava la RPC stessa da `auth.uid()`.
  */
 export async function showBoostAd(options: ShowAdOptions): Promise<void> {
   options.onShowing?.();
   try {
     const shown = await showDocumentsRewardAd(() => {
-      options.onBoostApplied();
+      // La callback dell'SDK e' sincrona: l'accredito viaggia per conto suo e
+      // avvisa la UI quando il server ha risposto.
+      void applyBoostReward().then((result) => {
+        if (result === 'granted') options.onBoostApplied();
+        else options.onBoostError();
+      });
     });
     if (!shown) options.onBoostError();
   } catch (err) {

@@ -110,6 +110,7 @@ export function describeAdsMode(): string {
   return (
     `[ADS] mode=${ADS_MODE} realUnits=${USING_REAL_AD_UNITS} ` +
     `interstitial=${AD_UNITS.interstitial} ` +
+    `rewarded=${AD_UNITS.rewarded} ` +
     `testDevices=${TEST_DEVICE_IDS.length}`
   );
 }

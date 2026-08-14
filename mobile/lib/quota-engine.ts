@@ -21,6 +21,27 @@ const QUOTA_CACHE_KEY = 'milo_quota_cache_v1';
 /** TTL cache quota: 5 minuti in ms */
 const QUOTA_CACHE_TTL_MS = 5 * 60 * 1000;
 
+/**
+ * Quota gratuita di riferimento, da tenere allineata al DEFAULT della colonna
+ * `organizations.quota_limit` (migrazione `..._quota_launch.sql`).
+ *
+ * Era 5 documenti *a vita*: troppo pochi perche' l'app si faccia valutare. Chi
+ * genera cinque file non ha ancora capito se il prodotto vale un abbonamento, e
+ * al sesto trovava un paywall la cui uscita gratuita — il video premio — non
+ * riceve annunci finche' l'account AdMob non e' approvato. Il risultato era una
+ * disinstallazione al posto di un acquisto.
+ *
+ * 20 lascia spazio per usare l'app su lavoro vero e arrivare al paywall avendo
+ * capito cosa si sta comprando. Il muro resta, perche' l'acquisto Pro funziona
+ * ed e' la via di uscita; il video premio tornera' a essere l'alternativa
+ * gratuita quando AdMob approvera' l'account.
+ *
+ * NB: questo valore e' un fallback per righe senza quota, non la fonte di
+ * verita'. La colonna e' NOT NULL, quindi comanda il database: va tenuto
+ * allineato al DEFAULT della migrazione `..._quota_launch.sql`.
+ */
+export const DEFAULT_FREE_QUOTA = 20;
+
 // ─── Tipi pubblici ─────────────────────────────────────────────────────────────
 
 export interface QuotaCheckResult {
@@ -75,7 +96,8 @@ async function invalidateQuotaCache(orgId: string): Promise<void> {
  *
  * Se premium (RevenueCat) → sempre allowed: true.
  * Se free → legge il contatore da Supabase (con cache TTL 5 min).
- * Se errore di rete → usa la cache locale; se assente → allowed: false (pessimistico).
+ * Se errore di rete → usa la cache locale; se assente → allowed: true, perché
+ * la generazione di un file è locale e non deve dipendere dalla connessione.
  */
 export async function checkQuota(orgId: string): Promise<QuotaCheckResult> {
   // 1. Se abbonato Pro (entitlement 'pro' da RevenueCat), bypass totale del contatore.
@@ -120,7 +142,7 @@ export async function checkQuota(orgId: string): Promise<QuotaCheckResult> {
     }
 
     const total = data.documents_generated_total ?? 0;
-    const limit = data.quota_limit ?? 5;
+    const limit = data.quota_limit ?? DEFAULT_FREE_QUOTA;
     const credits = data.documents_reward_credits ?? 0;
     const effectiveLimit = limit + credits;
     const remaining = Math.max(0, effectiveLimit - total);
@@ -131,12 +153,29 @@ export async function checkQuota(orgId: string): Promise<QuotaCheckResult> {
     return result;
 
   } catch {
-    // Errore di rete — fallback pessimistico
+    // Errore di rete — si concede la generazione.
+    //
+    // Il fallback era pessimistico (`allowed: false`) e questo rendeva l'app
+    // inutilizzabile senza connessione: ma generare un PDF, un XLSX o un RTF e'
+    // un'operazione interamente locale, che non ha bisogno di Supabase per
+    // riuscire. Bloccarla significava punire l'utente in aereo o in
+    // metropolitana per un guasto che non e' suo, proprio nel momento in cui un
+    // generatore di file offline vale di piu'.
+    //
+    // Il contatore non si perde: `networkError` dice al chiamante che questo
+    // esito non e' stato confermato dal server, e il conteggio si riallinea al
+    // primo `checkQuota` che riesce.
+    //
+    // Si', restando offline si aggira il muro. E' una scelta consapevole: la
+    // cache locale viene letta prima di arrivare qui (TTL 5 minuti), quindi chi
+    // ha gia' esaurito la quota resta bloccato per quella finestra, e rendere
+    // l'app inutilizzabile a tutti gli onesti per fermare chi mette il telefono
+    // in modalita' aereo e' un pessimo affare.
     return {
-      allowed: false,
-      remaining: 0,
+      allowed: true,
+      remaining: DEFAULT_FREE_QUOTA,
       total: 0,
-      limit: 5,
+      limit: DEFAULT_FREE_QUOTA,
       isPremium: false,
       networkError: true,
     };

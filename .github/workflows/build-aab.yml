@@ -82,6 +82,25 @@ jobs:
         with:
           packages: 'platforms;android-36 build-tools;36.0.0 ndk;27.2.12479018 cmdline-tools;latest'
 
+      # Senza questa cache ogni run riscarica gradle-8.13-bin.zip e l'intera
+      # cache delle dipendenze. Non e' solo tempo: il download del wrapper e'
+      # gia' fallito con "java.net.SocketException: Unexpected end of file from
+      # server" dentro org.gradle.wrapper.Install.forceFetch, buttando via un
+      # ciclo intero per un motivo che col codice non c'entra nulla.
+      #
+      # La chiave non puo' dipendere dai file Gradle: `android/` non esiste
+      # ancora a questo punto, la crea `expo prebuild` piu' sotto. Si usa quindi
+      # il lockfile npm, che e' cio' che determina davvero le dipendenze native.
+      - name: Cache Gradle (wrapper + dipendenze)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('mobile/package-lock.json') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
@@ -187,16 +206,23 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
-      - name: Disable shrinkResources and R8 full mode for faster build
+      - name: Alza la memoria della JVM Gradle
         run: |
-          echo "android.enableShrinkResourcesInReleaseBuilds=false" >> android/gradle.properties
-          echo "android.enableR8.fullMode=false" >> android/gradle.properties
+          # Qui venivano appesi anche enableShrinkResourcesInReleaseBuilds=false
+          # ed enableR8.fullMode=false, subito DOPO che patch_build_gradle.py li
+          # aveva scritti a true e verificati con un assert "count == 1". Il
+          # risultato era una chiave doppia — proprio quella che lo script
+          # definisce non deterministica per findProperty — e una CI tutta verde
+          # su una configurazione diversa da quella costruita. Ora quei due
+          # valori li dichiara app.json (expo-build-properties) e lo script li
+          # verifica: nessuno li riscrive piu' qui.
+          #
           # expo prebuild rigenera gradle.properties col default Expo
           # (-Xmx2048m), che manda in OutOfMemoryError
           # ':app:collectReleaseDependencies'. L'ultima occorrenza vince,
           # quindi questa riga sovrascrive il default.
           echo "org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g -XX:+UseG1GC -Dfile.encoding=UTF-8" >> android/gradle.properties
-          grep -E 'enableShrinkResources|enableR8|jvmargs' android/gradle.properties
+          grep -E 'enableShrinkResources|enableR8|useLegacyPackaging|jvmargs' android/gradle.properties
 
       - name: Build AAB Release
         # -D sulla command line ha la precedenza su gradle.properties: e' la
@@ -210,64 +236,6 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           GRADLE_OPTS: "-Xmx6g -Dfile.encoding=UTF-8 -XX:+UseG1GC -XX:MaxMetaspaceSize=1g"
-
-      - name: Align native libraries to 16KB page size (patchelf)
-        # Disabled 2026-07-27: this step called patchelf --set-page-size
-        # which doesn't exist in patchelf 0.19.1 ("getting info about
-        # '--set-page-size': No such file or directory"). It is also
-        # redundant — the Python step
-        # 'Patch libexpo-modules-core.so to 16 KB segment alignment'
-        # further down does the actual 16 KB alignment rewrite with
-        # zipfile + struct.pack on p_align. Kept in place as a no-op for
-        # future re-enable once patchelf upstream supports the flag.
-        if: false
-        run: |
-          set -euo pipefail
-          # Find AAB FIRST before changing directories (working-directory is mobile)
-          # Use absolute path since we'll cd to /tmp later
-          AAB_REL=$(find android -name "*.aab" 2>/dev/null | head -1)
-          if [ -z "$AAB_REL" ]; then
-            echo "❌ AAB not found"
-            exit 1
-          fi
-          AAB="$(pwd)/$AAB_REL"
-          echo "Found AAB: $AAB"
-
-          # Install patchelf 0.19+ from pre-built binary (no apt-get needed)
-          echo "Installing patchelf 0.19.1 from pre-built binary..."
-          PATCHELF_URL="https://github.com/NixOS/patchelf/releases/download/0.19.1/patchelf-0.19.1-x86_64.tar.gz"
-          PATCHELF_DIR="/tmp/patchelf-0.19.1"
-          mkdir -p "$PATCHELF_DIR"
-          cd "$PATCHELF_DIR"
-          curl -sL "$PATCHELF_URL" | tar -xz --no-same-owner --no-same-permissions
-          export PATH="$PATCHELF_DIR/bin:$PATH"
-          echo "patchelf version: $(patchelf --version)"
-
-          # Work in a temp directory
-          WORKDIR=$(mktemp -d)
-          trap "rm -rf $WORKDIR" EXIT
-
-          # Extract AAB (use absolute path since we're in /tmp now)
-          unzip -o -q "$AAB" -d "$WORKDIR/aab_extracted"
-
-          # Find and patch all .so files
-          echo "Patching .so files to 16KB page alignment..."
-          for so in $(find "$WORKDIR/aab_extracted" -name "*.so" -type f); do
-            echo "  Patching: $so"
-            # Check current alignment
-            readelf -l "$so" 2>/dev/null | grep LOAD | head -1
-            # Set page size to 16384 (16KB = 0x4000)
-            patchelf --set-page-size 16384 "$so"
-            # Verify
-            readelf -l "$so" 2>/dev/null | grep LOAD | head -1
-          done
-
-          # Repackage AAB
-          cd "$WORKDIR/aab_extracted"
-          zip -r -X -q "$AAB" .
-          cd - >/dev/null
-
-          echo "✅ All .so files patched to 16KB page alignment"
 
       - name: Locate AAB
         if: always()

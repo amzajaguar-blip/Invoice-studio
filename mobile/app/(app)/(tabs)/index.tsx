@@ -16,12 +16,9 @@ import * as Haptics from "@/lib/haptics";
 import { apiFetch } from "@/lib/ai";
 import {
   getMonthlyRevenueTrend,
-  predictCashflow,
   type MonthlyRevenue,
-  type CashflowPrediction,
 } from "@/lib/analytics";
 import { MiniBarChart } from "@/components/MiniBarChart";
-import { schedulePaymentReminders, scheduleOverdueNotifications } from "@/lib/notifications-service";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { usePlan } from "@/context/PlanContext";
 import { useEngagementContext } from "@/context/EngagementContext";
@@ -64,11 +61,6 @@ interface MonthlyReport {
 const fmt = (amount: number) =>
   new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(amount);
 
-const CONFIDENCE_COLOR: Record<string, string> = {
-  high: "#22c55e",
-  medium: "#f59e0b",
-  low: "#ef4444",
-};
 
 const STATUS_COLORS: Record<string, string> = {
   draft: "#6b7280",
@@ -116,32 +108,17 @@ function computeMonthlyReport(invoices: Invoice[], t: (k: string) => string): Mo
     return date === previous;
   });
 
-  const countPaid = (list: Invoice[]) =>
-    list.filter((inv) => inv.status === "paid").length;
-
   const countCreated = (list: Invoice[]) => list.length;
 
+  // Restano solo i documenti creati. "Pagati" e "In scadenza" contavano gli
+  // stati `paid` / `sent` / `overdue`, cioe' il ciclo di vita di una fattura:
+  // Milo Office genera file, non li manda in riscossione, e un documento non
+  // ha uno stato di pagamento da mostrare.
   const metrics: MonthlyReportMetric[] = [
     {
       label: t("tabs.dashboard.report.metric.created"),
       current: countCreated(invoicesCurrentMonth),
       previous: countCreated(invoicesPreviousMonth),
-    },
-    {
-      label: t("tabs.dashboard.report.metric.paid"),
-      current: countPaid(invoicesCurrentMonth),
-      previous: countPaid(invoicesPreviousMonth),
-    },
-    {
-      label: t("tabs.dashboard.report.metric.due"),
-      current: invoicesCurrentMonth.filter(
-        (inv) =>
-          inv.status === "sent" || inv.status === "overdue"
-      ).length,
-      previous: invoicesPreviousMonth.filter(
-        (inv) =>
-          inv.status === "sent" || inv.status === "overdue"
-      ).length,
     },
   ];
 
@@ -239,7 +216,6 @@ export default function DashboardScreen() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [monthlyReport, setMonthlyReport] = useState<MonthlyReport | null>(null);
   const [trend, setTrend] = useState<MonthlyRevenue[]>([]);
-  const [cashflow, setCashflow] = useState<CashflowPrediction | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [reduceMotion, setReduceMotion] = useState(false);
@@ -276,11 +252,15 @@ export default function DashboardScreen() {
       setInvoices(rawInvoices as Invoice[]);
       setMonthlyReport(computeMonthlyReport(rawInvoices as Invoice[], t));
       setTrend(getMonthlyRevenueTrend(rawInvoices, 6));
-      setCashflow(predictCashflow(rawInvoices));
 
-      // Schedule reminders & overdue notifications in background
-      schedulePaymentReminders(rawInvoices).catch(() => {});
-      scheduleOverdueNotifications(rawInvoices).catch(() => {});
+      // Qui partivano schedulePaymentReminders() e
+      // scheduleOverdueNotifications(): notifiche push a 14, 7 e 3 giorni dalla
+      // scadenza, piu' un avviso giornaliero per i documenti "scaduti".
+      // Presuppongono che un documento vada incassato e possa andare in mora —
+      // il ciclo di vita di una fattura. Milo Office genera file: mandare a un
+      // utente "il tuo documento e' scaduto" e' una notifica priva di senso, e
+      // le notifiche insensate sono il modo piu' rapido per farsi disattivare
+      // i permessi o disinstallare.
     }
 
     setLoading(false);
@@ -326,7 +306,7 @@ export default function DashboardScreen() {
       label: t("tabs.dashboard.quick_actions.generate_pdf"),
       onPress: () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        router.push("/(app)/invoices/new?document_type=custom&format=pdf" as never);
+        router.push("/(app)/generate?format=pdf" as never);
       },
       accessibilityLabel: t("tabs.dashboard.quick_actions.generate_pdf_a11y"),
     },
@@ -335,7 +315,7 @@ export default function DashboardScreen() {
       label: t("tabs.dashboard.quick_actions.generate_excel"),
       onPress: () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        router.push("/(app)/invoices/new?document_type=custom&format=xlsx" as never);
+        router.push("/(app)/generate?format=xlsx" as never);
       },
       accessibilityLabel: t("tabs.dashboard.quick_actions.generate_excel_a11y"),
     },
@@ -344,7 +324,7 @@ export default function DashboardScreen() {
       label: t("tabs.dashboard.quick_actions.generate_word"),
       onPress: () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        router.push("/(app)/invoices/new?document_type=custom&format=docx" as never);
+        router.push("/(app)/generate?format=docx" as never);
       },
       accessibilityLabel: t("tabs.dashboard.quick_actions.generate_word_a11y"),
     },
@@ -400,8 +380,13 @@ export default function DashboardScreen() {
               <View style={styles.onboardingContainer}>
                 <Text style={styles.onboardingTitle}>{t("tabs.dashboard.onboarding.title")}</Text>
                 {[
-                  { icon: 'document-text-outline', label: t("tabs.dashboard.onboarding.first_invoice"), onPress: () => router.push('/(app)/invoices/new') },
-                  { icon: 'person-add-outline', label: t("tabs.dashboard.onboarding.first_client"), onPress: () => router.push('/(app)/clients/add') },
+                  // Il primo passo di chi apre Milo Office e' generare un file,
+                  // non compilare una pratica: la voce porta al generatore. Il
+                  // secondo passo era "aggiungi il tuo primo cliente", che
+                  // presupponeva un gestionale e non serve a produrre nulla:
+                  // al suo posto la scheda File, l'altra meta' del prodotto.
+                  { icon: 'document-text-outline', label: t("tabs.dashboard.onboarding.first_invoice"), onPress: () => router.push('/(app)/generate') },
+                  { icon: 'folder-outline', label: t("tabs.dashboard.onboarding.first_files"), onPress: () => router.push('/(app)/(tabs)/files') },
                   { icon: 'settings-outline', label: t("tabs.dashboard.onboarding.profile_setup"), onPress: () => router.push('/(app)/(tabs)/settings') },
                 ].map((item) => (
                   <TouchableOpacity key={item.label} style={styles.onboardingCard} onPress={item.onPress} activeOpacity={0.8}>
@@ -513,28 +498,11 @@ export default function DashboardScreen() {
                   </View>
                 )}
 
-                {/* Cashflow */}
-                {cashflow && (
-                  <View style={styles.analyticsCard}>
-                    <View style={styles.analyticsHeader}>
-                      <Text style={styles.analyticsTitle}>{t("tabs.dashboard.cashflow.title")}</Text>
-                      <View style={[styles.confidenceBadge, { borderColor: CONFIDENCE_COLOR[cashflow.confidence] + '40', backgroundColor: CONFIDENCE_COLOR[cashflow.confidence] + '12' }]}>
-                        <Text style={[styles.confidenceText, { color: CONFIDENCE_COLOR[cashflow.confidence] }]}>
-                          {cashflow.confidence === 'high'
-                            ? t("tabs.dashboard.cashflow.confidence.high")
-                            : cashflow.confidence === 'medium'
-                              ? t("tabs.dashboard.cashflow.confidence.medium")
-                              : t("tabs.dashboard.cashflow.confidence.low")}
-                        </Text>
-                      </View>
-                    </View>
-                    <Text style={styles.cashflowAmount}>{fmt(cashflow.expectedNext30Days)}</Text>
-                    <View style={styles.cashflowMeta}>
-                      <Text style={styles.cashflowMetaText}>{t("tabs.dashboard.cashflow.invoice_count").replace("{n}", String(cashflow.pendingInvoices))}</Text>
-                      <Text style={styles.cashflowMetaText}>{t("tabs.dashboard.cashflow.avg_monthly").replace("{value}", fmt(cashflow.avgMonthlyRevenue))}</Text>
-                    </View>
-                  </View>
-                )}
+                {/* Il riquadro Cashflow viveva qui: previsione di incasso a 30
+                    giorni, calcolata sulle fatture in scadenza. E' un attrezzo
+                    da gestionale di fatturazione, non da generatore di file, e
+                    non ha nulla da dire a chi apre Milo Office per produrre un
+                    PDF. Rimosso con predictCashflow e i suoi stili. */}
 
                 {/* Ultime attività */}
                 {invoices.length > 0 && (
@@ -657,22 +625,6 @@ const styles = StyleSheet.create({
   analyticsTitle: { fontSize: 13, fontWeight: "600", color: "#f0f0f2" },
   trendLegend: { flexDirection: "row", gap: 12, marginTop: 8, flexWrap: "wrap" },
   trendLegendText: { fontSize: 11, color: "#6b7280" },
-  cashflowAmount: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: "#6c63ff",
-    fontFamily: "serif",
-    marginBottom: 10,
-  },
-  cashflowMeta: { gap: 4 },
-  cashflowMetaText: { fontSize: 12, color: "#9ca3af" },
-  confidenceBadge: {
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderWidth: 1,
-  },
-  confidenceText: { fontSize: 10, fontWeight: "600" },
 
   // Activity rows
   activityRow: {

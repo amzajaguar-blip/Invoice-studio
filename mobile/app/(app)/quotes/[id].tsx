@@ -15,7 +15,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { generateDocumentPDF } from "@/lib/pdf-utils";
 import * as Sharing from "expo-sharing";
 import { FormatPickerModal, DocumentFormat, loadLastDocFormat } from "@/components/FormatPickerModal";
-import { generateDocumentDOC, generateDocumentRTF, generateDocumentXLSX, shareDocument, DocumentFormatData } from "@/lib/document-format-engine";
+import { generateDocumentDOC, generateDocumentRTF, generateDocumentXLSX, shareDocumentSafely, DocumentFormatData } from "@/lib/document-format-engine";
 import { LanguagePickerModal } from "@/components/LanguagePickerModal";
 import { translateDocumentContent, extractTranslatableFields, TranslatableFields } from "@/lib/translation-service";
 import { QuotaPaywall } from "@/components/QuotaPaywall";
@@ -148,6 +148,10 @@ export default function QuoteDetailScreen() {
 
     // runWithAd: mostra interstitial per utenti free, poi esegue la generazione
     await runWithAd(async () => {
+      // Esito della sola condivisione. Parte da true perche' il ramo PDF ha una
+      // sua gestione e non passa da shareDocumentSafely.
+      let shared = true;
+      let filename = "";
       try {
         const quoteNum = quote.quote_number ?? quote.id;
         if (format === "pdf") {
@@ -180,19 +184,30 @@ export default function QuoteDetailScreen() {
         } else {
           const docData = buildDocumentData();
           if (!docData) throw new Error("Dati non disponibili");
+          let fp: string;
           if (format === "xlsx") {
-            const fp = await generateDocumentXLSX(docData);
-            await shareDocument(fp, `bozza_${quoteNum}.xlsx`);
+            fp = await generateDocumentXLSX(docData);
+            filename = `bozza_${quoteNum}.xlsx`;
           } else if (format === "doc") {
-            const fp = await generateDocumentDOC(docData);
-            await shareDocument(fp, `bozza_${quoteNum}.docx`);
+            fp = await generateDocumentDOC(docData);
+            filename = `bozza_${quoteNum}.docx`;
           } else {
-            const fp = await generateDocumentRTF(docData);
-            await shareDocument(fp, `bozza_${quoteNum}.rtf`);
+            fp = await generateDocumentRTF(docData);
+            filename = `bozza_${quoteNum}.rtf`;
           }
+          // Da qui in poi il file esiste su disco: un fallimento della
+          // condivisione non e' piu' un fallimento di generazione, e non deve
+          // ne' saltare il conteggio quota ne' essere raccontato come tale.
+          shared = (await shareDocumentSafely(fp, filename)).shared;
         }
         // Incrementa quota dopo generazione riuscita
         if (orgId) { try { await incrementQuota(orgId); } catch { /* quota esaurita */ } }
+        if (!shared) {
+          Alert.alert(
+            t("documents.generate.success.title"),
+            t("documents.generate.success.msg_not_shared").replace("{name}", filename)
+          );
+        }
       } catch (err) {
         Alert.alert(t("error"), "Errore durante la generazione del documento.");
       }

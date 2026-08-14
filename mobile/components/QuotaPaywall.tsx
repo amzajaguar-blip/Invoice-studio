@@ -230,7 +230,13 @@ export function QuotaPaywall({
           <Text style={s.premiumBtnText}>{t("quota.exhausted.cta")}</Text>
         </TouchableOpacity>
 
-        {/* CTA 2: Guarda video per +1 documento */}
+        {/* CTA 2: Guarda video per +1 documento.
+            Non compare affatto quando non c'e' nulla da mostrare: finche'
+            l'account AdMob non e' approvato gli ad unit rispondono NO_FILL a
+            ogni richiesta, e un bottone spento accanto a "video non
+            disponibile" fa sembrare rotta un'app che sta funzionando. Quando
+            gli annunci arriveranno il bottone tornera' da solo. */}
+        {adState !== "unavailable" && (
         <TouchableOpacity
           style={[s.rewardBtn, rewardDisabled && s.rewardBtnDisabled]}
           onPress={handleWatchAd}
@@ -254,6 +260,7 @@ export function QuotaPaywall({
             </>
           )}
         </TouchableOpacity>
+        )}
 
         {/* Fallback "ad non disponibile" — fill rate basso o offline */}
         {adState === "unavailable" && (

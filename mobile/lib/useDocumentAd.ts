@@ -38,8 +38,14 @@ export interface UseDocumentAdResult {
    *   né ritardata dall'ad).
    * - Dopo la generazione: se premium → fine. Se free → mostra
    *   l'interstitial precaricato se disponibile, altrimenti skip silenzioso.
+   *
+   * @returns true se `generateFn` e' stata eseguita, false se la chiamata e'
+   *          stata scartata perche' un'altra era gia' in corso. Il chiamante
+   *          DEVE distinguere i due casi: senza questo esito, un rientro
+   *          concorrente faceva dichiarare "file generato" per un file che
+   *          nessuno aveva prodotto, consumando pure una unita' di quota.
    */
-  runWithAd: (generateFn: () => Promise<void>) => Promise<void>;
+  runWithAd: (generateFn: () => Promise<void>) => Promise<boolean>;
   /** True mentre l'interstitial post-generazione è in visualizzazione. */
   adLoading: boolean;
 }
@@ -50,8 +56,8 @@ export function useDocumentAd(): UseDocumentAdResult {
   // Previene doppia chiamata concorrente
   const runningRef = useRef(false);
 
-  const runWithAd = useCallback(async (generateFn: () => Promise<void>) => {
-    if (runningRef.current) return;
+  const runWithAd = useCallback(async (generateFn: () => Promise<void>): Promise<boolean> => {
+    if (runningRef.current) return false;
     runningRef.current = true;
 
     try {
@@ -64,7 +70,7 @@ export function useDocumentAd(): UseDocumentAdResult {
       //    isPremium di default è false, quindi va trattato come "non ancora
       //    determinato", non come "free" — altrimenti un Pro appena aperto
       //    l'app vedrebbe l'interstitial prima che RevenueCat risponda.
-      if (limits.isLoading) return;
+      if (limits.isLoading) return true;
 
       if (!isPremium) {
         // 3. Utente free: mostra l'interstitial precaricato SE pronto.
@@ -79,6 +85,7 @@ export function useDocumentAd(): UseDocumentAdResult {
           setAdLoading(false);
         }
       }
+      return true;
     } finally {
       runningRef.current = false;
     }

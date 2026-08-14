@@ -156,14 +156,27 @@ export default function InvoiceDetailScreen() {
     if (!data || exportingFormat) return;
     setExportingFormat(format);
     try {
-      await generateAndShareDocument(buildFormatData(), format);
+      const result = await generateAndShareDocument(buildFormatData(), format);
+      if (!result.shared) {
+        console.warn("[export] condivisione non riuscita", result.shareError);
+        Alert.alert(
+          t("documents.generate.success.title"),
+          t("documents.generate.success.msg_not_shared").replace(
+            "{name}",
+            result.filename
+          )
+        );
+      }
     } catch (err) {
+      // All'utente un messaggio tradotto; il dettaglio grezzo resta ai log.
+      console.warn("[export] generazione fallita", err);
+      const detail = __DEV__ ? `\n\n${err instanceof Error ? err.message : String(err)}` : "";
       Alert.alert(
         t("documents.detail.export.failed_title"),
-        t("documents.detail.export.failed_msg").replace(
+        `${t("documents.detail.export.failed_msg").replace(
           "{format}",
           FORMAT_META[format].label
-        )
+        )}${detail}`
       );
     } finally {
       setExportingFormat(null);

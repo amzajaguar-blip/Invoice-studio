@@ -247,11 +247,27 @@ export default function NewInvoiceScreen() {
           notes: notes.trim() || undefined,
           companyName: "Milo Office",
         };
-        await generateAndShareDocument(formatData, outputFormat);
+        const result = await generateAndShareDocument(formatData, outputFormat);
+        if (!result.shared) {
+          // Il file esiste comunque: dirlo, invece di lasciare credere che
+          // l'esportazione non sia avvenuta.
+          console.warn("[export] condivisione non riuscita", result.shareError);
+          Alert.alert(
+            t("documents.generate.success.title"),
+            t("documents.generate.success.msg_not_shared").replace(
+              "{name}",
+              result.filename
+            )
+          );
+        }
       } catch (err) {
+        // All'utente un messaggio tradotto; il dettaglio grezzo dell'SDK
+        // contiene path interni e testo inglese, e resta alle build di debug.
+        console.warn("[export] generazione fallita", err);
+        const detail = __DEV__ ? `\n\n${err instanceof Error ? err.message : String(err)}` : "";
         Alert.alert(
           t("documents.new.export.failed_title"),
-          t("documents.new.export.failed_msg").replace("{format}", formatLabel)
+          `${t("documents.new.export.failed_msg").replace("{format}", formatLabel)}${detail}`
         );
       } finally {
         setExporting(false);

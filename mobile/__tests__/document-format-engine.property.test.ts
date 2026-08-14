@@ -5,6 +5,12 @@
  */
 import * as fc from 'fast-check';
 import * as FileSystem from 'expo-file-system/legacy';
+// Import statico, non `await import(...)` dentro la proprieta': l'ambiente
+// Jest e' CommonJS e un import dinamico ci muore sopra con
+// ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING_FLAG, facendo fallire ogni run a
+// prescindere dal codice sotto test. Le jest.mock() qui sotto restano
+// efficaci perche' babel-jest le solleva sopra gli import.
+import { generateDocumentDOC, generateDocumentRTF } from '../lib/document-format-engine';
 
 jest.mock('expo-file-system/legacy');
 jest.mock('expo-sharing');
@@ -28,8 +34,6 @@ describe('P9: Document_Format_Engine — DOC/RTF non sono PDF rinominati', () =>
           amount: fc.float({ min: 1, max: 10000 }),
         }),
         async (data) => {
-          const { generateDocumentDOC } = await import('../lib/document-format-engine');
-
           let capturedBase64 = '';
           mockWriteAs.mockImplementation(async (_path: string, content: string) => {
             capturedBase64 = content;
@@ -64,8 +68,6 @@ describe('P9: Document_Format_Engine — DOC/RTF non sono PDF rinominati', () =>
           amount: fc.float({ min: 1, max: 10000 }),
         }),
         async (data) => {
-          const { generateDocumentRTF } = await import('../lib/document-format-engine');
-
           let capturedContent = '';
           mockWriteAs.mockImplementation(async (_path: string, content: string) => {
             capturedContent = content;

@@ -83,6 +83,19 @@ jobs:
         with:
           packages: 'platforms;android-35 build-tools;35.0.0 ndk;27.2.12479018'
 
+      # Vedi la nota estesa in build-aab.yml: senza cache ogni run riscarica il
+      # wrapper Gradle, ed e' gia' fallito una volta con SocketException.
+      # La chiave usa il lockfile npm perche' `android/` non esiste ancora qui.
+      - name: Cache Gradle (wrapper + dipendenze)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('mobile/package-lock.json') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
@@ -180,15 +193,19 @@ jobs:
       # Stessi flag del workflow AAB: R8 in full mode ha gia' fatto sparire
       # MainActivity in passato, e qui serve un APK che si installi, non uno
       # ottimizzato al massimo.
-      - name: Disable shrinkResources and R8 full mode for faster build
+      - name: Alza la memoria della JVM Gradle
         run: |
-          echo "android.enableShrinkResourcesInReleaseBuilds=false" >> android/gradle.properties
-          echo "android.enableR8.fullMode=false" >> android/gradle.properties
+          # Qui venivano appesi anche enableShrinkResourcesInReleaseBuilds=false
+          # ed enableR8.fullMode=false, subito DOPO che patch_build_gradle.py li
+          # aveva verificati: una chiave doppia e una CI verde su una
+          # configurazione diversa da quella costruita. Ora li dichiara app.json
+          # (expo-build-properties) e lo script li verifica.
+          #
           # expo prebuild rigenera gradle.properties col default Expo
           # (-Xmx2048m), che manda in OutOfMemoryError
           # ':app:collectReleaseDependencies'. L'ultima occorrenza vince.
           echo "org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g -XX:+UseG1GC -Dfile.encoding=UTF-8" >> android/gradle.properties
-          grep -E 'enableShrinkResources|enableR8|jvmargs' android/gradle.properties
+          grep -E 'enableShrinkResources|enableR8|useLegacyPackaging|jvmargs' android/gradle.properties
 
       - name: Build APK Release
         # Le variabili del keystore servono a Gradle in fase di build, non solo

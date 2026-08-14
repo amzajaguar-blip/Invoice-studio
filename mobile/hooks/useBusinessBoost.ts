@@ -43,7 +43,7 @@ export interface UseBusinessBoostReturn {
 
 export function useBusinessBoost(): UseBusinessBoostReturn {
   const { t } = useLocale();
-  const { limits } = usePlan();
+  const { limits, refreshLimits } = usePlan();
 
   // ─── Stato modale ──────────────────────────────────────────────────────
   const [showBoostModal, setShowBoostModal]   = useState(false);
@@ -166,6 +166,9 @@ export function useBusinessBoost(): UseBusinessBoostReturn {
         }
       },
       onBoostApplied: () => {
+        // Il boost e' appena stato scritto sul server: senza questo refresh la
+        // UI resta sui limiti vecchi e l'utente non vede cio' che ha ottenuto.
+        void refreshLimits();
         if (mountedRef.current) {
           setAdState('idle');
           adRef.current = null;
@@ -174,12 +177,15 @@ export function useBusinessBoost(): UseBusinessBoostReturn {
       onBoostError: () => {
         if (mountedRef.current) {
           setAdState('error');
-          setErrorMsg('Errore applicazione boost. Riprova.');
+          // errorMsg e' una CHIAVE i18n, non una frase: BoostCTA la risolve
+          // con t(). Prima qui c'era una stringa italiana hardcodata che
+          // finiva dentro t() e non corrispondeva ad alcuna chiave.
+          setErrorMsg('boost_error_apply');
           adRef.current = null;
         }
       },
     });
-  }, [adState]);
+  }, [adState, refreshLimits]);
 
   // ─── Calcolo boostExpiresIn ───────────────────────────────────────────
   const boostExpiresIn: string | null =

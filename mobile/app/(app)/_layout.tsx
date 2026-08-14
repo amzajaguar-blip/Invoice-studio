@@ -34,6 +34,7 @@ export default function AuthLayout() {
           descriptor map during cold boot whose .options is undefined,
           producing "undefined is not a function at TabLayout". See
           mobile/ROUTING_AUDIT.md items 2.1–2.3. */}
+      <Stack.Screen name="generate" options={{ presentation: "card", animation: "slide_from_right" }} />
       <Stack.Screen name="invoices/new" options={{ presentation: "card", animation: "slide_from_right" }} />
       <Stack.Screen name="quotes/new" options={{ presentation: "card", animation: "slide_from_right" }} />
       <Stack.Screen name="quotes/[id]" options={{ presentation: "card", animation: "slide_from_right" }} />

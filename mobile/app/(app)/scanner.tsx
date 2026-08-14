@@ -48,7 +48,7 @@ import {
   generateDocumentDOC,
   generateDocumentXLSX,
   generateDocumentRTF,
-  shareDocument,
+  shareDocumentSafely,
   DocumentFormatData,
 } from "@/lib/document-format-engine";
 import * as Sharing from "expo-sharing";
@@ -375,6 +375,10 @@ export default function ScannerScreen() {
     setGeneratingDoc(true);
 
     await runWithAd(async () => {
+      // Esito della sola condivisione. Parte da true perche' il ramo PDF ha una
+      // sua gestione e non passa da shareDocumentSafely.
+      let shared = true;
+      let filename = "";
       try {
         const title = ocrResult.vendor
           ? `Documento — ${ocrResult.vendor}`
@@ -429,15 +433,30 @@ export default function ScannerScreen() {
           const canShare = await Sharing.isAvailableAsync();
           if (canShare) await Sharing.shareAsync(filepath, { mimeType: "application/pdf", dialogTitle: title });
           else Alert.alert("PDF generato", `File: ${filepath}`);
-        } else if (format === "xlsx") {
-          const fp = await generateDocumentXLSX(docData);
-          await shareDocument(fp, `${safeVendor}.xlsx`);
-        } else if (format === "doc") {
-          const fp = await generateDocumentDOC(docData);
-          await shareDocument(fp, `${safeVendor}.docx`);
-        } else if (format === "rtf") {
-          const fp = await generateDocumentRTF(docData);
-          await shareDocument(fp, `${safeVendor}.rtf`);
+        } else if (format === "xlsx" || format === "doc" || format === "rtf") {
+          let fp: string;
+          if (format === "xlsx") {
+            fp = await generateDocumentXLSX(docData);
+            filename = `${safeVendor}.xlsx`;
+          } else if (format === "doc") {
+            fp = await generateDocumentDOC(docData);
+            filename = `${safeVendor}.docx`;
+          } else {
+            fp = await generateDocumentRTF(docData);
+            filename = `${safeVendor}.rtf`;
+          }
+          // Il file esiste: se il foglio di condivisione non si apre non e' la
+          // generazione ad essere fallita, e uscire dalla schermata resta
+          // giusto — prima un errore qui lasciava l'utente fermo sullo scanner
+          // convinto di non aver prodotto nulla.
+          shared = (await shareDocumentSafely(fp, filename)).shared;
+        }
+
+        if (!shared) {
+          Alert.alert(
+            t("documents.generate.success.title"),
+            t("documents.generate.success.msg_not_shared").replace("{name}", filename)
+          );
         }
 
         // Torna indietro dopo generazione riuscita
