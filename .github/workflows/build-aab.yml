@@ -443,21 +443,42 @@ jobs:
             "$AAB"
           echo "✅ AAB re-signed with v1+v2+v3"
 
-      - name: Verify AAB signature (apksigner verify)
+      - name: Verify AAB signature (jarsigner)
+        # Qui c'era `apksigner verify`, e non ha mai verificato niente.
+        #
+        # apksigner legge AndroidManifest.xml alla radice dello zip: e' il
+        # layout di un APK. In un AAB il manifest sta in
+        # base/manifest/AndroidManifest.xml, quindi lo strumento muore con
+        # "ApkFormatException: Missing AndroidManifest.xml" — provato anche con
+        # --min-sdk-version, che aiuta `sign` ma non `verify`. Il passo pero'
+        # apriva con `set +e` e chiudeva con `echo "Verify exit: $?"`, dove $?
+        # e' quello dell'echo: l'eccezione veniva inghiottita e la CI segnava
+        # verde. Un controllo di firma che non puo' fallire non e' un controllo.
+        #
+        # Su un bundle la firma che conta e' quella jar (META-INF), ed e' quella
+        # che jarsigner sa leggere davvero. Le v2/v3 le rigenera Play App
+        # Signing sugli APK che produce lui.
         if: always()
         run: |
-          set +e
+          set -euo pipefail
           AAB="${GITHUB_WORKSPACE}/mobile/android/app/build/outputs/bundle/release/app-release.aab"
           if [ ! -f "$AAB" ]; then
-            echo "❌ AAB not found — skipping verify"
-            exit 0
+            echo "❌ AAB non trovato in $AAB"
+            exit 1
           fi
-          APKSIGNER_DIR=$(find "$ANDROID_HOME" -name apksigner -type f 2>/dev/null | head -1)
-          echo "Verifying: $AAB"
-          "$APKSIGNER_DIR" verify --print-certs --verbose "$AAB" 2>&1 | head -40
-          echo "---"
-          "$APKSIGNER_DIR" verify "$AAB"
-          echo "Verify exit: $?"
+          echo "Verifico: $AAB"
+          # Niente -strict: fa fallire anche su avvisi innocui, come la data di
+          # scadenza del certificato.
+          if ! jarsigner -verify "$AAB" | grep -q "jar verified."; then
+            echo "❌ Firma NON valida — Play rifiuterebbe questo bundle"
+            jarsigner -verify -verbose:summary "$AAB" | tail -20
+            exit 1
+          fi
+          echo "✅ jar verified"
+          # Il fingerprint rende visibile a colpo d'occhio un keystore sbagliato:
+          # una firma valida con la chiave sbagliata e' comunque un rifiuto.
+          unzip -p "$AAB" 'META-INF/*.RSA' | keytool -printcert \
+            | grep -E "Owner|Proprietario|SHA256" || true
 
       - name: Upload AAB Release
         uses: actions/upload-artifact@v4
