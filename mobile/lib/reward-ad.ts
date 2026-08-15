@@ -238,11 +238,23 @@ async function getRewardSsvIdentity(): Promise<{ userId: string; orgId?: string 
  * @param onEarned invocato SOLO dalla callback EARNED_REWARD dell'SDK — cioè
  *        a video effettivamente completato. È l'unico punto in cui il
  *        chiamante può avviare l'accredito server-side del documento.
+ * @param onClosed invocato quando l'annuncio si chiude, con o senza reward, e
+ *        quando lo show fallisce.
+ *
+ *        Serve perché il valore di ritorno `true` significa solo "l'annuncio è
+ *        stato aperto": chi chiudeva il video a metà non produceva né
+ *        EARNED_REWARD né un ritorno `false`, quindi il chiamante restava in
+ *        stato 'showing' per sempre e il bottone "Guarda video" diventava un
+ *        vicolo cieco fino allo smontaggio della schermata. Con questo callback
+ *        esiste sempre uno stato terminale.
  * @returns true se l'ad è stato aperto, false se non pronto, offline o
  *          fallito. Su CLOSED o fallimento precarica il prossimo ad.
  *          Mai throw — il flusso documenti deve continuare comunque.
  */
-export async function showDocumentsRewardAd(onEarned: () => void): Promise<boolean> {
+export async function showDocumentsRewardAd(
+  onEarned: () => void,
+  onClosed?: () => void
+): Promise<boolean> {
   if (!rewardAdReady || !rewardAd) return false;
 
   try {
@@ -267,6 +279,7 @@ export async function showDocumentsRewardAd(onEarned: () => void): Promise<boole
   const unsubClosed = ad.addAdEventListener(AdEventType.CLOSED, () => {
     unsubEarned();
     unsubClosed();
+    onClosed?.();
     // onAdDismissedFullScreenContent equivalente: precarica il prossimo ad.
     void preloadDocumentsRewardAd();
   });
@@ -279,6 +292,7 @@ export async function showDocumentsRewardAd(onEarned: () => void): Promise<boole
     unsubEarned();
     unsubClosed();
     console.warn('[reward-ad] documents rewarded failed to show', err);
+    onClosed?.();
     void preloadDocumentsRewardAd();
     return false;
   }

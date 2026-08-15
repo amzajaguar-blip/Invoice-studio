@@ -138,6 +138,7 @@ export const zh = {
   boost_unavailable_video_hint:"目前没有可用的激励视频。请稍后再试。",
   boost_error_loading_video:"加载视频时出错。请重试。",
   boost_error_apply:"未应用加成，请重试。",
+  boost_daily_limit_reached:"你已达到每天 3 个视频的上限。",
   boost_retry_ad_load:"重新加载视频",
   boost_loading_video_a11y:"正在加载视频",
   boost_playing_video_a11y:"正在播放视频",

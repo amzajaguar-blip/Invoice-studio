@@ -60,12 +60,20 @@ interface CachedQuota {
 
 // ─── Cache helpers ─────────────────────────────────────────────────────────────
 
-async function readQuotaCache(orgId: string): Promise<QuotaCheckResult | null> {
+/**
+ * @param ignoreTtl accetta anche una lettura scaduta. Serve solo al fallback di
+ *        rete: un contatore vecchio e' comunque un dato reale, e mostrarlo e'
+ *        meglio che inventarne uno.
+ */
+async function readQuotaCache(
+  orgId: string,
+  { ignoreTtl = false }: { ignoreTtl?: boolean } = {}
+): Promise<QuotaCheckResult | null> {
   try {
     const raw = await AsyncStorage.getItem(`${QUOTA_CACHE_KEY}_${orgId}`);
     if (!raw) return null;
     const cached: CachedQuota = JSON.parse(raw);
-    if (Date.now() - cached.cachedAt > QUOTA_CACHE_TTL_MS) return null;
+    if (!ignoreTtl && Date.now() - cached.cachedAt > QUOTA_CACHE_TTL_MS) return null;
     return cached.result;
   } catch {
     return null;
@@ -166,11 +174,21 @@ export async function checkQuota(orgId: string): Promise<QuotaCheckResult> {
     // esito non e' stato confermato dal server, e il conteggio si riallinea al
     // primo `checkQuota` che riesce.
     //
-    // Si', restando offline si aggira il muro. E' una scelta consapevole: la
-    // cache locale viene letta prima di arrivare qui (TTL 5 minuti), quindi chi
-    // ha gia' esaurito la quota resta bloccato per quella finestra, e rendere
-    // l'app inutilizzabile a tutti gli onesti per fermare chi mette il telefono
-    // in modalita' aereo e' un pessimo affare.
+    // Si', restando offline si aggira il muro. E' una scelta consapevole:
+    // rendere l'app inutilizzabile a tutti gli onesti per fermare chi mette il
+    // telefono in modalita' aereo e' un pessimo affare.
+    //
+    // I contatori pero' non si inventano. Restituire `total: 0` e
+    // `remaining: <quota piena>` avrebbe fatto scrivere a schermo "hai 20
+    // documenti rimasti" a chi ne ha zero, e nessun chiamante puo' distinguere
+    // un numero finto da uno vero se non guardando `networkError`. Si rilegge
+    // quindi l'ultima lettura riuscita **ignorando il TTL**: e' vecchia, ma e'
+    // un dato reale. Solo se non c'e' mai stata si ricade sulla quota piena,
+    // che per un utente al primo avvio offline e' anche corretta.
+    const stale = await readQuotaCache(orgId, { ignoreTtl: true });
+    if (stale) {
+      return { ...stale, allowed: true, isPremium: false, networkError: true };
+    }
     return {
       allowed: true,
       remaining: DEFAULT_FREE_QUOTA,

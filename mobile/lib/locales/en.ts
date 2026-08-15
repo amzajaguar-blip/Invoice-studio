@@ -138,6 +138,7 @@ export const en = {
   boost_unavailable_video_hint:"No reward video available right now. Please try again later.",
   boost_error_loading_video:"Error loading video. Please try again.",
   boost_error_apply:"Boost not applied. Please try again.",
+  boost_daily_limit_reached:"You have reached the daily limit of 3 videos.",
   boost_retry_ad_load:"Retry video load",
   boost_loading_video_a11y:"Loading video",
   boost_playing_video_a11y:"Playing video",

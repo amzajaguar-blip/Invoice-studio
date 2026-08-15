@@ -168,7 +168,13 @@ async function readDocx(base64: string): Promise<string> {
     .replace(/<w:p[ >]/g, '\n<w:p ')
     .replace(/<w:tab\b[^>]*\/>/g, '\t')
     .replace(/<w:br\b[^>]*\/>/g, '\n')
-    .split(/<w:t[^>]*>/)
+    // `<w:t[^>]*>` sembrava giusto ma prendeva ogni tag che comincia per
+    // `w:t`: <w:tbl>, <w:tblPr>, <w:tr>, <w:tc>. Il pezzo che segue non
+    // contiene un `</w:t>`, quindi `split('</w:t>')[0]` restituiva il markup
+    // cosi' com'era, e un .docx con una sola tabella finiva convertito in un
+    // PDF pieno di `</w:tblPr>` e `<w:p><w:r>`. Qui dopo `w:t` si pretende un
+    // `>` oppure uno spazio (il caso di <w:t xml:space="preserve">).
+    .split(/<w:t(?:\s[^>]*)?>/)
     .map((chunk, i) => (i === 0 ? '' : chunk.split('</w:t>')[0]))
     .join('')
     .replace(/&lt;/g, '<')

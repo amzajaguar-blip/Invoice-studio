@@ -138,6 +138,7 @@ export const fr = {
   boost_unavailable_video_hint:"Aucune vidéo avec récompense disponible pour le moment. Réessayez plus tard.",
   boost_error_loading_video:"Erreur lors du chargement de la vidéo. Réessayez.",
   boost_error_apply:"Boost non appliqué. Réessayez.",
+  boost_daily_limit_reached:"Vous avez atteint la limite quotidienne de 3 vidéos.",
   boost_retry_ad_load:"Réessayer le chargement de la vidéo",
   boost_loading_video_a11y:"Chargement de la vidéo en cours",
   boost_playing_video_a11y:"Lecture de la vidéo en cours",

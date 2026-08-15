@@ -186,6 +186,14 @@ export interface ShowAdOptions {
   onBoostApplied: () => void;
   onBoostError:   () => void;
   onShowing?:     () => void;
+  /**
+   * L'utente ha chiuso il video prima di guadagnare il reward.
+   *
+   * Non e' un errore — e' una scelta — ma senza questo esito il chiamante
+   * restava bloccato in stato 'showing', perche' ne' `onBoostApplied` ne'
+   * `onBoostError` venivano mai invocati.
+   */
+  onDismissed?:   () => void;
 }
 
 /** Esito dell'accredito del boost, per distinguere i casi nella UI. */
@@ -243,15 +251,26 @@ export async function applyBoostReward(): Promise<BoostGrantResult> {
  */
 export async function showBoostAd(options: ShowAdOptions): Promise<void> {
   options.onShowing?.();
+  // `shown === true` dice solo che l'annuncio si e' aperto. Senza tenere
+  // traccia del reward, chiudere il video a meta' non produceva alcun esito e
+  // la UI restava appesa: si distingue quindi la chiusura *dopo* il reward
+  // (niente da fare, ci pensa l'accredito) dalla chiusura anticipata.
+  let earned = false;
   try {
-    const shown = await showDocumentsRewardAd(() => {
-      // La callback dell'SDK e' sincrona: l'accredito viaggia per conto suo e
-      // avvisa la UI quando il server ha risposto.
-      void applyBoostReward().then((result) => {
-        if (result === 'granted') options.onBoostApplied();
-        else options.onBoostError();
-      });
-    });
+    const shown = await showDocumentsRewardAd(
+      () => {
+        earned = true;
+        // La callback dell'SDK e' sincrona: l'accredito viaggia per conto suo e
+        // avvisa la UI quando il server ha risposto.
+        void applyBoostReward().then((result) => {
+          if (result === 'granted') options.onBoostApplied();
+          else options.onBoostError();
+        });
+      },
+      () => {
+        if (!earned) options.onDismissed?.();
+      },
+    );
     if (!shown) options.onBoostError();
   } catch (err) {
     console.warn('[business-boost] showBoostAd fallita', err);

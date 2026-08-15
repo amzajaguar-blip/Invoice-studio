@@ -88,10 +88,18 @@ export function toDisplayName(filename: string): string {
 /**
  * Ripulisce un nome scelto dall'utente: via i separatori di percorso e i
  * caratteri che rompono un filename, niente punti iniziali (file nascosti).
+ *
+ * `#` e `%` sono nella lista non perche' rompano un filename — su disco sono
+ * legittimi — ma perche' qui ogni percorso e' una URI `file://` composta per
+ * concatenazione (`${dir}${name}`). Un nome come `Report #3` produrrebbe
+ * `file:///…/Report #3.pdf`, dove `#` apre un frammento e taglia via il resto;
+ * `Sconto 50%` produrrebbe una sequenza percent-escape non valida. Il rinomino
+ * sembrerebbe riuscito, e la condivisione o la cancellazione successive
+ * punterebbero a un percorso diverso.
  */
 export function sanitizeFileName(input: string): string {
   const cleaned = input
-    .replace(/[/\\:*?"<>|\u0000-\u001f]/g, '')
+    .replace(/[/\\:*?"<>|#%\u0000-\u001f]/g, '')
     .replace(/\s+/g, ' ')
     .trim()
     .replace(/^\.+/, '')

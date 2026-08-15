@@ -119,6 +119,34 @@ describe('useBusinessBoost', () => {
     expect(mockPreload).toHaveBeenCalledTimes(2);
   });
 
+  it('chiudere il video a meta\' non lascia il modale bloccato', async () => {
+    preloadSucceeds();
+
+    // showBoostAd che simula l'utente che chiude il video prima del reward:
+    // nessun onBoostApplied, nessun onBoostError — solo onDismissed. Senza
+    // quest'ultimo lo stato restava 'showing' per sempre, e il bottone
+    // "Guarda video" — disabilitato proprio quando isShowing — diventava un
+    // vicolo cieco fino allo smontaggio della schermata.
+    mockShow.mockImplementation(
+      async (opts: { onShowing?: () => void; onDismissed?: () => void }) => {
+        opts.onShowing?.();
+        opts.onDismissed?.();
+      },
+    );
+
+    const { result } = renderHook(() => useBusinessBoost());
+    await waitFor(() => expect(result.current.boostSession.state).toBe('ready'));
+
+    await act(async () => {
+      result.current.boostSession.showAd();
+    });
+
+    // Si torna a uno stato da cui l'utente puo' riprovare, non a 'showing'.
+    await waitFor(() => expect(result.current.boostSession.state).not.toBe('showing'));
+    // E il prossimo annuncio viene ricaricato da solo.
+    await waitFor(() => expect(mockPreload).toHaveBeenCalledTimes(2));
+  });
+
   it('showAd resta inerte se l\'annuncio non e\' pronto', async () => {
     preloadFails();
 

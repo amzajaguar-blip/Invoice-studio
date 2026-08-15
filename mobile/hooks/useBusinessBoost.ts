@@ -81,7 +81,10 @@ export function useBusinessBoost(): UseBusinessBoostReturn {
     if (dailyAdsLeft <= 0) {
       if (mountedRef.current) {
         setAdState('unavailable');
-        setErrorMsg('Hai raggiunto il limite giornaliero di 3 video.');
+        // Chiave i18n, non una frase: `errorMsg` viene risolto con t() da
+        // BoostCTA. Qui c'era una stringa italiana scritta a mano, che restava
+        // in italiano in tutte e sei le altre lingue.
+        setErrorMsg('boost_daily_limit_reached');
       }
       return;
     }
@@ -108,9 +111,12 @@ export function useBusinessBoost(): UseBusinessBoostReturn {
       onError: (msg: string) => {
         if (mountedRef.current) {
           setAdState('error');
-          // `msg` e' una chiave i18n (vedi BOOST_UNAVAILABLE_KEY): va tradotta
-          // qui, altrimenti finisce a schermo cruda e in inglese.
-          setErrorMsg(t(msg));
+          // `msg` e' gia' una chiave i18n (vedi BOOST_UNAVAILABLE_KEY) e qui si
+          // conserva tale: a tradurre e' BoostCTA, con `t(errorMsg ?? ...)`.
+          // Tradurre anche qui dava un t(t(chiave)) che funzionava solo perche'
+          // t() rimanda indietro cio' che non conosce, e lasciava `errorMsg`
+          // con due nature diverse a seconda del ramo che lo aveva scritto.
+          setErrorMsg(msg);
           adRef.current = null;
         }
       },
@@ -172,6 +178,16 @@ export function useBusinessBoost(): UseBusinessBoostReturn {
         if (mountedRef.current) {
           setAdState('idle');
           adRef.current = null;
+        }
+      },
+      onDismissed: () => {
+        // Video chiuso prima della fine: nessun reward, ma nemmeno un errore da
+        // mostrare. Si torna a 'idle' e si ricarica, cosi' il prossimo tentativo
+        // trova un annuncio pronto invece di un bottone spento per sempre.
+        if (mountedRef.current) {
+          setAdState('idle');
+          adRef.current = null;
+          setReloadNonce((n) => n + 1);
         }
       },
       onBoostError: () => {
