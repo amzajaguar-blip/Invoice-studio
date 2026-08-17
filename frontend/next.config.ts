@@ -68,7 +68,20 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  serverExternalPackages: ["tesseract.js"],
+  // `pdfjs-dist` DEVE restare esterno al bundle. La rotta
+  // /api/convert/pdf-extract fa `await import("pdfjs-dist/legacy/build/pdf.mjs")`,
+  // e quella build, sul ramo Node, carica il worker con
+  // `await import(/* webpackIgnore: true */ this.workerSrc)` dove workerSrc
+  // vale "./pdf.worker.mjs". L'import interno e' escluso apposta dal bundling,
+  // quindi si risolve relativamente al chunk emesso
+  // (.next/server/app/api/convert/pdf-extract/route.js) — dove quel file non
+  // esiste. Risultato: MODULE_NOT_FOUND, inghiottito dal try/catch della rotta,
+  // 500 "extraction_failed" a ogni richiesta e sul telefono il messaggio
+  // generico "controlla la connessione". Elencandolo qui resta un import da
+  // node_modules e il percorso relativo torna valido.
+  //
+  // Da verificare con una build di produzione: in `next dev` non si riproduce.
+  serverExternalPackages: ["tesseract.js", "pdfjs-dist"],
 
   experimental: {
     optimizePackageImports: ["lucide-react"],

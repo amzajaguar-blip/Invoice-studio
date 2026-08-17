@@ -90,6 +90,32 @@ export function requiresServerExtraction(ext: string): boolean {
 /** Tetto di dimensione: oltre, la lettura in memoria non e' ragionevole. */
 export const MAX_IMPORT_BYTES = 10 * 1024 * 1024;
 
+/**
+ * Tetto per i PDF, che vanno estratti dal server.
+ *
+ * Il vincolo non e' la memoria ma il limite del body di una funzione
+ * serverless su Vercel: 4,5 MB. Il PDF viaggia come base64 dentro un JSON, e il
+ * base64 pesa 4/3 dell'originale — quindi il file grezzo deve stare sotto
+ * 4,5 × 3/4 ≈ 3,37 MB.
+ *
+ * La soglia si CALCOLA da quel limite invece di essere un numero tondo scelto a
+ * mano: una versione precedente aveva fissato 4 MB definendoli "soglia sicura",
+ * ma 4 MB diventano 5,33 MB in base64 e Vercel risponde 413 prima ancora che la
+ * funzione parta. I PDF fra 3,38 e 4 MB superavano il controllo e finivano
+ * comunque nell'errore generico che il controllo doveva evitare.
+ *
+ * Il 5% di margine copre l'involucro JSON e le differenze di arrotondamento.
+ */
+const VERCEL_BODY_LIMIT_BYTES = Math.floor(4.5 * 1024 * 1024);
+const BASE64_OVERHEAD = 4 / 3;
+export const MAX_PDF_BYTES_FOR_VERCEL = Math.floor(
+  (VERCEL_BODY_LIMIT_BYTES / BASE64_OVERHEAD) * 0.95,
+);
+
+/** La soglia PDF in MB, per i messaggi all'utente. Una cifra decimale. */
+export const MAX_PDF_MB_FOR_VERCEL =
+  Math.floor((MAX_PDF_BYTES_FOR_VERCEL / (1024 * 1024)) * 10) / 10;
+
 // ─── Scelta del file ──────────────────────────────────────────────────────────
 
 function extensionOf(name: string): string {
@@ -284,6 +310,30 @@ export function importedFromPdfPages(
 }
 
 /**
+ * Dimensione del file in byte, chiedendola al filesystem quando il selettore
+ * non la fornisce.
+ *
+ * `DocumentPicker` puo' restituire `size: undefined` — diversi provider SAF di
+ * Android (Drive e altri DocumentsProvider remoti) non la dichiarano. I
+ * controlli scritti come `if (file.size !== undefined && file.size > MAX)`
+ * passavano quindi in silenzio proprio nei casi in cui il file arriva dalla
+ * rete e puo' essere grande, e la lettura in base64 — che occupa 4/3 del file
+ * in memoria JS — faceva fuori l'app invece di mostrare "file troppo grande".
+ *
+ * Ritorna `null` solo se nemmeno il filesystem sa rispondere: in quel caso il
+ * chiamante deve decidere consapevolmente, non ereditare un controllo saltato.
+ */
+export async function resolveFileSize(file: PickedFile): Promise<number | null> {
+  if (typeof file.size === 'number') return file.size;
+  try {
+    const info = await FileSystem.getInfoAsync(file.uri);
+    return info.exists && !info.isDirectory ? info.size : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Legge il file scelto come base64. Serve alla rotta di estrazione del PDF, che
  * riceve il contenuto nel corpo della richiesta.
  */
@@ -291,4 +341,17 @@ export async function readAsBase64(file: PickedFile): Promise<string> {
   return FileSystem.readAsStringAsync(file.uri, {
     encoding: FileSystem.EncodingType.Base64,
   });
+}
+
+/**
+ * True se il base64 gia' letto non entrerebbe nel body ammesso da Vercel.
+ *
+ * E' la rete di sicurezza per quando `resolveFileSize` restituisce `null` e il
+ * controllo a monte non ha potuto dire niente: qui il contenuto e' in mano,
+ * quindi la sua lunghezza e' la dimensione vera della richiesta, non una stima.
+ * Costa zero — il file lo si e' letto comunque — ed evita di spedire una POST
+ * che tornerebbe come 413 con un corpo HTML, cioe' come "errore di rete".
+ */
+export function exceedsVercelBody(base64: string): boolean {
+  return base64.length > VERCEL_BODY_LIMIT_BYTES;
 }

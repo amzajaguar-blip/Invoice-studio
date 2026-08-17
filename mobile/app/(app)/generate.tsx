@@ -42,6 +42,10 @@ import {
   isSupportedSource,
   requiresServerExtraction,
   MAX_IMPORT_BYTES,
+  MAX_PDF_BYTES_FOR_VERCEL,
+  MAX_PDF_MB_FOR_VERCEL,
+  resolveFileSize,
+  exceedsVercelBody,
 } from "@/lib/file-import";
 import type { ImportedContent } from "@/lib/file-import";
 
@@ -164,10 +168,31 @@ export default function GenerateScreen() {
         );
         return;
       }
-      if (file.size !== undefined && file.size > MAX_IMPORT_BYTES) {
+      // La dimensione si risolve una volta sola, chiedendola al filesystem se
+      // il selettore non la dichiara: scrivere `file.size !== undefined &&
+      // file.size > MAX` faceva saltare il controllo proprio con i provider SAF
+      // remoti, cioe' dove i file grandi arrivano davvero.
+      const size = await resolveFileSize(file);
+
+      if (size !== null && size > MAX_IMPORT_BYTES) {
         Alert.alert(
           t("documents.import.too_large.title"),
           t("documents.import.too_large.msg")
+        );
+        return;
+      }
+      // Il PDF va al server, e il tetto non e' la memoria ma il body di 4,5 MB
+      // di una funzione serverless: vedi MAX_PDF_BYTES_FOR_VERCEL, che dal
+      // limite lo calcola invece di fissarlo a un numero tondo.
+      if (
+        size !== null &&
+        requiresServerExtraction(file.ext) &&
+        size > MAX_PDF_BYTES_FOR_VERCEL
+      ) {
+        Alert.alert(
+          t("documents.import.pdf_too_large_for_vercel.title"),
+          t("documents.import.pdf_too_large_for_vercel.msg")
+            .replace("{mb}", String(MAX_PDF_MB_FOR_VERCEL))
         );
         return;
       }
@@ -177,22 +202,62 @@ export default function GenerateScreen() {
       if (requiresServerExtraction(file.ext)) {
         // Il PDF non e' leggibile sul dispositivo: il testo lo estrae il server.
         const base64 = await readAsBase64(file);
-        const { data, error } = await apiFetch<{ success: boolean; pages?: string[]; error?: string }>(
+
+        // Secondo controllo, e non e' ridondante: se `resolveFileSize` non ha
+        // saputo rispondere, quello a monte non ha misurato nulla. Qui il
+        // contenuto e' letto, quindi la sua lunghezza E' la dimensione della
+        // richiesta. Senza questo, un PDF di dimensione ignota e troppo grande
+        // otteneva un 413 con corpo HTML, che arriva all'utente come "errore di
+        // rete" — cioe' proprio la diagnosi sbagliata.
+        if (exceedsVercelBody(base64)) {
+          Alert.alert(
+            t("documents.import.pdf_too_large_for_vercel.title"),
+            t("documents.import.pdf_too_large_for_vercel.msg")
+              .replace("{mb}", String(MAX_PDF_MB_FOR_VERCEL))
+          );
+          return;
+        }
+
+        const { data, error } = await apiFetch<{
+          success: boolean;
+          pages?: string[];
+          error?: string;
+          totalPages?: number;
+          truncated?: boolean;
+        }>(
           "/api/convert/pdf-extract",
           { method: "POST", body: JSON.stringify({ fileBase64: base64 }) }
         );
 
         if (error || !data?.success || !data.pages) {
+          // Il server distingue i motivi; mapparli tutti su "controlla la
+          // connessione" mandava l'utente a cercare un guasto di rete per un
+          // .docx rinominato .pdf — caso comune con gli allegati email.
           const code = data?.error ?? error ?? "";
-          Alert.alert(
-            t("documents.import.pdf_failed.title"),
+          const detail =
             code === "no_text_layer"
               ? t("documents.import.pdf_failed.no_text")
-              : t("documents.import.pdf_failed.msg")
-          );
+              : code === "not_a_pdf"
+                ? t("documents.import.pdf_failed.not_a_pdf")
+                : code === "file_too_large"
+                  ? t("documents.import.pdf_too_large_for_vercel.msg")
+                      .replace("{mb}", String(MAX_PDF_MB_FOR_VERCEL))
+                  : t("documents.import.pdf_failed.msg");
+          Alert.alert(t("documents.import.pdf_failed.title"), detail);
           return;
         }
         content = importedFromPdfPages(file, data.pages);
+
+        // Il server si ferma a un tetto di pagine. Dirlo e' obbligatorio: un
+        // documento amputato che sembra intero e' peggio di un errore.
+        if (data.truncated) {
+          Alert.alert(
+            t("documents.import.pdf_truncated.title"),
+            t("documents.import.pdf_truncated.msg")
+              .replace("{done}", String(data.pages.length))
+              .replace("{total}", String(data.totalPages ?? data.pages.length))
+          );
+        }
       } else {
         content = await readLocalFile(file);
       }
