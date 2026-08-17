@@ -138,7 +138,13 @@ export async function POST(request: Request): Promise<NextResponse<ExtractRespon
       isEvalSupported: false,
     }).promise;
 
-    const total = Math.min(doc.numPages, MAX_PAGES);
+    // Si legge PRIMA di distruggere il documento: `doc.destroy()` libera le
+    // strutture interne di pdf.js, e leggere `doc.numPages` dopo quel punto
+    // significa interrogare un oggetto smontato. Se restituisse `undefined`,
+    // `truncated` diventerebbe falso e l'avviso di troncamento non partirebbe
+    // mai — proprio il danno silenzioso che questo campo esiste per evitare.
+    const numPages = doc.numPages;
+    const total = Math.min(numPages, MAX_PAGES);
     const pages: string[] = [];
 
     for (let n = 1; n <= total; n++) {
@@ -171,8 +177,8 @@ export async function POST(request: Request): Promise<NextResponse<ExtractRespon
     return NextResponse.json({
       success: true,
       pages,
-      totalPages: doc.numPages,
-      truncated: doc.numPages > MAX_PAGES,
+      totalPages: numPages,
+      truncated: numPages > MAX_PAGES,
     });
   } catch (err) {
     console.error("POST /api/convert/pdf-extract error:", err);

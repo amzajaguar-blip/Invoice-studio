@@ -145,6 +145,31 @@ function describeSafFolder(directoryUri: string): string {
  * produrre: la documentDirectory ospita anche file di servizio (cache di
  * librerie, log) che non sono documenti dell'utente e non vanno mostrati.
  */
+/**
+ * Data di modifica in millisecondi, con due reti di sicurezza.
+ *
+ * `FileSystem.getInfoAsync` non garantisce `modificationTime` su ogni
+ * piattaforma: quando manca, `info.modificationTime * 1000` vale `NaN`, la
+ * scheda del file stampa "Invalid Date" e l'ordinamento per data diventa
+ * arbitrario, perche' ogni confronto con `NaN` e' falso.
+ *
+ * Il primo ripiego e' il nome stesso: i file generati si chiamano
+ * `<titolo>_<Date.now()>.<ext>`, quindi il timestamp e' li' dentro. Solo se
+ * nemmeno quello c'e' si torna a 0, che almeno ordina in fondo invece di
+ * disordinare tutto.
+ */
+function modifiedAtOf(modificationTime: number | undefined, filename: string): number {
+  const fromFs = (modificationTime ?? NaN) * 1000;
+  if (Number.isFinite(fromFs) && fromFs > 0) return fromFs;
+
+  const stamp = filename.replace(/\.[^.]+$/, '').match(/_(\d{10,})$/);
+  if (stamp) {
+    const parsed = Number(stamp[1]);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  }
+  return 0;
+}
+
 export async function listGeneratedFiles(): Promise<GeneratedFile[]> {
   const dir = documentDirectoryOrThrow();
   const names = await FileSystem.readDirectoryAsync(dir);
@@ -167,7 +192,7 @@ export async function listGeneratedFiles(): Promise<GeneratedFile[]> {
       format,
       mimeType: FORMAT_META[format].mimeType,
       size: info.size,
-      modifiedAt: info.modificationTime * 1000,
+      modifiedAt: modifiedAtOf(info.modificationTime, name),
     });
   }
 

@@ -22,7 +22,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { usePlan } from "@/context/PlanContext";
 import { useDocumentAd } from "@/lib/useDocumentAd";
 import { QuotaPaywall } from "@/components/QuotaPaywall";
-import { checkQuota, incrementQuota, DEFAULT_FREE_QUOTA } from "@/lib/quota-engine";
+import { checkQuotaOrLocal, countGeneratedDocument, DEFAULT_FREE_QUOTA } from "@/lib/quota-engine";
 import { supabase } from "@/lib/supabase";
 import {
   generateAndShareDocument,
@@ -97,6 +97,8 @@ export default function GenerateScreen() {
   // Valore di partenza solo finche' checkQuota non risponde: viene da
   // quota-engine per non mostrare una soglia diversa da quella vera.
   const [quotaLimit, setQuotaLimit] = useState(DEFAULT_FREE_QUOTA);
+  // Residuo reale letto da checkQuota: il paywall lo mostrava cablato a 0.
+  const [quotaRemaining, setQuotaRemaining] = useState(0);
   // 'loading' finche' le due chiamate async non hanno risposto. Senza questo
   // terzo stato, chi toccava Genera appena aperta la schermata trovava orgId
   // ancora null e saltava sia il gate quota sia il conteggio.
@@ -242,7 +244,9 @@ export default function GenerateScreen() {
                 : code === "file_too_large"
                   ? t("documents.import.pdf_too_large_for_vercel.msg")
                       .replace("{mb}", String(MAX_PDF_MB_FOR_VERCEL))
-                  : t("documents.import.pdf_failed.msg");
+                  : code === "rate_limited"
+                    ? t("documents.import.pdf_failed.rate_limited")
+                    : t("documents.import.pdf_failed.msg");
           Alert.alert(t("documents.import.pdf_failed.title"), detail);
           return;
         }
@@ -316,11 +320,15 @@ export default function GenerateScreen() {
   const handleGenerate = useCallback(async () => {
     if (!canGenerate || generatingRef.current) return;
 
-    // Gate quota — stesso pattern di quotes/[id].tsx
-    if (orgId && orgId !== 'loading' && !isPremium) {
+    // Gate quota. La condizione NON include piu' `orgId &&`: senza
+    // organizzazione si contava in nessun posto e non si bloccava niente, cioe'
+    // generazione illimitata gratuita e invisibile. `checkQuotaOrLocal` copre
+    // quel caso col contatore locale.
+    if (orgId !== 'loading' && !isPremium) {
       try {
-        const quota = await checkQuota(orgId);
+        const quota = await checkQuotaOrLocal(orgId);
         setQuotaLimit(quota.limit);
+        setQuotaRemaining(quota.remaining);
         if (!quota.allowed) {
           setQuotaPaywallVisible(true);
           return;
@@ -377,12 +385,10 @@ export default function GenerateScreen() {
       const produced = outcome.value;
       if (!executed || !produced) return;
 
-      if (orgId && orgId !== 'loading') {
-        try {
-          await incrementQuota(orgId);
-        } catch {
-          // Il file esiste gia': un errore di conteggio non lo annulla.
-        }
+      // Il file esiste gia': `countGeneratedDocument` non solleva, e sceglie da
+      // sola fra RPC Supabase e contatore locale a seconda che l'orgId ci sia.
+      if (orgId !== 'loading') {
+        await countGeneratedDocument(orgId);
       }
 
       // Il nome mostrato e' lo stesso che l'utente legge nella scheda File,
@@ -601,17 +607,25 @@ export default function GenerateScreen() {
         </>
         )}
 
-        {/* Note */}
-        <Text style={s.sectionLabel}>{t("documents.generate.section.notes")}</Text>
-        <TextInput
-          style={[s.input, s.notesInput]}
-          placeholder={t("documents.generate.notes.placeholder")}
-          placeholderTextColor="#4b5563"
-          multiline
-          value={notes}
-          onChangeText={setNotes}
-          accessibilityLabel={t("documents.generate.section.notes")}
-        />
+        {/* Note — solo per il documento compilato a mano.
+            In conversione la sorgente e' il file importato: `ConvertibleContent`
+            non ha un campo note e `generateFromImported` non le riceve, quindi
+            mostrare la casella significava farci scrivere dentro un testo che
+            sparisce senza dirlo. Meglio non offrirla che perderla in silenzio. */}
+        {!imported && (
+          <>
+            <Text style={s.sectionLabel}>{t("documents.generate.section.notes")}</Text>
+            <TextInput
+              style={[s.input, s.notesInput]}
+              placeholder={t("documents.generate.notes.placeholder")}
+              placeholderTextColor="#4b5563"
+              multiline
+              value={notes}
+              onChangeText={setNotes}
+              accessibilityLabel={t("documents.generate.section.notes")}
+            />
+          </>
+        )}
 
         {/* Azione */}
         <TouchableOpacity
@@ -642,7 +656,7 @@ export default function GenerateScreen() {
 
       <QuotaPaywall
         visible={quotaPaywallVisible}
-        remaining={0}
+        remaining={quotaRemaining}
         limit={quotaLimit}
         onQuotaUpdated={() => setQuotaPaywallVisible(false)}
         onDismiss={() => setQuotaPaywallVisible(false)}

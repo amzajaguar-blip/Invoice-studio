@@ -1,3 +1,39 @@
+/**
+ * scanner.tsx — La fotocamera di Milo Office.
+ *
+ * Cosa fa: scatta una foto, ne estrae il testo, lo mostra modificabile, e da
+ * quel testo produce un PDF, un Excel, un Word o un RTF. Nient'altro.
+ *
+ * Cosa NON fa piu'
+ * ────────────────
+ * Fino alla versione precedente questa schermata leggeva dalla risposta OCR
+ * cinque campi da fattura — fornitore, P.IVA, numero documento, imponibile,
+ * totale — e ne costruiva un `type: "invoice"` con voci e totali. Era il
+ * residuo del vecchio gestionale, e non funzionava nemmeno: il server risponde
+ * `supplierName / invoiceDate / totalAmount`, il client leggeva
+ * `vendor / date / total`, e la prima riga che toccava `result.total.toFixed(2)`
+ * sollevava un TypeError su `undefined`. Ogni scansione riuscita finiva
+ * nell'`catch`, mostrava un errore di rete, e intanto aveva gia' consumato il
+ * contatore. La schermata risultato non veniva mai raggiunta.
+ *
+ * Ora si legge `rawText`, che e' l'unico campo il cui nome coincide davvero fra
+ * client e server: il disallineamento non puo' ripresentarsi perche' non c'e'
+ * piu' niente da rimappare.
+ *
+ * Il testo mostrato E' la sorgente del file. Prima le correzioni dell'utente
+ * finivano in uno stato separato dai dati usati per generare, e il documento
+ * usciva sempre con i valori grezzi: qui lo stato e' uno solo, quindi le due
+ * cose non possono divergere.
+ *
+ * La generazione passa da `generateFromImported`, lo stesso motore di un file
+ * importato da `generate.tsx`. Prima il PDF usciva da `pdf-utils` con un
+ * template diverso: due rese distinte nella stessa app per lo stesso formato.
+ *
+ * Il muro e' quello dei documenti (`quota-engine`), non un secondo contatore da
+ * tre scansioni al mese, e viene applicato PRIMA della chiamata OCR: consumare
+ * la quota e poi rifiutare era il peggiore dei due ordini possibili.
+ */
+
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -6,9 +42,12 @@ import {
   Dimensions,
   Easing,
   Image,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -16,61 +55,51 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
 import { apiFetch } from "@/lib/ai";
 import { useLocale } from "@/components/LocaleProvider";
+import { usePlan } from "@/context/PlanContext";
 import { COLORS, SIZES, SHADOWS } from "../../constants/theme";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  incrementScanCount,
-  SCAN_LIMIT,
-  scheduleRetentionNotifications,
-} from "../../lib/scanner-quota";
-import {
-  scoreAllFields,
-  scoreAmount,
-  scoreDate,
-  scoreVendor,
-  scoreVat,
-  scoreInvoiceNumber,
-  normalizeVendorName,
-  type FieldConfidence,
-} from "../../lib/ocr-confidence";
-import {
-  recordCorrection,
-  getSuggestion,
-} from "../../lib/ocr-corrections";
-import { OCRFieldReview } from "../../components/OCRFieldReview";
+import { scheduleRetentionNotifications } from "../../lib/retention-notifications";
 import {
   FormatPickerModal,
   DocumentFormat,
   loadLastDocFormat,
 } from "@/components/FormatPickerModal";
-import { generateDocumentPDF } from "@/lib/pdf-utils";
 import {
-  generateDocumentDOC,
-  generateDocumentXLSX,
-  generateDocumentRTF,
+  generateFromImported,
   shareDocumentSafely,
-  DocumentFormatData,
 } from "@/lib/document-format-engine";
-import * as Sharing from "expo-sharing";
+import { QuotaPaywall } from "@/components/QuotaPaywall";
+import {
+  checkQuotaOrLocal,
+  countGeneratedDocument,
+  DEFAULT_FREE_QUOTA,
+} from "@/lib/quota-engine";
+import { supabase } from "@/lib/supabase";
+import { toDisplayName } from "@/lib/generated-files";
 import { useDocumentAd } from "@/lib/useDocumentAd";
 
 type ScanState = "idle" | "capturing" | "preview" | "analyzing" | "result";
 
+/**
+ * Forma della risposta di `/api/convert`... piu' precisamente di
+ * `/api/ocr/receipt`, ridotta ai due campi che il server nomina davvero cosi'.
+ * La rotta ne restituisce altri, pensati per il client web che fa ancora
+ * estrazione di campi fattura: qui non servono e non vanno letti.
+ */
 interface OcrResult {
-  vendor: string;
-  date: string;
-  total: number | null;
-  currency: string;
   rawText: string;
-  /** Optional fields — may be missing in legacy API responses. */
-  vat_number?: string;
-  invoice_number?: string;
+  currency?: string;
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-// Network timeout for OCR API calls
-const ANALYZE_TIMEOUT_MS = 15000;
+/**
+ * La rotta ha `maxDuration = 60` e Tesseract su una foto grande ci mette
+ * volentieri piu' di quindici secondi. Il timeout precedente era 15 s: piu'
+ * corto del tempo che il server ha diritto di prendersi, quindi trasformava
+ * scansioni lente ma riuscite in errori di rete.
+ */
+const ANALYZE_TIMEOUT_MS = 45000;
 
 // Scanning frame dimensions — 85% of screen width, 4:3 aspect
 const FRAME_W = SCREEN_WIDTH * 0.85;
@@ -83,7 +112,8 @@ export default function ScannerScreen() {
   const router = useRouter();
   const isMounted = useRef(true);
   const { t } = useLocale();
-  
+  const { isPremium } = usePlan();
+
   const cameraRef = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
   const [scanState, setScanState] = useState<ScanState>("idle");
@@ -91,26 +121,27 @@ export default function ScannerScreen() {
   const [photoBase64, setPhotoBase64] = useState<string | null>(null);
   const [torchOn, setTorchOn] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [ocrResult, setOcrResult] = useState<OcrResult | null>(null);
-  const [showPaywall, setShowPaywall] = useState(false);
 
-  // ── OCR Confidence / learning state (additive) ─────────────────────────────
-  // The original code stored `ocrResult` as a snapshot. We now ALSO hold
-  // a `Record<field, FieldConfidence>` so each value can carry its own
-  // confidence metadata. Initial state is null until the API returns.
-  const [fieldScores, setFieldScores] = useState<Record<string, FieldConfidence> | null>(null);
-  // Tracks which fields were auto-filled from previous corrections, so the
-  // UI can show a "learned from previous scan" hint.
-  const [autoFilledFields, setAutoFilledFields] = useState<Record<string, string>>({});
+  // Il testo riconosciuto, modificabile. E' la sorgente del file generato:
+  // quello che si legge qui e' esattamente quello che finisce nel documento.
+  const [scannedText, setScannedText] = useState("");
+  const [docTitle, setDocTitle] = useState("");
 
   // Format picker per l'output del documento scansionato
   const [formatPickerVisible, setFormatPickerVisible] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState<DocumentFormat | null>(null);
   const [generatingDoc, setGeneratingDoc] = useState(false);
+  const generatingRef = useRef(false);
   const { runWithAd, adLoading } = useDocumentAd();
-  // Records the ORIGINAL value the user sees for each field, so we can
-  // detect corrections and persist them on confirm.
-  const originalValuesRef = useRef<Record<string, string>>({});
+
+  // ── Quota: la stessa di generate.tsx, non un contatore separato ────────────
+  const [quotaPaywallVisible, setQuotaPaywallVisible] = useState(false);
+  const [quotaLimit, setQuotaLimit] = useState(DEFAULT_FREE_QUOTA);
+  const [quotaRemaining, setQuotaRemaining] = useState(0);
+  // 'loading' finche' la lettura non ha risposto: senza questo terzo stato, chi
+  // scatta subito dopo l'apertura troverebbe orgId ancora null e salterebbe il
+  // gate. Se non arriva mai, `checkQuotaOrLocal` usa il contatore locale.
+  const [orgId, setOrgId] = useState<string | null | "loading">("loading");
 
   // Animated scan line
   const scanAnim = useRef(new Animated.Value(0)).current;
@@ -121,6 +152,30 @@ export default function ScannerScreen() {
     isMounted.current = true;
     return () => {
       isMounted.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase.auth
+      .getUser()
+      .then(({ data }) => {
+        if (!data?.user?.id) return null;
+        return supabase
+          .from("organizations")
+          .select("id")
+          .eq("user_id", data.user.id)
+          .maybeSingle()
+          .then(({ data: org }) => org?.id ?? null);
+      })
+      .then((id) => {
+        if (!cancelled) setOrgId(id ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setOrgId(null);
+      });
+    return () => {
+      cancelled = true;
     };
   }, []);
 
@@ -190,9 +245,32 @@ export default function ScannerScreen() {
     }
   };
 
-
   const handleAnalyze = async () => {
     if (!photoBase64) return;
+
+    // Gate quota PRIMA di spendere una chiamata OCR. Nella versione precedente
+    // il contatore veniva incrementato dopo l'estrazione e poi confrontato col
+    // limite: chi era oltre la soglia pagava comunque la scansione e riceveva
+    // il muro, cioe' perdeva un tentativo per scoprire di non averne piu'.
+    if (orgId !== "loading" && !isPremium) {
+      try {
+        const quota = await checkQuotaOrLocal(orgId);
+        if (!isMounted.current) return;
+        setQuotaLimit(quota.limit);
+        setQuotaRemaining(quota.remaining);
+        if (!quota.allowed) {
+          setQuotaPaywallVisible(true);
+          return;
+        }
+      } catch {
+        Alert.alert(
+          t("documents.generate.error.title"),
+          t("documents.generate.quota_check_failed")
+        );
+        return;
+      }
+    }
+
     setScanState("analyzing");
     setError(null);
 
@@ -210,108 +288,41 @@ export default function ScannerScreen() {
         timeoutPromise,
       ]);
 
-      if (isMounted.current) {
-        if (apiError || !data) {
-          if (status === 401) {
-            router.replace("/(auth)/login" as any);
-            return;
-          }
-          setError(t("scanner.analyze.extraction_failed"));
-          setScanState("preview");
+      if (!isMounted.current) return;
+
+      if (apiError || !data) {
+        if (status === 401) {
+          router.replace("/(auth)/login" as any);
           return;
         }
-
-        // Enforce scan quota AFTER a successful extraction
-        const newCount = await incrementScanCount();
-
-        if (newCount > SCAN_LIMIT) {
-          // Hard block — paywall, discard result
-          setShowPaywall(true);
-          setScanState("preview");
-          return;
-        }
-
-        // Successful scan — show result
-        const result = data as OcrResult;
-        setOcrResult(result);
-        setScanState("result");
-
-        // ── Compute per-field confidence + pre-fill from previous corrections ──
-        const scores = scoreAllFields(result.rawText, {
-          vendor: result.vendor,
-          date: result.date,
-          amount: result.total !== null ? result.total.toFixed(2) : "",
-          vat_number: result.vat_number ?? "",
-          invoice_number: result.invoice_number ?? "",
-        });
-        setFieldScores(scores);
-
-        // Snapshot of what the user sees for each field, so we can detect
-        // corrections at confirm-time and persist them.
-        originalValuesRef.current = {
-          vendor: scores.vendor.value,
-          date: scores.date.value,
-          amount: scores.amount.value,
-          vat_number: scores.vat_number.value,
-          invoice_number: scores.invoice_number.value,
-        };
-
-        // Look up corrections from previous scans of the same vendor.
-        // We do this asynchronously to avoid blocking the UI.
-        const vendorKey = normalizeVendorName(result.vendor);
-        if (vendorKey) {
-          void (async () => {
-            try {
-              const [sVendor, sDate, sAmount, sVat, sInv] = await Promise.all([
-                getSuggestion(vendorKey, "vendor"),
-                getSuggestion(vendorKey, "date"),
-                getSuggestion(vendorKey, "amount"),
-                getSuggestion(vendorKey, "vat_number"),
-                getSuggestion(vendorKey, "invoice_number"),
-              ]);
-              if (!isMounted.current) return;
-              const autoFilled: Record<string, string> = {};
-              // Only override when the current OCR value is empty (low signal).
-              if (sVendor && !scores.vendor.value) autoFilled.vendor = sVendor;
-              if (sDate && !scores.date.value) autoFilled.date = sDate;
-              if (sAmount && !scores.amount.value) autoFilled.amount = sAmount;
-              if (sVat && !scores.vat_number.value) autoFilled.vat_number = sVat;
-              if (sInv && !scores.invoice_number.value) autoFilled.invoice_number = sInv;
-
-              if (Object.keys(autoFilled).length > 0) {
-                setAutoFilledFields(autoFilled);
-                // Re-score any auto-filled fields so the user sees a green badge.
-                setFieldScores((prev) => {
-                  if (!prev) return prev;
-                  const updated: Record<string, FieldConfidence> = { ...prev };
-                  if (autoFilled.vendor) {
-                    updated.vendor = scoreVendor(autoFilled.vendor);
-                  }
-                  if (autoFilled.date) {
-                    updated.date = scoreDate(autoFilled.date);
-                  }
-                  if (autoFilled.amount) {
-                    updated.amount = scoreAmount(autoFilled.amount);
-                  }
-                  if (autoFilled.vat_number) {
-                    updated.vat_number = scoreVat(autoFilled.vat_number);
-                  }
-                  if (autoFilled.invoice_number) {
-                    updated.invoice_number = scoreInvoiceNumber(autoFilled.invoice_number);
-                  }
-                  return updated;
-                });
-              }
-            } catch (e) {
-              // Non-fatal — auto-fill is a best-effort UX enhancement.
-              console.warn("[scanner] auto-fill lookup failed:", e);
-            }
-          })();
-        }
-
-        // Fire-and-forget retention notifications
-        scheduleRetentionNotifications();
+        setError(t("scanner.analyze.extraction_failed"));
+        setScanState("preview");
+        return;
       }
+
+      const text = (data.rawText ?? "").trim();
+      if (text.length === 0) {
+        // Il server risponde 422 quando non trova testo, ma una risposta vuota
+        // che arriva come successo non deve produrre un file vuoto.
+        setError(t("scanner.result.empty"));
+        setScanState("preview");
+        return;
+      }
+
+      setScannedText(text);
+      setDocTitle(
+        `${t("scanner.result.default_title")} ${new Date().toLocaleDateString()}`
+      );
+      setScanState("result");
+
+      // Promemoria di ritorno — fire-and-forget, i testi arrivano tradotti.
+      // "Milo Office" e' il nome del prodotto: non si traduce.
+      void scheduleRetentionNotifications({
+        title: "Milo Office",
+        day1: t("scanner.retention.day1"),
+        day3: t("scanner.retention.day3"),
+        day7: t("scanner.retention.day7"),
+      });
     } catch (err) {
       if (isMounted.current) {
         setError(err instanceof Error ? err.message : t("scanner.analyze.network"));
@@ -323,182 +334,85 @@ export default function ScannerScreen() {
   const handleReset = () => {
     setPhotoUri(null);
     setPhotoBase64(null);
-    setOcrResult(null);
+    setScannedText("");
+    setDocTitle("");
     setError(null);
-    setFieldScores(null);
-    setAutoFilledFields({});
-    originalValuesRef.current = {};
     setScanState("idle");
   };
 
-  /**
-   * Persist corrections e apre il FormatPickerModal per scegliere il formato
-   * di output del documento scansionato. Genera e condivide il documento
-   * nel formato scelto dall'utente (PDF / DOCX / RTF).
-   */
-  const handleConfirm = async () => {
-    // 1. Persisti correzioni OCR (fire-and-forget)
-    try {
-      const originals = originalValuesRef.current;
-      const vendorKey = normalizeVendorName(originals.vendor || ocrResult?.vendor);
-      if (vendorKey && fieldScores) {
-        const fields: ReadonlyArray<keyof typeof originals> = [
-          "vendor", "date", "amount", "vat_number", "invoice_number",
-        ];
-        const writes: Array<Promise<void>> = [];
-        for (const field of fields) {
-          const live = fieldScores[field]?.value ?? "";
-          const original = originals[field] ?? "";
-          if (live !== original && live.trim().length > 0) {
-            writes.push(recordCorrection({ field, originalValue: original, correctedValue: live, vendorNormalized: vendorKey, at: new Date().toISOString() }));
-          }
-        }
-        if (writes.length > 0) await Promise.all(writes);
-      }
-    } catch (e) {
-      console.warn("[scanner] correction write failed:", e);
-    }
-
-    // 2. Carica ultima preferenza formato e apre il picker
+  /** Carica l'ultima preferenza di formato e apre il picker. */
+  const handleChooseFormat = async () => {
     const last = await loadLastDocFormat();
     if (last) setSelectedFormat(last);
     setFormatPickerVisible(true);
   };
 
   /**
-   * Genera il documento scansionato nel formato scelto e lo condivide.
-   * Mostra pubblicità obbligatoria per utenti free prima della generazione.
+   * Genera il documento dal testo scansionato e lo condivide.
+   *
+   * Passa dallo stesso motore di un file importato: una foto e un `.txt`
+   * caricato dal selettore escono impaginati allo stesso modo.
    */
   const handleGenerateScannedDoc = async (format: DocumentFormat) => {
-    if (!ocrResult || generatingDoc) return;
+    if (generatingRef.current) return;
+    const text = scannedText.trim();
+    if (text.length === 0) return;
+
+    generatingRef.current = true;
     setFormatPickerVisible(false);
     setGeneratingDoc(true);
 
-    await runWithAd(async () => {
-      // Esito della sola condivisione. Parte da true perche' il ramo PDF ha una
-      // sua gestione e non passa da shareDocumentSafely.
-      let shared = true;
-      let filename = "";
-      try {
-        const title = ocrResult.vendor
-          ? `Documento — ${ocrResult.vendor}`
-          : "Documento scansionato";
-        const amount = ocrResult.total ?? 0;
-        const currency = ocrResult.currency || "EUR";
-        const dateStr = ocrResult.date
-          ? new Date(ocrResult.date).toLocaleDateString("it-IT")
-          : new Date().toLocaleDateString("it-IT");
+    try {
+      const outcome: { value: { filename: string; shared: boolean } | null } = { value: null };
 
-        const docData: DocumentFormatData = {
-          type: "invoice",
-          title,
-          number: ocrResult.invoice_number ?? undefined,
-          issueDate: dateStr,
-          client: ocrResult.vendor ? { name: ocrResult.vendor, taxId: ocrResult.vat_number ?? undefined } : undefined,
-          lineItems: [{ description: "Importo scansionato", quantity: 1, rate: amount, amount }],
-          totals: { subtotal: amount, grandTotal: amount, currency },
-          notes: `Documento acquisito via scanner il ${dateStr}`,
-        };
+      const executed = await runWithAd(async () => {
+        const filepath = await generateFromImported(
+          {
+            title: docTitle.trim() || t("scanner.result.default_title"),
+            kind: "text",
+            text,
+            sourceName: t("scanner.result.default_title"),
+          },
+          format
+        );
+        const filename = filepath.split("/").pop() ?? "";
+        const { shared } = await shareDocumentSafely(filepath, filename);
+        outcome.value = { filename, shared };
+      });
 
-        const safeVendor = (ocrResult.vendor ?? "documento").replace(/[^a-zA-Z0-9_-]/g, "_");
+      const produced = outcome.value;
+      if (!executed || !produced) return;
 
-        if (format === "pdf") {
-          // Costruisce un InvoiceData minimale compatibile con generateDocumentPDF
-          const pdfData = {
-            id: `scan_${Date.now()}`,
-            invoiceNumber: ocrResult.invoice_number ?? `SCAN-${Date.now()}`,
-            clientId: "",
-            client: {
-              id: "",
-              name: ocrResult.vendor || "—",
-              email: "",
-              taxId: ocrResult.vat_number,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            },
-            status: "sent" as const,
-            issueDate: ocrResult.date ? new Date(ocrResult.date) : new Date(),
-            dueDate: new Date(),
-            lineItems: [{ id: "1", description: "Importo scansionato", quantity: 1, rate: amount, amount }],
-            subtotal: amount,
-            taxRate: 0,
-            taxAmount: 0,
-            discountAmount: 0,
-            total: amount,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          };
-          const filepath = await generateDocumentPDF(pdfData, { documentType: "invoice" });
-          if (!filepath) { Alert.alert(t("error"), "Impossibile generare il PDF."); return; }
-          const canShare = await Sharing.isAvailableAsync();
-          if (canShare) await Sharing.shareAsync(filepath, { mimeType: "application/pdf", dialogTitle: title });
-          else Alert.alert("PDF generato", `File: ${filepath}`);
-        } else if (format === "xlsx" || format === "doc" || format === "rtf") {
-          let fp: string;
-          if (format === "xlsx") {
-            fp = await generateDocumentXLSX(docData);
-            filename = `${safeVendor}.xlsx`;
-          } else if (format === "doc") {
-            fp = await generateDocumentDOC(docData);
-            filename = `${safeVendor}.docx`;
-          } else {
-            fp = await generateDocumentRTF(docData);
-            filename = `${safeVendor}.rtf`;
-          }
-          // Il file esiste: se il foglio di condivisione non si apre non e' la
-          // generazione ad essere fallita, e uscire dalla schermata resta
-          // giusto — prima un errore qui lasciava l'utente fermo sullo scanner
-          // convinto di non aver prodotto nulla.
-          shared = (await shareDocumentSafely(fp, filename)).shared;
-        }
-
-        if (!shared) {
-          Alert.alert(
-            t("documents.generate.success.title"),
-            t("documents.generate.success.msg_not_shared").replace("{name}", filename)
-          );
-        }
-
-        // Torna indietro dopo generazione riuscita
-        router.back();
-      } catch (err) {
-        Alert.alert(t("error"), "Errore durante la generazione del documento.");
-        console.error("[scanner] generateScannedDoc error:", err);
+      if (orgId !== "loading") {
+        await countGeneratedDocument(orgId);
       }
-    });
 
-    setGeneratingDoc(false);
-  };
+      const shownName = toDisplayName(produced.filename);
+      const body = produced.shared
+        ? t("documents.generate.success.msg").replace("{name}", shownName)
+        : t("documents.generate.success.msg_not_shared").replace("{name}", shownName);
 
-  /**
-   * Update a field's value as the user edits. Re-scores that field so the
-   * confidence badge stays in sync.
-   */
-  const updateFieldValue = (field: string, value: string) => {
-    setFieldScores((prev) => {
-      if (!prev) return prev;
-      let next: FieldConfidence;
-      switch (field) {
-        case "vendor":
-          next = scoreVendor(value);
-          break;
-        case "date":
-          next = scoreDate(value);
-          break;
-        case "amount":
-          next = scoreAmount(value);
-          break;
-        case "vat_number":
-          next = scoreVat(value);
-          break;
-        case "invoice_number":
-          next = scoreInvoiceNumber(value);
-          break;
-        default:
-          return prev;
-      }
-      return { ...prev, [field]: next };
-    });
+      Alert.alert(t("documents.generate.success.title"), body, [
+        {
+          text: t("documents.generate.success.open_files"),
+          onPress: () => router.replace("/(app)/(tabs)/files"),
+        },
+        // "Resta qui" resta davvero qui, sul testo appena scansionato: da li'
+        // si puo' generare lo stesso contenuto in un secondo formato.
+        { text: t("documents.generate.success.stay"), style: "cancel" },
+      ]);
+    } catch (err) {
+      console.error("[scanner] generazione non riuscita:", err);
+      // NON `t("error")`: quella chiave non esiste in nessun locale e il vecchio
+      // codice mostrava un alert intitolato letteralmente "error".
+      Alert.alert(
+        t("documents.generate.error.title"),
+        t("documents.generate.error.msg")
+      );
+    } finally {
+      generatingRef.current = false;
+      if (isMounted.current) setGeneratingDoc(false);
+    }
   };
 
   // ── Permission loading ─────────────────────────────────────────────────────
@@ -514,7 +428,12 @@ export default function ScannerScreen() {
   if (!permission.granted) {
     return (
       <View style={styles.container}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.closeBtn}
+          accessibilityRole="button"
+          accessibilityLabel={t("scanner.permission.cancel")}
+        >
           <Ionicons name="close" size={16} color={COLORS.textMuted} />
         </TouchableOpacity>
         <View style={styles.permissionBox}>
@@ -525,7 +444,12 @@ export default function ScannerScreen() {
           <Text style={styles.permSubtitle}>
             {t("scanner.permission.subtitle")}
           </Text>
-          <TouchableOpacity style={styles.primaryBtn} onPress={requestPermission}>
+          <TouchableOpacity
+            style={styles.primaryBtn}
+            onPress={requestPermission}
+            accessibilityRole="button"
+            accessibilityLabel={t("scanner.permission.allow")}
+          >
             <Text style={styles.primaryBtnTxt}>{t("scanner.permission.allow")}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.back()} style={styles.cancelLink}>
@@ -536,19 +460,22 @@ export default function ScannerScreen() {
     );
   }
 
-  // ── Result screen ─────────────────────────────────────────────────────────
+  // ── Result screen — il testo riconosciuto, modificabile ───────────────────
 
-  if (scanState === "result" && ocrResult) {
-    // Field-confidence UI. We render OCRFieldReview when `fieldScores` is
-    // populated (post-OCR). For an instant first paint we still show the
-    // legacy read-only ResultRow beneath, so the result screen never goes
-    // blank — additive only, the original flow keeps working.
-    const hasScores = fieldScores !== null;
+  if (scanState === "result") {
+    const busy = generatingDoc || adLoading;
     return (
-      <View style={styles.container}>
-        {/* Header */}
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.closeBtn}
+            accessibilityRole="button"
+            accessibilityLabel={t("scanner.permission.cancel")}
+          >
             <Ionicons name="close" size={16} color={COLORS.textMuted} />
           </TouchableOpacity>
           <View style={styles.successBadge}>
@@ -557,62 +484,33 @@ export default function ScannerScreen() {
           </View>
         </View>
 
-        <Text style={styles.resultHint}>{t("scanner.result.hint")}</Text>
+        <Text style={styles.resultHint}>{t("scanner.result.text_hint")}</Text>
 
-        <ScrollView style={styles.resultCard} contentContainerStyle={styles.resultContent} showsVerticalScrollIndicator={false}>
-          {hasScores && fieldScores ? (
-            <>
-              <OCRFieldReview
-                field={fieldScores.vendor}
-                label={t("scanner.result.label.vendor")}
-                onChange={(v) => updateFieldValue("vendor", v)}
-                autoFilledFromCorrection={autoFilledFields.vendor}
-              />
-              <OCRFieldReview
-                field={fieldScores.date}
-                label={t("scanner.result.label.date")}
-                onChange={(v) => updateFieldValue("date", v)}
-                autoFilledFromCorrection={autoFilledFields.date}
-              />
-              <OCRFieldReview
-                field={fieldScores.amount}
-                label={t("scanner.result.label.total")}
-                onChange={(v) => updateFieldValue("amount", v)}
-                autoFilledFromCorrection={autoFilledFields.amount}
-                trailingHint={ocrResult.currency || "€"}
-              />
-              <OCRFieldReview
-                field={fieldScores.vat_number}
-                label={t("scanner.result.label.vat") ?? "P.IVA"}
-                onChange={(v) => updateFieldValue("vat_number", v)}
-                autoFilledFromCorrection={autoFilledFields.vat_number}
-              />
-              <OCRFieldReview
-                field={fieldScores.invoice_number}
-                label={t("scanner.result.label.invoice_number") ?? "Numero documento"}
-                onChange={(v) => updateFieldValue("invoice_number", v)}
-                autoFilledFromCorrection={autoFilledFields.invoice_number}
-              />
-            </>
-          ) : (
-            // Fallback rendering while `fieldScores` is still null — same
-            // visual shape as before, no flicker.
-            <>
-              <ResultRow label={t("scanner.result.label.vendor")} value={ocrResult.vendor || t("scanner.result.dash")} />
-              <View style={styles.divider} />
-              <ResultRow label={t("scanner.result.label.date")} value={ocrResult.date || t("scanner.result.dash")} />
-              <View style={styles.divider} />
-              <ResultRow
-                label={t("scanner.result.label.total")}
-                value={
-                  ocrResult.total !== null
-                    ? `${ocrResult.total.toFixed(2)} ${ocrResult.currency || '€'}`
-                    : t("scanner.result.dash")
-                }
-                highlight
-              />
-            </>
-          )}
+        <ScrollView
+          style={styles.resultCard}
+          contentContainerStyle={styles.resultContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Text style={styles.fieldLabel}>{t("scanner.result.title_label")}</Text>
+          <TextInput
+            style={styles.titleInput}
+            value={docTitle}
+            onChangeText={setDocTitle}
+            placeholder={t("scanner.result.default_title")}
+            placeholderTextColor={COLORS.textMuted}
+            accessibilityLabel={t("scanner.result.title_label")}
+          />
+
+          <Text style={styles.fieldLabel}>{t("scanner.result.text_label")}</Text>
+          <TextInput
+            style={styles.scanTextInput}
+            value={scannedText}
+            onChangeText={setScannedText}
+            multiline
+            textAlignVertical="top"
+            accessibilityLabel={t("scanner.result.text_label")}
+          />
         </ScrollView>
 
         {error && (
@@ -622,25 +520,30 @@ export default function ScannerScreen() {
         )}
 
         <View style={styles.actionsRow}>
-          <TouchableOpacity style={styles.secondaryBtn} onPress={handleReset}>
+          <TouchableOpacity
+            style={styles.secondaryBtn}
+            onPress={handleReset}
+            disabled={busy}
+            accessibilityRole="button"
+            accessibilityLabel={t("scanner.actions.retry")}
+          >
             <Text style={styles.secondaryBtnTxt}>{t("scanner.actions.retry")}</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.primaryBtn, (generatingDoc || adLoading) && styles.btnDisabled]}
-            onPress={handleConfirm}
-            disabled={generatingDoc || adLoading}
+            style={[styles.primaryBtn, (busy || scannedText.trim().length === 0) && styles.btnDisabled]}
+            onPress={handleChooseFormat}
+            disabled={busy || scannedText.trim().length === 0}
+            accessibilityRole="button"
+            accessibilityLabel={t("scanner.actions.generate")}
           >
-            {(generatingDoc || adLoading) ? (
+            {busy ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.primaryBtnTxt}>
-                {adLoading ? "Pub…" : t("scanner.actions.confirm")}
-              </Text>
+              <Text style={styles.primaryBtnTxt}>{t("scanner.actions.generate")}</Text>
             )}
           </TouchableOpacity>
         </View>
 
-        {/* Format Picker — selezione formato output documento scansionato */}
         <FormatPickerModal
           visible={formatPickerVisible}
           selectedFormat={selectedFormat}
@@ -648,13 +551,11 @@ export default function ScannerScreen() {
             setSelectedFormat(format);
             void handleGenerateScannedDoc(format);
           }}
-          onDismiss={() => {
-            setFormatPickerVisible(false);
-            // Se l'utente chiude senza scegliere, torna indietro normalmente
-            router.back();
-          }}
+          onDismiss={() => setFormatPickerVisible(false)}
         />
-      </View>
+        {/* Nessun QuotaPaywall qui: il gate scatta prima dell'OCR, quindi in
+            questo stato non puo' comparire. Renderlo sarebbe UI irraggiungibile. */}
+      </KeyboardAvoidingView>
     );
   }
 
@@ -671,25 +572,15 @@ export default function ScannerScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Paywall modal */}
-      {showPaywall && (
-        <View style={styles.paywallOverlay}>
-          <View style={styles.paywallContent}>
-            <Text style={styles.paywallTitle}>{t("scanner.paywall.title")}</Text>
-            <Text style={styles.paywallMessage}>{t("scanner.paywall.message")}</Text>
-            <TouchableOpacity style={styles.paywallButton} onPress={() => { setShowPaywall(false); router.push("/(app)/ProUpgrade" as any); }}>
-              <Text style={styles.paywallButtonText}>{t("scanner.paywall.go_pro")}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.paywallClose} onPress={() => setShowPaywall(false)}>
-              <Text style={styles.paywallCloseText}>{t("scanner.paywall.close")}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-
       {/* Top bar */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn} disabled={isCapturing || isAnalyzing}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.closeBtn}
+          disabled={isCapturing || isAnalyzing}
+          accessibilityRole="button"
+          accessibilityLabel={t("scanner.permission.cancel")}
+        >
           <Ionicons name="close" size={16} color={COLORS.textMuted} />
         </TouchableOpacity>
         {/* Torch — idle only */}
@@ -698,6 +589,8 @@ export default function ScannerScreen() {
             style={[styles.torchBtn, torchOn && styles.torchBtnOn]}
             onPress={() => setTorchOn((v) => !v)}
             disabled={isCapturing || isAnalyzing}
+            accessibilityRole="button"
+            accessibilityLabel={t("scanner.frame.label")}
           >
             <Ionicons
               name={torchOn ? "flash" : "flash-outline"}
@@ -795,15 +688,34 @@ export default function ScannerScreen() {
       <View style={styles.actionsRow}>
         {isPreview ? (
           <>
-            <TouchableOpacity style={styles.secondaryBtn} onPress={handleReset} disabled={isAnalyzing}>
+            <TouchableOpacity
+              style={styles.secondaryBtn}
+              onPress={handleReset}
+              disabled={isAnalyzing}
+              accessibilityRole="button"
+              accessibilityLabel={t("scanner.actions.preview_retry")}
+            >
               <Text style={styles.secondaryBtnTxt}>{t("scanner.actions.preview_retry")}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.primaryBtn} onPress={handleAnalyze} disabled={isAnalyzing}>
+            <TouchableOpacity
+              style={styles.primaryBtn}
+              onPress={handleAnalyze}
+              disabled={isAnalyzing}
+              accessibilityRole="button"
+              accessibilityLabel={t("scanner.actions.use_photo")}
+            >
               <Text style={styles.primaryBtnTxt}>{t("scanner.actions.use_photo")}</Text>
             </TouchableOpacity>
           </>
         ) : scanState === "idle" ? (
-          <TouchableOpacity style={styles.captureBtnWrap} onPress={handleCapture} disabled={isCapturing} activeOpacity={0.8}>
+          <TouchableOpacity
+            style={styles.captureBtnWrap}
+            onPress={handleCapture}
+            disabled={isCapturing}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={t("scanner.title.idle")}
+          >
             <View style={styles.captureBtnRing}>
               <View style={[styles.captureBtnInner, isCapturing && styles.captureBtnInnerActive]} />
             </View>
@@ -814,27 +726,19 @@ export default function ScannerScreen() {
           </View>
         )}
       </View>
-    </View>
-  );
-}
 
-// ── Sub-component ──────────────────────────────────────────────────────────
-
-function ResultRow({
-  label,
-  value,
-  highlight,
-}: {
-  label: string;
-  value: string;
-  highlight?: boolean;
-}) {
-  return (
-    <View style={styles.resultRow}>
-      <Text style={styles.resultLabel}>{label}</Text>
-      <Text style={[styles.resultValue, highlight && styles.resultHighlight]} numberOfLines={2}>
-        {value}
-      </Text>
+      {/* Il muro puo' comparire gia' in preview: il gate scatta prima dell'OCR. */}
+      <QuotaPaywall
+        visible={quotaPaywallVisible}
+        remaining={quotaRemaining}
+        limit={quotaLimit}
+        onQuotaUpdated={() => setQuotaPaywallVisible(false)}
+        onDismiss={() => setQuotaPaywallVisible(false)}
+        onUpgradeToPremium={() => {
+          setQuotaPaywallVisible(false);
+          router.push("/(app)/ProUpgrade");
+        }}
+      />
     </View>
   );
 }
@@ -856,29 +760,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  // ── Paywall
-  paywallOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.8)",
-    zIndex: 100,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  paywallContent: {
-    backgroundColor: COLORS.surfacePrimary,
-    padding: 24,
-    borderRadius: SIZES.radiusLg,
-    alignItems: "center",
-    gap: 16,
-  },
-  paywallTitle: { fontSize: 20, fontWeight: "700", color: COLORS.textPrimary },
-  paywallMessage: { textAlign: "center", color: COLORS.textSecondary },
-  paywallButton: { backgroundColor: COLORS.accent, padding: 16, borderRadius: SIZES.radiusMd, width: "100%", alignItems: "center" },
-  paywallButtonText: { color: "#fff", fontWeight: "700" },
-  paywallClose: { marginTop: 10 },
-  paywallCloseText: { color: COLORS.textMuted },
-
   // ── Header
   header: {
     flexDirection: "row",
@@ -888,8 +769,8 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   closeBtn: {
-    width: 38,
-    height: 38,
+    width: 48,
+    height: 48,
     borderRadius: SIZES.radiusRound,
     backgroundColor: COLORS.surfaceSecondary,
     justifyContent: "center",
@@ -898,8 +779,8 @@ const styles = StyleSheet.create({
 
   // ── Torch
   torchBtn: {
-    width: 38,
-    height: 38,
+    width: 48,
+    height: 48,
     borderRadius: SIZES.radiusRound,
     backgroundColor: COLORS.surfaceSecondary,
     justifyContent: "center",
@@ -1108,6 +989,8 @@ const styles = StyleSheet.create({
     borderRadius: SIZES.radiusMd,
     paddingVertical: 16,
     alignItems: "center",
+    justifyContent: "center",
+    minHeight: 54,
     borderWidth: 1,
     borderColor: COLORS.surfaceSecondary,
   },
@@ -1150,7 +1033,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: 12,
   },
-  cancelLink: { paddingVertical: 12 },
+  cancelLink: { paddingVertical: 12, minHeight: 48, justifyContent: "center" },
   cancelLinkTxt: { color: COLORS.textSecondary, fontSize: 15 },
 
   // ── Result card
@@ -1169,32 +1052,36 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     ...SHADOWS.card,
   },
-  resultContent: { padding: 24, gap: 18 },
-  resultRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 12,
-  },
-  resultLabel: {
-    fontSize: 14,
+  resultContent: { padding: 24, gap: 10 },
+  fieldLabel: {
+    fontSize: 13,
     color: COLORS.textSecondary,
     fontWeight: "600",
-    flex: 0.4,
+    marginTop: 6,
   },
-  resultValue: {
-    fontSize: 15,
+  titleInput: {
+    backgroundColor: COLORS.background,
+    borderRadius: SIZES.radiusSm,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceSecondary,
     color: COLORS.textPrimary,
-    flex: 0.6,
-    textAlign: "right",
-    fontWeight: "500",
+    fontSize: 15,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    minHeight: 48,
   },
-  resultHighlight: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: COLORS.accent,
+  scanTextInput: {
+    backgroundColor: COLORS.background,
+    borderRadius: SIZES.radiusSm,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceSecondary,
+    color: COLORS.textPrimary,
+    fontSize: 15,
+    lineHeight: 22,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    minHeight: 220,
   },
-  divider: { height: 1, backgroundColor: COLORS.surfaceSecondary },
 
   // ── Success badge
   successBadge: {
@@ -1208,6 +1095,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.successBorder,
   },
-  successDot: { color: COLORS.success, fontSize: 14, fontWeight: "700" },
   successLabel: { color: COLORS.success, fontSize: 14, fontWeight: "600" },
 });

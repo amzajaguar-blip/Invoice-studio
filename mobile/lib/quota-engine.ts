@@ -22,6 +22,12 @@ const QUOTA_CACHE_KEY = 'milo_quota_cache_v1';
 const QUOTA_CACHE_TTL_MS = 5 * 60 * 1000;
 
 /**
+ * Contatore di riserva, usato solo quando non esiste un'organizzazione a cui
+ * attribuire il documento. Vedi `checkQuotaOrLocal`.
+ */
+const LOCAL_COUNT_KEY = 'milo_local_doc_count_v1';
+
+/**
  * Quota gratuita di riferimento, da tenere allineata al DEFAULT della colonna
  * `organizations.quota_limit` (migrazione `..._quota_launch.sql`).
  *
@@ -51,6 +57,11 @@ export interface QuotaCheckResult {
   limit: number;
   isPremium: boolean;
   networkError?: boolean;
+  /**
+   * true quando il conteggio viene dal contatore locale di riserva invece che
+   * da Supabase, perche' non esiste un'organizzazione a cui attribuirlo.
+   */
+  localOnly?: boolean;
 }
 
 interface CachedQuota {
@@ -97,6 +108,46 @@ async function invalidateQuotaCache(orgId: string): Promise<void> {
   }
 }
 
+// ─── Contatore di riserva ──────────────────────────────────────────────────────
+
+async function readLocalCount(): Promise<number> {
+  try {
+    const raw = await AsyncStorage.getItem(LOCAL_COUNT_KEY);
+    const n = raw ? parseInt(raw, 10) : 0;
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  } catch {
+    return 0;
+  }
+}
+
+async function bumpLocalCount(): Promise<void> {
+  try {
+    const next = (await readLocalCount()) + 1;
+    await AsyncStorage.setItem(LOCAL_COUNT_KEY, String(next));
+  } catch {
+    // Non-blocking: il file esiste comunque, un conteggio perso non lo annulla.
+  }
+}
+
+/**
+ * Stato premium secondo RevenueCat, con fallback pessimistico.
+ *
+ * Estratto da `checkQuota` perche' serve identico anche al ramo senza
+ * organizzazione: un abbonato Pro non deve incontrare il muro solo perche' la
+ * sua riga `organizations` non e' mai stata creata.
+ */
+async function isPremiumNow(): Promise<boolean> {
+  try {
+    const customerInfo = await Purchases.getCustomerInfo();
+    return !!customerInfo.entitlements.active['pro'];
+  } catch {
+    // RevenueCat non raggiungibile — pessimistic fallback: non bypass quota.
+    // L'utente premium con rete assente vedrà il gate quota, ma non verrà bloccato
+    // se ha ancora quota residua. Caso raro; accettabile per MVP.
+    return false;
+  }
+}
+
 // ─── Funzioni pubbliche ────────────────────────────────────────────────────────
 
 /**
@@ -112,18 +163,7 @@ export async function checkQuota(orgId: string): Promise<QuotaCheckResult> {
   //    Fonte di verità: customerInfo.entitlements.active['pro'] — stessa chiave di
   //    ProUpgrade.tsx:155 e PlanContext.tsx:199. NON usare checkEntitlement() con
   //    product ID one-time (vela.template.premium) come proxy — causa P0 Fase A.
-  let premiumActive = false;
-  try {
-    const customerInfo = await Purchases.getCustomerInfo();
-    premiumActive = !!customerInfo.entitlements.active['pro'];
-  } catch {
-    // RevenueCat non raggiungibile — pessimistic fallback: non bypass quota.
-    // L'utente premium con rete assente vedrà il gate quota, ma non verrà bloccato
-    // se ha ancora quota residua. Caso raro; accettabile per MVP.
-    premiumActive = false;
-  }
-
-  if (premiumActive) {
+  if (await isPremiumNow()) {
     return {
       allowed: true,
       remaining: Infinity,
@@ -221,6 +261,65 @@ export async function incrementQuota(orgId: string): Promise<void> {
   if (newTotal === null) {
     // La RPC ritorna NULL quando la quota è esaurita (UPDATE non ha trovato righe)
     throw new Error('Quota exhausted');
+  }
+}
+
+/**
+ * Come `checkQuota`, ma accetta anche l'assenza di un'organizzazione.
+ *
+ * Perche' esiste
+ * ──────────────
+ * Le schermate ricavano `orgId` da una `select` su `organizations`. Se quella
+ * riga non c'e', `orgId` resta `null` — e il codice che chiamava direttamente
+ * `checkQuota(orgId)` doveva saltare l'intero blocco, saltando **sia il muro
+ * sia il conteggio**. Chi si trovava in quello stato generava documenti
+ * all'infinito, gratis, senza comparire in nessun contatore.
+ *
+ * Non e' uno stato teorico: `handle_new_user()`, la funzione che dovrebbe
+ * creare quella riga, e' citata in `20260801000001_rls_organizations.sql` ma
+ * non e' definita in nessuna migrazione del repository, e le policy RLS non
+ * danno `INSERT` ad `authenticated` — quindi un utente in quello stato non puo'
+ * nemmeno crearsi l'organizzazione da solo.
+ *
+ * Il rimedio non tocca il database: si conta in locale. E' aggirabile
+ * reinstallando l'app, ma il confronto giusto non e' con un contatore
+ * inviolabile — e' con nessun contatore affatto, che e' la situazione di prima.
+ */
+export async function checkQuotaOrLocal(orgId: string | null): Promise<QuotaCheckResult> {
+  if (orgId) return checkQuota(orgId);
+
+  if (await isPremiumNow()) {
+    return { allowed: true, remaining: Infinity, total: 0, limit: Infinity, isPremium: true };
+  }
+
+  const total = await readLocalCount();
+  return {
+    allowed: total < DEFAULT_FREE_QUOTA,
+    remaining: Math.max(0, DEFAULT_FREE_QUOTA - total),
+    total,
+    limit: DEFAULT_FREE_QUOTA,
+    isPremium: false,
+    localOnly: true,
+  };
+}
+
+/**
+ * Registra un documento generato, sul canale giusto: Supabase se
+ * l'organizzazione esiste, contatore locale altrimenti.
+ *
+ * Non solleva mai: il file e' gia' stato prodotto quando questa viene chiamata,
+ * e un errore di conteggio non lo annulla. I chiamanti non devono avvolgerla in
+ * un `try` per ricordarselo.
+ */
+export async function countGeneratedDocument(orgId: string | null): Promise<void> {
+  try {
+    if (orgId) {
+      await incrementQuota(orgId);
+    } else {
+      await bumpLocalCount();
+    }
+  } catch (err) {
+    console.warn('[quota-engine] conteggio non riuscito', err);
   }
 }
 
