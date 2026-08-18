@@ -243,71 +243,14 @@ jobs:
 
       - name: Verify AAB versionCode / package matches app.json
         if: always()
-        continue-on-error: true
+        working-directory: mobile
         run: |
-          # 'continue-on-error: true' on purpose: this is a *belt-and-braces*
-          # post-build check. The authoritative versionCode / package sync
-          # happens earlier in 'Patch build.gradle + gradle.properties',
-          # which exits non-zero if app.json disagrees with build.gradle
-          # BEFORE we even get to bundleRelease. If THIS step trips on a
-          # known-unreliable aapt2/apkanalyzer quirk on a v52 ABI-split
-          # .aab, we still want the AAB to be uploaded as an artifact so
-          # the developer can inspect it manually.
-          set +e
           AAB=$(find android -name "*.aab" 2>/dev/null | head -1)
           if [ -z "$AAB" ]; then
             echo "❌ AAB not found — bundleRelease failed"
-            exit 0
+            exit 1
           fi
-          echo "AAB found at: $AAB"
-          AAPT2=$(find $ANDROID_HOME/build-tools -name aapt2 -type f 2>/dev/null | sort | tail -1)
-          if [ -z "$AAPT2" ]; then
-            echo "❌ aapt2 not found in SDK build-tools — skipping post-build verify"
-            exit 0
-          fi
-          echo "Using aapt2: $AAPT2"
-          # Extract AndroidManifest.xml out of the .aab (it's a zip) and run
-          # aapt2 dump xmltree on it. apkanalyzer manifest gave a
-          # NoSuchFileException for v52 because it expects an unpacked module
-          # tree; aapt2 over the unzipped manifest works directly on .aab.
-          WORKDIR=$(mktemp -d)
-          trap "rm -rf $WORKDIR" EXIT
-          unzip -o -q "$AAB" "AndroidManifest.xml" "resources.arsc" -d "$WORKDIR" 2>&1 | head -10
-          MANIFEST="$WORKDIR/AndroidManifest.xml"
-          if [ ! -s "$MANIFEST" ]; then
-            echo "❌ AndroidManifest.xml not present in AAB at top level (may live under base/ — skipping post-build verify on this bundle layout)"
-            exit 0
-          fi
-          XMLTREE_OUT=$("$AAPT2" dump xmltree --file AndroidManifest.xml "$WORKDIR" 2>&1)
-          echo "$XMLTREE_OUT" | head -40
-          # Compare with app.json (read from $GITHUB_WORKSPACE)
-          EXPECTED_VC=$(python3 -c "import json; print(json.load(open('app.json'))['expo']['android']['versionCode'])")
-          EXPECTED_PKG=$(python3 -c "import json; print(json.load(open('app.json'))['expo']['android']['package'])")
-          ACTUAL_PKG=$(echo "$XMLTREE_OUT" | grep -oP 'package=\K"[^"]+"' | head -1 | tr -d '"')
-          # versionCode is in attributes as android:versionCode="N" — grep the
-          # value out of the manifest dump.
-          ACTUAL_VC=$(echo "$XMLTREE_OUT" | grep -oE 'A: android:versionCode[^=]*='\''[0-9]+'\''' | head -1 | grep -oE '[0-9]+' | head -1)
-          if [ -z "$ACTUAL_VC" ]; then
-            # fallback: look for versionCode(0x...) attribute as raw integer
-            ACTUAL_VC=$(echo "$XMLTREE_OUT" | grep -oE 'android:versionCode[^"]*"[0-9]+' | head -1 | grep -oE '[0-9]+' | head -1)
-          fi
-          echo ""
-          echo "Expected: versionCode=$EXPECTED_VC, package=$EXPECTED_PKG"
-          echo "Actual:   versionCode=$ACTUAL_VC, package=$ACTUAL_PKG"
-          if [ -z "$ACTUAL_VC" ] || [ -z "$ACTUAL_PKG" ]; then
-            echo "⚠️ Post-build verify could not extract versionCode/package from AAB — skipping (the build-time assert in step 'Patch build.gradle' was authoritative)."
-            exit 0
-          fi
-          if [ "$ACTUAL_VC" != "$EXPECTED_VC" ]; then
-            echo "❌ Version code mismatch — would be SHADOWED on Play Console!"
-            exit 0
-          fi
-          if [ "$ACTUAL_PKG" != "$EXPECTED_PKG" ]; then
-            echo "❌ Package name mismatch — Play Console will REJECT!"
-            exit 0
-          fi
-          echo "✅ AAB verified: versionCode=$ACTUAL_VC, package=$ACTUAL_PKG matches app.json"
-          exit 0
+          python3 scripts/verify_aab_identity.py "$AAB" app.json
 
       - name: Verify R8 did not strip MainActivity / MainApplication
         # CRITICAL GUARD: if R8/ProGuard removes com.Invoice_Studio.myapp.MainActivity
