@@ -117,7 +117,29 @@ export function usePlanLimits(): UsePlanLimitsReturn {
 
       if (!raw || !tsRaw) return null;
 
-      const parsed: PlanLimits = JSON.parse(raw);
+      // rate-limit-engine.ts scrive su questa stessa chiave (`plan_limits_<id>`)
+      // il payload { data: PlanLimits, cachedAt }, non un PlanLimits piatto.
+      // Leggerlo come se fosse piatto produce un oggetto senza `.invoices`,
+      // che poi crasha il primo render di DashboardScreen su `.invoices.base`
+      // (startup crash "Cannot read property 'base' of undefined").
+      const rawParsed = JSON.parse(raw);
+      const parsed: PlanLimits | undefined = rawParsed?.data ?? rawParsed;
+
+      // Guardia di forma: qualunque cache scritta in un formato diverso (bug
+      // futuro, migrazione, versione precedente dell'app) va trattata come
+      // cache-miss invece di propagare un oggetto con un bucket mancante al
+      // render. Tutti e tre i bucket vanno controllati: un oggetto con solo
+      // `invoices` valido e `customers`/`quotes` mancanti passerebbe altrimenti
+      // indenne e farebbe crashare ClientsScreen/QuotesScreen più tardi.
+      if (
+        !parsed ||
+        typeof parsed.invoices?.base !== 'number' ||
+        typeof parsed.customers?.base !== 'number' ||
+        typeof parsed.quotes?.base !== 'number'
+      ) {
+        return null;
+      }
+
       const cachedAt = parseInt(tsRaw, 10);
 
       // Ripristina Date da JSON string

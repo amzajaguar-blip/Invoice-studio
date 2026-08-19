@@ -73,7 +73,7 @@ export default function ClientsScreen() {
 
   // V34 — contextual card: show only if customers_used >= 2 (Req 9.7, 6.7)
   const { card: contextCard, dismiss: dismissCard } = useSmartCards("customers_upsell");
-  const customersUsed = limits.customers.used;
+  const customersUsed = limits.customers?.used ?? 0;
   const showContextCard = contextCard !== null && customersUsed >= 2;
 
   const load = useCallback(async () => {

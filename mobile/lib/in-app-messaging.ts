@@ -14,7 +14,7 @@
  * @see design.md § 8. InAppMessagingService
  */
 
-import type { PlanLimits } from './rate-limit-engine';
+import { effectiveLimit, type PlanLimits } from './rate-limit-engine';
 import type { UserEngagement } from './engagement-engine';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -176,9 +176,8 @@ export function resolveContextualCard(
     // ── Req 6.3: dashboard_limit_warning ─────────────────────────────────────
     // Visibile se invoices_used >= floor(effective_invoice_limit * 0.8)
     case 'dashboard_limit_warning': {
-      const effectiveLimit = limits.invoices.base + limits.invoices.boost;
-      const threshold = Math.floor(effectiveLimit * 0.8);
-      visible = limits.invoices.used >= threshold;
+      const threshold = Math.floor(effectiveLimit(limits.invoices) * 0.8);
+      visible = (limits.invoices?.used ?? 0) >= threshold;
       break;
     }
 
@@ -193,9 +192,9 @@ export function resolveContextualCard(
     // ── Req 6.7: customers_upsell ────────────────────────────────────────────
     // Visibile se free-plan customer usage >= 2/3 (>= 2 su 3 base)
     case 'customers_upsell': {
-      const effectiveCustomerLimit = limits.customers.base + limits.customers.boost;
-      const twoThirds = Math.floor(effectiveCustomerLimit * (2 / 3));
-      visible = limits.customers.used >= twoThirds && limits.customers.used >= 1;
+      const twoThirds = Math.floor(effectiveLimit(limits.customers) * (2 / 3));
+      const customersUsed = limits.customers?.used ?? 0;
+      visible = customersUsed >= twoThirds && customersUsed >= 1;
       break;
     }
 

@@ -21,6 +21,7 @@ import {
 import { MiniBarChart } from "@/components/MiniBarChart";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { usePlan } from "@/context/PlanContext";
+import { effectiveLimit } from "@/lib/rate-limit-engine";
 import { useEngagementContext } from "@/context/EngagementContext";
 import { useSmartCards } from "@/hooks/useSmartCards";
 import MilestoneCelebration from "@/components/MilestoneCelebration";
@@ -282,9 +283,13 @@ export default function DashboardScreen() {
   const dashboardState = useMemo<'new' | 'near_limit' | 'premium' | 'growing'>(() => {
     if (loading) return 'growing'; // keep existing content during load
     if (isPremium) return 'premium';
-    const effectiveLimit = limits.invoices.base + limits.invoices.boost;
-    const nearLimitThreshold = Math.floor(effectiveLimit * 0.8);
-    if (!limits.isLoading && limits.invoices.used >= nearLimitThreshold && limits.invoices.used > 0) return 'near_limit';
+    // effectiveLimit() è null-safe: difesa in profondità contro cache/risposte
+    // malformate di usePlan() — questo useMemo gira al primo render, prima che
+    // qualunque fetch async abbia potuto correggere uno stato inatteso.
+    const invoicesLimit = effectiveLimit(limits.invoices);
+    const nearLimitThreshold = Math.floor(invoicesLimit * 0.8);
+    const invoicesUsed = limits.invoices?.used ?? 0;
+    if (!limits.isLoading && invoicesUsed >= nearLimitThreshold && invoicesUsed > 0) return 'near_limit';
     if (stats.totalDocuments === 0) return 'new';
     return 'growing';
   }, [loading, isPremium, limits, stats.totalDocuments]);
@@ -435,11 +440,11 @@ export default function DashboardScreen() {
                   <View style={styles.usageCard}>
                     <View style={styles.usageHeader}>
                       <Text style={styles.usageLabel}>{t("tabs.dashboard.usage.label")}</Text>
-                      <Text style={styles.usageCount}>{limits.invoices.used}/{limits.invoices.base + limits.invoices.boost}</Text>
+                      <Text style={styles.usageCount}>{limits.invoices?.used ?? 0}/{effectiveLimit(limits.invoices)}</Text>
                     </View>
                     <View style={styles.usageBarBg}>
                       <View style={[styles.usageBarFill, {
-                        width: `${Math.min(100, (limits.invoices.used / Math.max(1, limits.invoices.base + limits.invoices.boost)) * 100)}%` as any,
+                        width: `${Math.min(100, ((limits.invoices?.used ?? 0) / Math.max(1, effectiveLimit(limits.invoices))) * 100)}%` as any,
                         backgroundColor: dashboardState === 'near_limit' ? '#f59e0b' : '#6c63ff',
                       }]} />
                     </View>

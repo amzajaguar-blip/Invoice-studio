@@ -35,6 +35,18 @@ export interface CheckLimitResult {
   remaining: number;
 }
 
+export type PlanLimitsBucket = PlanLimits['invoices'];
+
+/**
+ * `base + boost` per un bucket (invoices/customers/quotes), null-safe.
+ * Centralizza il calcolo che prima era duplicato in index.tsx e
+ * in-app-messaging.ts — un bucket assente/malformato conta 0 invece di
+ * far crashare il chiamante su `.base` di `undefined`.
+ */
+export function effectiveLimit(bucket: PlanLimitsBucket | undefined | null): number {
+  return (bucket?.base ?? 0) + (bucket?.boost ?? 0);
+}
+
 // ─── Costanti ─────────────────────────────────────────────────────────────────
 
 const DAILY_ADS_MAX = 3;
