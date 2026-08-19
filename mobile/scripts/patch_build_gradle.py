@@ -227,10 +227,14 @@ if os.path.exists(props_path):
     # chiave doppia che il commento qui sopra dichiara non deterministica.
     #
     # `android.enableR8.fullMode` resta: e' una proprieta' grezza di AGP, il
-    # plugin non la copre. Vale `false` perche' e' cio' che la release costruisce
-    # davvero — la build resta veloce e l'assert descrive l'artifact che esce.
+    # plugin non la copre. Vale `true` — full mode invece di compatibility mode
+    # — perche' e' quanto richiesto da Play Console (avviso "R8 in modalita'
+    # compatibilita'"). proguard-rules.pro tiene gia' pacchetti interi
+    # (com.revenuecat.**, com.google.firebase.**, com.google.mlkit.**,
+    # androidx.**, ecc.) apposta per assorbire l'ottimizzazione piu' aggressiva
+    # di full mode senza rompere le chiamate a riflessione di quelle librerie.
     REQUIRED = {
-        'android.enableR8.fullMode':                    'false',
+        'android.enableR8.fullMode':                    'true',
         'android.bundle.enableUncompressedNativeLibs':  'true',
         'reactNativeArchitectures':                     'armeabi-v7a,arm64-v8a,x86,x86_64',
     }
@@ -307,10 +311,10 @@ checks = [
     # l'assert passa anche quando la build fa il contrario di quel che dice.
     # E' cosi' che il workflow poteva appendere `enableR8.fullMode=false` dopo
     # che questo script aveva scritto `true`, con tutte le spunte verdi.
-    ('gradle.properties android.enableR8.fullMode == false (count=1)',
+    ('gradle.properties android.enableR8.fullMode == true (count=1)',
      count('android.enableR8.fullMode', final_props) == 1
-     and re.search(r'^android\.enableR8\.fullMode\s*=\s*false\s*$', final_props, re.MULTILINE),
-     f'count={count("android.enableR8.fullMode", final_props)}, atteso 1 con valore false'),
+     and re.search(r'^android\.enableR8\.fullMode\s*=\s*true\s*$', final_props, re.MULTILINE),
+     f'count={count("android.enableR8.fullMode", final_props)}, atteso 1 con valore true'),
     # I due valori qui sotto li dichiara app.json (expo-build-properties) e li
     # scrive `expo prebuild`: questo assert e' una verifica vera, non la
     # rilettura di cio' che lo script ha appena scritto da se'.
@@ -318,10 +322,10 @@ checks = [
      count('android.enableProguardInReleaseBuilds', final_props) == 1
      and re.search(r'^android\.enableProguardInReleaseBuilds\s*=\s*true\s*$', final_props, re.MULTILINE),
      f'count={count("android.enableProguardInReleaseBuilds", final_props)}, atteso 1 con valore true'),
-    ('gradle.properties android.enableShrinkResourcesInReleaseBuilds == false (count=1, da app.json)',
+    ('gradle.properties android.enableShrinkResourcesInReleaseBuilds == true (count=1, da app.json)',
      count('android.enableShrinkResourcesInReleaseBuilds', final_props) == 1
-     and re.search(r'^android\.enableShrinkResourcesInReleaseBuilds\s*=\s*false\s*$', final_props, re.MULTILINE),
-     f'count={count("android.enableShrinkResourcesInReleaseBuilds", final_props)}, atteso 1 con valore false'),
+     and re.search(r'^android\.enableShrinkResourcesInReleaseBuilds\s*=\s*true\s*$', final_props, re.MULTILINE),
+     f'count={count("android.enableShrinkResourcesInReleaseBuilds", final_props)}, atteso 1 con valore true'),
     ('ANDROID_KEYSTORE_PATH env var present',
      bool(os.environ.get('ANDROID_KEYSTORE_PATH')),
      'env var missing — release will fall back to debug.keystore!'),

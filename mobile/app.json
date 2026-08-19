@@ -2,7 +2,7 @@
   "expo": {
     "name": "Milo Office",
     "slug": "milo-office",
-    "version": "1.0.74",
+    "version": "1.0.75",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": ["vela", "milo-office"],
@@ -24,8 +24,9 @@
         "backgroundColor": "#0a0b0f"
       },
       "package": "com.Invoice_Studio.myapp",
-      "versionCode": 74,
-      "versionName": "1.0.74",
+      "versionCode": 75,
+      "versionName": "1.0.75",
+      "edgeToEdgeEnabled": true,
       "permissions": [
         "com.android.vending.BILLING",
         "android.permission.CAMERA",
@@ -93,7 +94,7 @@
             "ndkVersion": "27.2.12479018",
             "useLegacyPackaging": false,
             "enableProguardInReleaseBuilds": true,
-            "enableShrinkResourcesInReleaseBuilds": false
+            "enableShrinkResourcesInReleaseBuilds": true
           }
         }
       ],
