@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Resource shrinker safety net.
+
+  v75 (bec69b7) turned on android.enableShrinkResourcesInReleaseBuilds for the
+  first time, together with R8 full mode and edge-to-edge, in a single release.
+  AAPT2's resource shrinker only follows references it can see in the app
+  module's own manifest/XML/compiled bytecode; a resource that a *library* AAR
+  (expo-notifications, RevenueCat's native paywall templates, AdMob, edge-to-edge)
+  loads only from its own compiled Kotlin/Java via Resources.getIdentifier() or
+  a hardcoded R id is invisible to it and gets stripped, so the app crashes with
+  Resources$NotFoundException the first time that native code path runs
+  (often at startup: notification channel setup, ad init, paywall template).
+
+  No such safety net existed before v75 because shrinkResources was off. This
+  file is the tracked source of truth; scripts/patch_build_gradle.py copies it
+  into android/app/src/main/res/raw/keep.xml on every CI build (same pattern
+  as proguard-rules.pro), because android/ itself is gitignored and regenerated
+  by `expo prebuild` with the clean flag.
+
+  tools:keep keeps everything under res/ (drawable, mipmap, raw, color, font)
+  from removal regardless of provable reachability. For a React Native app this
+  costs a few KB — nearly all real size comes from native libs and the JS
+  bundle, not res/ — so trading shrinker savings for eliminating this whole
+  crash class is the right side of that trade until a specific resource is
+  confirmed safe to unkeep with a real stack trace in hand.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/*,@mipmap/*,@raw/*,@color/*,@font/*"
+    tools:shrinkMode="safe" />

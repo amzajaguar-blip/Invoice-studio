@@ -14,6 +14,7 @@ Fixes ALL known Play Console rejection causes for Milo Office:
   6. gradle.properties: solo le proprieta' grezze che app.json non copre —
      R8 full mode, uncompressed native libs, reactNativeArchitectures
   7. proguard-rules.pro copy
+  8. keep.xml copy (resource shrinker safety net, v75+)
 
 Idempotent: re-running yields the same output. Exits non-zero with full
 diagnostic dump if any final-state assertion fails.
@@ -35,6 +36,8 @@ PROPS_PATH    = os.path.join('android', 'gradle.properties')
 APP_JSON_PATH = 'app.json'
 PROGUARD_SRC  = 'proguard-rules.pro'
 PROGUARD_DST  = os.path.join('android', 'app', 'proguard-rules.pro')
+KEEPXML_SRC   = 'keep.xml'
+KEEPXML_DST   = os.path.join('android', 'app', 'src', 'main', 'res', 'raw', 'keep.xml')
 
 FAILURES = []
 
@@ -259,6 +262,20 @@ if os.path.exists(proguard_src):
 else:
     fail(f'⚠️  proguard-rules.pro not found at {proguard_src}')
 
+# ── Copy keep.xml into android/app/src/main/res/raw/ ────────────────────────
+# Resource shrinker safety net — see keep.xml for why this exists (v75 turned
+# on enableShrinkResourcesInReleaseBuilds for the first time, no safety net
+# existed before that). `raw/` doesn't exist in a fresh prebuild output, so
+# create it.
+keepxml_src = KEEPXML_SRC
+keepxml_dst = KEEPXML_DST
+if os.path.exists(keepxml_src):
+    os.makedirs(os.path.dirname(keepxml_dst), exist_ok=True)
+    shutil.copy(keepxml_src, keepxml_dst)
+    print(f'✅ keep.xml copied into {keepxml_dst}')
+else:
+    fail(f'⚠️  keep.xml not found at {keepxml_src}')
+
 # ── FINAL STATE ASSERTIONS ──────────────────────────────────────────────────
 # Read back files and verify every Play Console requirement is met. Fail loud.
 print('\n── FINAL STATE ASSERTIONS ──────────────────────────────────')
@@ -332,6 +349,10 @@ checks = [
     ('ANDROID_KEY_ALIAS env var present',
      bool(os.environ.get('ANDROID_KEY_ALIAS')),
      'env var missing — fallback alias `invoicestudio` will be used'),
+    ('keep.xml present in android/app/src/main/res/raw/ (resource shrinker safety net)',
+     os.path.exists(KEEPXML_DST) and 'tools:keep' in open(KEEPXML_DST).read(),
+     f'{KEEPXML_DST} missing or missing tools:keep attribute — shrinkResources '
+     'runs with no safety net, same gap that let v75 ship without one'),
 ]
 
 for label, passed, detail in checks:

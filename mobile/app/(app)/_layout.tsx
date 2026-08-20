@@ -1,17 +1,30 @@
 import { Redirect, Stack } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 import { useAuth } from "@/hooks/useAuth";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { initializePushNotifications } from "@/lib/notifications-service";
+import { recordAppSessionAndMaybeAskReview } from "@/lib/review-prompt";
 
 export default function AuthLayout() {
-  const { session, loading } = useAuth();
+  const { session, user, loading } = useAuth();
 
   useEffect(() => {
     if (session) {
       initializePushNotifications().catch(() => {});
     }
   }, [session]);
+
+  // Conta questa sessione app e, dopo qualche sessione, chiede la recensione
+  // con stelle (prompt nativo store, vedi lib/review-prompt.ts). Il ref
+  // impedisce di contare due volte la stessa sessione se `user` cambia
+  // riferimento senza che sia un vero nuovo login (es. refresh del token).
+  const reviewPromptSessionUserId = useRef<string | null>(null);
+  useEffect(() => {
+    if (user?.id && reviewPromptSessionUserId.current !== user.id) {
+      reviewPromptSessionUserId.current = user.id;
+      recordAppSessionAndMaybeAskReview(user.id).catch(() => {});
+    }
+  }, [user?.id]);
 
   if (loading) {
     return (

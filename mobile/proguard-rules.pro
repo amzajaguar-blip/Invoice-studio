@@ -186,3 +186,23 @@
 -keep class com.swmansion.gesturehandler.** { *; }
 -dontwarn com.swmansion.**
 -dontwarn com.reactnativecommunity.**
+
+# ── Play Billing Library (com.android.billingclient, NOT covered by any
+#    com.google.android.gms/androidx wildcard above — separate group id) ─────
+# RevenueCat opens a BillingClient connection during its own SDK init, which
+# runs at app boot. Never had explicit coverage in this file; v75's switch to
+# R8 full mode makes that a real gap, not a theoretical one — full mode is
+# stricter than compat mode about removing anything not provably reachable
+# from app code, and BillingClient's AIDL-backed classes are reached only via
+# reflection from inside RevenueCat/Play Store internals.
+-keep class com.android.billingclient.** { *; }
+-dontwarn com.android.billingclient.**
+-keep class com.android.vending.billing.** { *; }
+-dontwarn com.android.vending.billing.**
+
+# ── Material Components (com.google.android.material — a DIFFERENT group id
+#    from androidx.**, so the androidx.** wildcard above does NOT cover it) ──
+# Pulled in transitively by AdMob's consent (UMP) and native-ad-template UI.
+# Same v75 full-mode exposure as BillingClient above: no prior explicit rule.
+-keep class com.google.android.material.** { *; }
+-dontwarn com.google.android.material.**
