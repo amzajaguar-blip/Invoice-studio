@@ -2,7 +2,7 @@
   "expo": {
     "name": "Milo Office",
     "slug": "milo-office",
-    "version": "1.0.76",
+    "version": "1.0.77",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": ["vela", "milo-office"],
@@ -24,8 +24,8 @@
         "backgroundColor": "#0a0b0f"
       },
       "package": "com.Invoice_Studio.myapp",
-      "versionCode": 76,
-      "versionName": "1.0.76",
+      "versionCode": 77,
+      "versionName": "1.0.77",
       "edgeToEdgeEnabled": true,
       "permissions": [
         "com.android.vending.BILLING",

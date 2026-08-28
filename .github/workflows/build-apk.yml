@@ -81,7 +81,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'platforms;android-35 build-tools;35.0.0 ndk;27.2.12479018'
+          packages: 'platforms;android-36 build-tools;36.0.0 ndk;27.2.12479018'
 
       # Vedi la nota estesa in build-aab.yml: senza cache ogni run riscarica il
       # wrapper Gradle, ed e' gia' fallito una volta con SocketException.
