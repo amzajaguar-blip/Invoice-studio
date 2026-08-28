@@ -18,11 +18,11 @@ import {
 } from "@/lib/ads";
 import { usePlan } from "@/context/PlanContext";
 import {
-  generateAndShareDocument,
+  generateFromLegacy,
   parseOutputFormat,
   FORMAT_META,
-} from "@/lib/document-format-engine";
-import type { DocumentFormatData } from "@/lib/document-format-engine";
+} from "@/lib/document-engine";
+import type { DocumentFormatData } from "@/lib/document-engine";
 
 interface Client {
   id: string;
@@ -247,7 +247,7 @@ export default function NewInvoiceScreen() {
           notes: notes.trim() || undefined,
           companyName: "Milo Office",
         };
-        const result = await generateAndShareDocument(formatData, outputFormat);
+        const result = await generateFromLegacy(formatData, outputFormat);
         if (!result.shared) {
           // Il file esiste comunque: dirlo, invece di lasciare credere che
           // l'esportazione non sia avvenuta.

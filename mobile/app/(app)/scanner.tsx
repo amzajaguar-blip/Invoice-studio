@@ -64,10 +64,7 @@ import {
   DocumentFormat,
   loadLastDocFormat,
 } from "@/components/FormatPickerModal";
-import {
-  generateFromImported,
-  shareDocumentSafely,
-} from "@/lib/document-format-engine";
+import { generateFromImported } from "@/lib/document-engine";
 import { QuotaPaywall } from "@/components/QuotaPaywall";
 import {
   checkQuotaOrLocal,
@@ -366,7 +363,7 @@ export default function ScannerScreen() {
       const outcome: { value: { filename: string; shared: boolean } | null } = { value: null };
 
       const executed = await runWithAd(async () => {
-        const filepath = await generateFromImported(
+        const result = await generateFromImported(
           {
             title: docTitle.trim() || t("scanner.result.default_title"),
             kind: "text",
@@ -375,9 +372,7 @@ export default function ScannerScreen() {
           },
           format
         );
-        const filename = filepath.split("/").pop() ?? "";
-        const { shared } = await shareDocumentSafely(filepath, filename);
-        outcome.value = { filename, shared };
+        outcome.value = { filename: result.filename, shared: result.shared };
       });
 
       const produced = outcome.value;

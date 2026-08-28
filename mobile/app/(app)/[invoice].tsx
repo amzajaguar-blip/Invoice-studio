@@ -10,11 +10,8 @@ import * as MailComposer from "expo-mail-composer";
 import { apiFetch } from "@/lib/ai";
 import { useLocale } from "@/components/LocaleProvider";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  generateAndShareDocument,
-  FORMAT_META,
-} from "@/lib/document-format-engine";
-import type { DocumentFormatData, OutputFormat } from "@/lib/document-format-engine";
+import { generateFromLegacy, FORMAT_META } from "@/lib/document-engine";
+import type { DocumentFormatData, OutputFormat } from "@/lib/document-engine";
 
 interface LineItem {
   description: string;
@@ -156,7 +153,7 @@ export default function InvoiceDetailScreen() {
     if (!data || exportingFormat) return;
     setExportingFormat(format);
     try {
-      const result = await generateAndShareDocument(buildFormatData(), format);
+      const result = await generateFromLegacy(buildFormatData(), format);
       if (!result.shared) {
         console.warn("[export] condivisione non riuscita", result.shareError);
         Alert.alert(

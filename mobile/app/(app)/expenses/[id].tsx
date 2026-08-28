@@ -13,13 +13,11 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiFetch } from "@/lib/ai";
 import { useLocale } from "@/components/LocaleProvider";
-import { generateDocumentPDF } from "@/lib/pdf-utils";
 import { generateExpenseExport, shareExpenseExport } from "@/lib/excel-engine";
 import { checkEntitlement } from "@/lib/iap-engine";
 import IAPPaywall from "@/components/IAPPaywall";
-import * as Sharing from "expo-sharing";
 import { FormatPickerModal, DocumentFormat, loadLastDocFormat } from "@/components/FormatPickerModal";
-import { generateDocumentDOC, generateDocumentRTF, generateDocumentXLSX, shareDocumentSafely, DocumentFormatData } from "@/lib/document-format-engine";
+import { generateFromLegacy, DocumentFormatData } from "@/lib/document-engine";
 import { LanguagePickerModal } from "@/components/LanguagePickerModal";
 import { translateDocumentContent, extractTranslatableFields, TranslatableFields } from "@/lib/translation-service";
 import { QuotaPaywall } from "@/components/QuotaPaywall";
@@ -118,40 +116,19 @@ export default function ExpenseDetailScreen() {
     setGenerating(true);
 
     await runWithAd(async () => {
-      // Esito della sola condivisione. Parte da true perche' il ramo PDF ha una
-      // sua gestione e non passa da shareDocumentSafely.
       let shared = true;
       let filename = "";
       try {
-        if (format === "pdf") {
-          const data = {
-            id: report.id, reportNumber: report.report_number ?? report.id,
-            title: translatedFields?.title ?? report.title,
-            period: { from: new Date(report.period_from), to: new Date(report.period_to) },
-            items: (report.items ?? []).map((i, idx) => ({
-              ...i,
-              date: new Date(i.date),
-              description: translatedFields?.descriptions[idx] ?? i.description,
-            })),
-            totalByCategory: report.total_by_category ?? {},
-            grandTotal: report.grand_total, currency: report.currency ?? "EUR",
-          };
-          const filepath = await generateDocumentPDF(data, { documentType: "expense_report" });
-          if (!filepath) { Alert.alert(t("error"), "Impossibile generare il PDF."); return; }
-          const canShare = await Sharing.isAvailableAsync();
-          if (canShare) await Sharing.shareAsync(filepath, { mimeType: "application/pdf", dialogTitle: `Nota spese — ${report.title}` });
-          else Alert.alert("PDF generato", `File: ${filepath}`);
-        } else {
-          const docData = buildDocumentData();
-          if (!docData) throw new Error("Dati non disponibili");
-          let fp: string;
-          if (format === "xlsx") { fp = await generateDocumentXLSX(docData); filename = `nota_spese_${report.id}.xlsx`; }
-          else if (format === "doc") { fp = await generateDocumentDOC(docData); filename = `nota_spese_${report.id}.docx`; }
-          else { fp = await generateDocumentRTF(docData); filename = `nota_spese_${report.id}.rtf`; }
-          // Il file esiste gia': se la condivisione non parte, non e' la
-          // generazione ad essere fallita e la quota va contata comunque.
-          shared = (await shareDocumentSafely(fp, filename)).shared;
-        }
+        const docData = buildDocumentData();
+        if (!docData) throw new Error("Dati non disponibili");
+
+        const result = await generateFromLegacy(docData, format, {
+          translatedLabel: translatedFields ? "Contenuto tradotto automaticamente" : undefined,
+        });
+
+        filename = result.filename;
+        shared = result.shared;
+
         if (orgId) { try { await incrementQuota(orgId); } catch { /* quota esaurita */ } }
         if (!shared) {
           Alert.alert(

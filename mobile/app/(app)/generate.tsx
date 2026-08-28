@@ -25,14 +25,13 @@ import { QuotaPaywall } from "@/components/QuotaPaywall";
 import { checkQuotaOrLocal, countGeneratedDocument, DEFAULT_FREE_QUOTA } from "@/lib/quota-engine";
 import { supabase } from "@/lib/supabase";
 import {
-  generateAndShareDocument,
+  generateFromLegacy,
+  generateFromImported,
   parseOutputFormat,
   FORMAT_META,
-} from "@/lib/document-format-engine";
-import type { DocumentFormatData, OutputFormat } from "@/lib/document-format-engine";
+} from "@/lib/document-engine";
+import type { DocumentFormatData, OutputFormat } from "@/lib/document-engine";
 import { toDisplayName } from "@/lib/generated-files";
-import { generateFromImported } from "@/lib/document-format-engine";
-import { shareDocument } from "@/lib/document-format-engine";
 import { apiFetch } from "@/lib/ai";
 import {
   pickFileToConvert,
@@ -356,7 +355,7 @@ export default function GenerateScreen() {
       const executed = await runWithAd(async () => {
         if (imported) {
           // Sorgente importata: si converte, non si compila.
-          const filepath = await generateFromImported(
+          const result = await generateFromImported(
             {
               title: title.trim() || imported.title,
               kind: imported.kind,
@@ -366,19 +365,11 @@ export default function GenerateScreen() {
             },
             format
           );
-          const filename = filepath.split("/").pop() ?? "";
-          let shared = true;
-          try {
-            await shareDocument(filepath, filename);
-          } catch (shareErr) {
-            console.warn("[generate] condivisione non riuscita", shareErr);
-            shared = false;
-          }
-          outcome.value = { filename, shared };
+          outcome.value = { filename: result.filename, shared: result.shared };
           return;
         }
 
-        const result = await generateAndShareDocument(buildData(), format);
+        const result = await generateFromLegacy(buildData(), format);
         outcome.value = { filename: result.filename, shared: result.shared };
       });
 
@@ -402,6 +393,13 @@ export default function GenerateScreen() {
         {
           text: t("documents.generate.success.open_files"),
           onPress: () => router.push("/(app)/(tabs)/files"),
+        },
+        {
+          text: "Anteprima", // Italian leading, English fallback optional
+          onPress: () => {
+            const uri = encodeURIComponent(produced.filename);
+            router.push({ pathname: "/document-preview", params: { uri } });
+          },
         },
         { text: t("documents.generate.success.stay"), style: "cancel" },
       ]);

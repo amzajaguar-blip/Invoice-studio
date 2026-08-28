@@ -12,10 +12,8 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiFetch } from "@/lib/ai";
 import { useLocale } from "@/components/LocaleProvider";
-import { generateDocumentPDF } from "@/lib/pdf-utils";
-import * as Sharing from "expo-sharing";
 import { FormatPickerModal, DocumentFormat, loadLastDocFormat } from "@/components/FormatPickerModal";
-import { generateDocumentDOC, generateDocumentRTF, generateDocumentXLSX, shareDocumentSafely, DocumentFormatData } from "@/lib/document-format-engine";
+import { generateFromLegacy, DocumentFormatData } from "@/lib/document-engine";
 import { LanguagePickerModal } from "@/components/LanguagePickerModal";
 import { translateDocumentContent, extractTranslatableFields, TranslatableFields } from "@/lib/translation-service";
 import { QuotaPaywall } from "@/components/QuotaPaywall";
@@ -148,58 +146,22 @@ export default function QuoteDetailScreen() {
 
     // runWithAd: mostra interstitial per utenti free, poi esegue la generazione
     await runWithAd(async () => {
-      // Esito della sola condivisione. Parte da true perche' il ramo PDF ha una
-      // sua gestione e non passa da shareDocumentSafely.
       let shared = true;
       let filename = "";
       try {
         const quoteNum = quote.quote_number ?? quote.id;
-        if (format === "pdf") {
-          const pdfData = {
-            id: quote.id,
-            quoteNumber: quoteNum,
-            clientSnapshot: {
-              ...(quote.client_snapshot ?? { name: "—", currency: quote.currency ?? "EUR" }),
-              id: quote.client_snapshot?.id ?? "",
-            } as { id: string; name: string; email?: string; phone?: string; address?: string; taxId?: string; currency: string },
-            status: quote.status,
-            issueDate: new Date(quote.issue_date),
-            validUntil: new Date(quote.valid_until),
-            lineItems: (quote.line_items ?? []).map((i) => ({
-              id: i.id ?? Math.random().toString(36).slice(2),
-              description: translatedFields?.descriptions[
-                (quote.line_items ?? []).indexOf(i)
-              ] ?? i.description,
-              quantity: i.quantity, rate: i.rate, amount: i.amount,
-            })),
-            subtotal: quote.subtotal ?? 0, taxRate: quote.tax_rate ?? 0,
-            taxAmount: quote.tax_amount ?? 0, discountAmount: quote.discount_amount ?? 0,
-            total: quote.total, notes: translatedFields?.notes ?? (quote.notes ?? undefined),
-          };
-          const filepath = await generateDocumentPDF(pdfData, { documentType: "quote" });
-          if (!filepath) { Alert.alert(t("error"), "Impossibile generare il PDF."); return; }
-          const canShare = await Sharing.isAvailableAsync();
-          if (canShare) await Sharing.shareAsync(filepath, { mimeType: "application/pdf", dialogTitle: `Bozza ${quoteNum}` });
-          else Alert.alert("PDF generato", `File: ${filepath}`);
-        } else {
-          const docData = buildDocumentData();
-          if (!docData) throw new Error("Dati non disponibili");
-          let fp: string;
-          if (format === "xlsx") {
-            fp = await generateDocumentXLSX(docData);
-            filename = `bozza_${quoteNum}.xlsx`;
-          } else if (format === "doc") {
-            fp = await generateDocumentDOC(docData);
-            filename = `bozza_${quoteNum}.docx`;
-          } else {
-            fp = await generateDocumentRTF(docData);
-            filename = `bozza_${quoteNum}.rtf`;
-          }
-          // Da qui in poi il file esiste su disco: un fallimento della
-          // condivisione non e' piu' un fallimento di generazione, e non deve
-          // ne' saltare il conteggio quota ne' essere raccontato come tale.
-          shared = (await shareDocumentSafely(fp, filename)).shared;
-        }
+
+        // Usa il nuovo document-engine per tutti i formati (PDF/DOCX/RTF/XLSX)
+        const docData = buildDocumentData();
+        if (!docData) throw new Error("Dati non disponibili");
+
+        const result = await generateFromLegacy(docData, format, {
+          translatedLabel: translatedFields ? "Contenuto tradotto automaticamente" : undefined,
+        });
+
+        filename = result.filename;
+        shared = result.shared;
+
         // Incrementa quota dopo generazione riuscita
         if (orgId) { try { await incrementQuota(orgId); } catch { /* quota esaurita */ } }
         if (!shared) {

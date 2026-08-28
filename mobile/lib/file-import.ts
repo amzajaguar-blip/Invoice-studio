@@ -3,7 +3,7 @@
  *
  * Milo Office non deve solo produrre file: deve poter partire da un file che
  * l'utente ha gia' e ritrasformarlo in un altro formato. Questo modulo si
- * occupa della meta' "lettura"; la scrittura resta a document-format-engine.ts,
+ * occupa della meta' "lettura"; la scrittura resta a document-engine.ts,
  * che sa gia' produrre PDF, Excel, Word e RTF.
  *
  * Permessi

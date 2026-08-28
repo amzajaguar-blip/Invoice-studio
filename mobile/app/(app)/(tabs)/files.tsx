@@ -22,8 +22,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocale } from "@/components/LocaleProvider";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { EmptyState } from "@/components/EmptyState";
-import { shareDocument, FORMAT_META } from "@/lib/document-format-engine";
-import type { OutputFormat } from "@/lib/document-format-engine";
+import { shareDocument, FORMAT_META } from "@/lib/document-engine";
+import type { OutputFormat } from "@/lib/document-engine";
 import {
   listGeneratedFiles,
   renameGeneratedFile,

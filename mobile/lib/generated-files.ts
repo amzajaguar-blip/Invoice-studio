@@ -16,7 +16,7 @@
 
 import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
-import { FORMAT_META, type OutputFormat } from './document-format-engine';
+import { FORMAT_META, type OutputFormat } from './document-engine';
 
 // ─── Tipi ─────────────────────────────────────────────────────────────────────
 
