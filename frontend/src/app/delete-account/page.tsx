@@ -208,7 +208,7 @@ export default function DeleteAccountPage() {
             Contatti
           </h2>
           <p className="text-sm leading-relaxed text-[#9ca3af]">
-            Titolare del Trattamento: InvoiceStudio —{" "}
+            Titolare del Trattamento: Milo Office —{" "}
             <a
               href="mailto:privacy@milo.mindprint.it"
               className="text-[#6c63ff] hover:text-[#8b5cf6] transition-colors"
@@ -228,8 +228,8 @@ export default function DeleteAccountPage() {
 
         <div className="border-t border-[#1e2029] pt-8 mt-12">
           <p className="text-xs text-[#6b7280]">
-            InvoiceStudio — Piattaforma SaaS per fatturazione professionale.
-            Sviluppatore: InvoiceStudio. Sede operativa in Italia.
+            Milo Office — Scanner documenti: foto o file in PDF, Excel, Word e
+            RTF. Sviluppatore: Milo Office. Sede operativa in Italia.
           </p>
         </div>
       </div>
