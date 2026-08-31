@@ -751,7 +751,7 @@ export const pt = {
 "documents.import.unsupported.title":"Formato não suportado",
 "documents.import.unsupported.msg":"Os ficheiros .{ext} não podem ser convertidos. Experimenta Excel, Word, CSV, RTF, texto ou PDF.",
 "documents.import.too_large.title":"Ficheiro demasiado grande",
-"documents.import.too_large.msg":"O ficheiro ultrapassa os 10 MB. Experimenta um mais pequeno.",
+"documents.import.too_large.msg":"O ficheiro ultrapassa os 20 MB. Experimenta um mais pequeno.",
 "documents.import.pdf_too_large_for_vercel.title":"PDF demasiado grande para a conversão",
 "documents.import.pdf_too_large_for_vercel.msg":"O PDF excede {mb} MB (limite do servidor de conversão). Experimenta um mais pequeno.",
 "documents.import.pdf_failed.title":"Não foi possível ler o PDF",

@@ -751,7 +751,7 @@ export const de = {
 "documents.import.unsupported.title":"Format nicht unterstützt",
 "documents.import.unsupported.msg":".{ext}-Dateien lassen sich nicht umwandeln. Versuch es mit Excel, Word, CSV, RTF, Text oder PDF.",
 "documents.import.too_large.title":"Datei zu groß",
-"documents.import.too_large.msg":"Die Datei ist größer als 10 MB. Nimm eine kleinere.",
+"documents.import.too_large.msg":"Die Datei ist größer als 20 MB. Nimm eine kleinere.",
 "documents.import.pdf_too_large_for_vercel.title":"PDF zu groß für die Umwandlung",
 "documents.import.pdf_too_large_for_vercel.msg":"Das PDF übersteigt {mb} MB (Server-Limit für die Umwandlung). Nimm eine kleinere Datei.",
 "documents.import.pdf_failed.title":"PDF konnte nicht gelesen werden",

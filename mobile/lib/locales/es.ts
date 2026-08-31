@@ -751,7 +751,7 @@ export const es = {
 "documents.import.unsupported.title":"Formato no compatible",
 "documents.import.unsupported.msg":"Los archivos .{ext} no se pueden convertir. Prueba con Excel, Word, CSV, RTF, texto o PDF.",
 "documents.import.too_large.title":"Archivo demasiado grande",
-"documents.import.too_large.msg":"El archivo supera los 10 MB. Prueba con uno más pequeño.",
+"documents.import.too_large.msg":"El archivo supera los 20 MB. Prueba con uno más pequeño.",
 "documents.import.pdf_too_large_for_vercel.title":"PDF demasiado grande para la conversión",
 "documents.import.pdf_too_large_for_vercel.msg":"El PDF supera los {mb} MB (límite del servidor de conversión). Prueba con uno más pequeño.",
 "documents.import.pdf_failed.title":"No se pudo leer el PDF",

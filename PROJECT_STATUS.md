@@ -1,5 +1,13 @@
 # 🚀 PROJECT_STATUS.md — Invoice Studio Premium Upgrade
 
+## 📌 Limiti upload (Agosto 2026)
+
+- **Tetto utente (web + mobile):** 20 MB, codificato in
+  `frontend/src/lib/upload-limits.ts` e `mobile/lib/upload-limits.ts`.
+- **Bucket Supabase `pdf-imports` (private, 25 MB):** usato dal flusso PDF
+  mobile + futuro flusso OCR immagini via signed URL.
+- **Migration:** `supabase/migrations/20260831000000_pdf_imports_bucket.sql`.
+
 ## 📊 Status Matrix
 
 | Phase | Description | Status | Agent | Last Update | Evidence / Link |

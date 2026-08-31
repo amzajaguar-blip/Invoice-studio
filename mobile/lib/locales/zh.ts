@@ -751,7 +751,7 @@ export const zh = {
 "documents.import.unsupported.title":"不支持的格式",
 "documents.import.unsupported.msg":".{ext} 文件无法转换。请尝试 Excel、Word、CSV、RTF、文本或 PDF。",
 "documents.import.too_large.title":"文件过大",
-"documents.import.too_large.msg":"文件超过 10 MB，请换一个更小的文件。",
+"documents.import.too_large.msg":"文件超过 20 MB，请换一个更小的文件。",
 "documents.import.pdf_too_large_for_vercel.title":"PDF 过大无法转换",
 "documents.import.pdf_too_large_for_vercel.msg":"PDF 超过 {mb} MB（服务器转换限制）。请换一个更小的文件。",
 "documents.import.pdf_failed.title":"无法读取 PDF",

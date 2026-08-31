@@ -25,6 +25,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as XLSX from 'xlsx';
 import JSZip from 'jszip';
+import { MAX_UPLOAD_BYTES } from './upload-limits';
 
 // ─── Tipi ─────────────────────────────────────────────────────────────────────
 
@@ -87,8 +88,17 @@ export function requiresServerExtraction(ext: string): boolean {
   return (REMOTE_SOURCE_EXTS as readonly string[]).includes(ext.toLowerCase());
 }
 
-/** Tetto di dimensione: oltre, la lettura in memoria non e' ragionevole. */
-export const MAX_IMPORT_BYTES = 10 * 1024 * 1024;
+/**
+ * Tetto di dimensione: oltre, la lettura in memoria non e' ragionevole.
+ *
+ * Deriva da MAX_UPLOAD_BYTES (20 MB) — un solo numero canonico vive in
+ * `mobile/lib/upload-limits.ts`. Alza qui e alzi ovunque.
+ *
+ * Era 10 MB prima di Agosto 2026: la nuova soglia allinea mobile a web
+ * (frontend/src/lib/upload-limits.ts) e sblocca fatture scannerizzate a
+ * colori, che sforano i 10 MB.
+ */
+export const MAX_IMPORT_BYTES = MAX_UPLOAD_BYTES;
 
 /**
  * Tetto per i PDF, che vanno estratti dal server.
@@ -341,6 +351,30 @@ export async function readAsBase64(file: PickedFile): Promise<string> {
   return FileSystem.readAsStringAsync(file.uri, {
     encoding: FileSystem.EncodingType.Base64,
   });
+}
+
+/**
+ * Legge il file scelto come Blob (binario).
+ *
+ * Serve al flusso PDF firmato (Agosto 2026): il client carica il PDF
+ * DIRETTAMENTE su Supabase Storage via signed URL con un `PUT` di un Blob, e
+ * solo dopo chiede a `/api/convert/pdf-extract` di scaricarlo ed estrarlo.
+ * Blob e' supportato da React Native 0.54+ via `react-native-blob-util`
+ * shim, e l'SDK Supabase accetta Blob nativo in input.
+ *
+ * Implementazione: legge base64 (l'unica encoding che `expo-file-system/legacy`
+ * espone stabilmente), decodifica in bytes, costruisce un Blob con il MIME
+ * type giusto. Il Blob cosi' ottenuto e' la copia bit-per-bit del file
+ * originale.
+ */
+export async function readAsBlob(file: PickedFile, mimeType: string): Promise<Blob> {
+  const base64 = await FileSystem.readAsStringAsync(file.uri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+  const bin = globalThis.atob(base64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new Blob([bytes], { type: mimeType });
 }
 
 /**

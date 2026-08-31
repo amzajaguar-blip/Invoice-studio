@@ -2,12 +2,13 @@
 
 import { useRef, useState } from "react";
 import { Camera, Check, Loader2, Upload, X } from "lucide-react";
+import { MAX_UPLOAD_BYTES } from "@/lib/upload-limits";
 
 interface ReceiptUploadProps {
   onUpload?: (file: File, preview: string) => void;
   isProcessing?: boolean;
   /**
-   * Max file size in bytes. Default: 10 MB.
+   * Max file size in bytes. Default: 20 MB (vedi `MAX_UPLOAD_BYTES`).
    */
   maxBytes?: number;
 }
@@ -16,7 +17,7 @@ interface ReceiptUploadProps {
  * Drag-and-drop receipt upload with preview + size/type validation.
  * Themed for InvoiceStudio dark UI. No external deps.
  */
-export function ReceiptUpload({ onUpload, isProcessing = false, maxBytes = 10 * 1024 * 1024 }: ReceiptUploadProps) {
+export function ReceiptUpload({ onUpload, isProcessing = false, maxBytes = MAX_UPLOAD_BYTES }: ReceiptUploadProps) {
   const [preview, setPreview] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);

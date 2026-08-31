@@ -36,15 +36,12 @@ import { apiFetch } from "@/lib/ai";
 import {
   pickFileToConvert,
   readLocalFile,
-  readAsBase64,
+  readAsBlob,
   importedFromPdfPages,
   isSupportedSource,
   requiresServerExtraction,
   MAX_IMPORT_BYTES,
-  MAX_PDF_BYTES_FOR_VERCEL,
-  MAX_PDF_MB_FOR_VERCEL,
   resolveFileSize,
-  exceedsVercelBody,
 } from "@/lib/file-import";
 import type { ImportedContent } from "@/lib/file-import";
 
@@ -182,39 +179,43 @@ export default function GenerateScreen() {
         );
         return;
       }
-      // Il PDF va al server, e il tetto non e' la memoria ma il body di 4,5 MB
-      // di una funzione serverless: vedi MAX_PDF_BYTES_FOR_VERCEL, che dal
-      // limite lo calcola invece di fissarlo a un numero tondo.
-      if (
-        size !== null &&
-        requiresServerExtraction(file.ext) &&
-        size > MAX_PDF_BYTES_FOR_VERCEL
-      ) {
-        Alert.alert(
-          t("documents.import.pdf_too_large_for_vercel.title"),
-          t("documents.import.pdf_too_large_for_vercel.msg")
-            .replace("{mb}", String(MAX_PDF_MB_FOR_VERCEL))
-        );
-        return;
-      }
+      // Agosto 2026: il vincolo body-Vercel non esiste piu' — il PDF viaggia
+      // via Supabase Storage signed URL, e il tetto utente e' MAX_IMPORT_BYTES
+      // gia' controllato sopra. Il check MAX_PDF_BYTES_FOR_VERCEL era un
+      // secondo livello, ora rimosso.
 
       let content: ImportedContent;
 
       if (requiresServerExtraction(file.ext)) {
         // Il PDF non e' leggibile sul dispositivo: il testo lo estrae il server.
-        const base64 = await readAsBase64(file);
+        // Flusso Agosto 2026: upload diretto su Supabase Storage via signed URL,
+        // poi la rotta pdf-extract lo scarica ed estrae. Bypassa il body Vercel
+        // 4,5 MB che prima cappava il PDF a ~3,4 MB.
+        const { data: signed, error: signedError } = await apiFetch<{
+          signedUrl: string;
+          path: string;
+          token: string;
+        }>("/api/convert/pdf-extract/upload-url", { method: "POST" });
 
-        // Secondo controllo, e non e' ridondante: se `resolveFileSize` non ha
-        // saputo rispondere, quello a monte non ha misurato nulla. Qui il
-        // contenuto e' letto, quindi la sua lunghezza E' la dimensione della
-        // richiesta. Senza questo, un PDF di dimensione ignota e troppo grande
-        // otteneva un 413 con corpo HTML, che arriva all'utente come "errore di
-        // rete" — cioe' proprio la diagnosi sbagliata.
-        if (exceedsVercelBody(base64)) {
+        if (signedError || !signed?.signedUrl || !signed?.path) {
           Alert.alert(
-            t("documents.import.pdf_too_large_for_vercel.title"),
-            t("documents.import.pdf_too_large_for_vercel.msg")
-              .replace("{mb}", String(MAX_PDF_MB_FOR_VERCEL))
+            t("documents.import.pdf_failed.title"),
+            t("documents.import.pdf_failed.msg")
+          );
+          return;
+        }
+
+        const blob = await readAsBlob(file, "application/pdf");
+
+        const uploadRes = await fetch(signed.signedUrl, {
+          method: "PUT",
+          headers: { "Content-Type": "application/pdf" },
+          body: blob,
+        });
+        if (!uploadRes.ok) {
+          Alert.alert(
+            t("documents.import.pdf_failed.title"),
+            t("documents.import.pdf_failed.msg")
           );
           return;
         }
@@ -227,7 +228,7 @@ export default function GenerateScreen() {
           truncated?: boolean;
         }>(
           "/api/convert/pdf-extract",
-          { method: "POST", body: JSON.stringify({ fileBase64: base64 }) }
+          { method: "POST", body: JSON.stringify({ path: signed.path, filename: file.name }) }
         );
 
         if (error || !data?.success || !data.pages) {
@@ -242,7 +243,7 @@ export default function GenerateScreen() {
                 ? t("documents.import.pdf_failed.not_a_pdf")
                 : code === "file_too_large"
                   ? t("documents.import.pdf_too_large_for_vercel.msg")
-                      .replace("{mb}", String(MAX_PDF_MB_FOR_VERCEL))
+                      .replace("{mb}", "25")
                   : code === "rate_limited"
                     ? t("documents.import.pdf_failed.rate_limited")
                     : t("documents.import.pdf_failed.msg");

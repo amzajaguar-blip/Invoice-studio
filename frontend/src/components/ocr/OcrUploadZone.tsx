@@ -2,13 +2,15 @@
 
 import { useRef, useState, useEffect } from "react";
 import { Upload, FileText, X, AlertCircle, Loader2 } from "lucide-react";
+import { MAX_UPLOAD_BYTES } from "@/lib/upload-limits";
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
 interface OcrUploadZoneProps {
   onFileReady: (base64: string, fileName: string) => void;
   isProcessing: boolean;
-  maxBytes?: number; // default 20 * 1024 * 1024
+  /** Default: MAX_UPLOAD_BYTES (20 MB) — vedi `frontend/src/lib/upload-limits.ts`. */
+  maxBytes?: number;
   error?: string | null;
 }
 
@@ -35,7 +37,7 @@ function isValidExtension(name: string): boolean {
 export function OcrUploadZone({
   onFileReady,
   isProcessing = false,
-  maxBytes = 20 * 1024 * 1024,
+  maxBytes = MAX_UPLOAD_BYTES,
   error = null,
 }: OcrUploadZoneProps) {
   const [preview, setPreview] = useState<string | null>(null);

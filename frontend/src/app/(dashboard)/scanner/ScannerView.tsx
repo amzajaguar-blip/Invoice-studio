@@ -9,6 +9,7 @@ import { createScannerRepositorySupabase } from "@/repositories/supabase/scanner
 import { OcrUploadZone } from "@/components/ocr/OcrUploadZone";
 import { OcrReviewForm } from "@/components/ocr/OcrReviewForm";
 import { CheckCircle, FileText, Loader2, Star } from "lucide-react";
+import { MAX_UPLOAD_BYTES } from "@/lib/upload-limits";
 import type { ScannerExtractedData } from "@/types/states/scanner";
 
 // ─── OCR API response types (mirrors route.ts output) ───
@@ -280,7 +281,7 @@ export function ScannerView({ orgId }: ScannerViewProps) {
           onFileReady={handleFileReady}
           isProcessing={step === "processing"}
           error={apiError}
-          maxBytes={20 * 1024 * 1024}
+          maxBytes={MAX_UPLOAD_BYTES}
         />
       )}
 

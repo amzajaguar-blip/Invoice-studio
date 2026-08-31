@@ -3,6 +3,20 @@
 ## Document Purpose
 Forensic mapping of the InvoiceStudio application architecture with actual code references.
 
+## Limiti upload canonici (Agosto 2026)
+
+- **Tetto utente:** 20 MB. Source of truth:
+  - `frontend/src/lib/upload-limits.ts` → `MAX_UPLOAD_BYTES`
+  - `mobile/lib/upload-limits.ts` → `MAX_UPLOAD_BYTES` (mirror)
+- **Bucket Supabase `pdf-imports`:** 25 MB, private, application/pdf. Usato
+  dal flusso `/api/convert/pdf-extract` con signed URL (creato Agosto 2026,
+  vedi migration `20260831000000_pdf_imports_bucket.sql`).
+- **Tetto infrastrutturale PDF:** `MAX_PDF_BUCKET_BYTES = 25 MB` in
+  `frontend/src/lib/upload-limits.ts`. Coincide con il `file_size_limit` del
+  bucket. Margine di 5 MB rispetto al tetto utente per dare flessibilita' al
+  client che non ha letto MAX_UPLOAD_BYTES.
+
+
 ---
 
 ## 1. Folder Structure
@@ -193,9 +207,32 @@ CREATE FUNCTION current_org_id() RETURNS uuid
 - **Session**: Persistent via cookies
 - **Refresh tokens**: Handled by `@supabase/ssr` auto-refresh
 
-### Storage Buckets (configured but not created in migration)
-- `logos` — Public, 10MB, image types
-- `pdfs` — Private, 25MB, PDF only
+### Storage Buckets
+
+| Bucket | Visibilita' | Limite | Tipi | Migration |
+| --- | --- | --- | --- | --- |
+| `logos` | public | 10MB | image/* | configurato in dashboard |
+| `pdfs` | private | 25MB | application/pdf | configurato in dashboard |
+| `pdf-imports` | private | 25MB | application/pdf | `supabase/migrations/20260831000000_pdf_imports_bucket.sql` |
+| `generated-images` | public | 10MB (default Supabase) | image/png | creato in dashboard |
+
+#### `pdf-imports` (Agosto 2026)
+
+Creato per sbloccare il flusso `/api/convert/pdf-extract`: il client carica
+il PDF DIRETTAMENTE su questo bucket via signed URL (rotta sorella
+`/api/convert/pdf-extract/upload-url`), bypassando il body Vercel di 4,5 MB
+che prima cappava i PDF a ~3,4 MB. Policy RLS `pdf_imports_user_folder`:
+ogni authenticated user puo' operare solo nella cartella `<user_id>/`.
+La rotta pdf-extract cancella il file subito dopo l'estrazione (best-effort).
+
+#### Vincolo ancora aperto: `/api/ocr/receipt` (ScannerView web)
+
+La rotta `/api/ocr/receipt` riceve ancora un'immagine PNG come base64 nel
+body. Per immagini leggere (scontrini, fatture sotto i 3-4 MB reali) il vincolo
+Vercel 4,5 MB non morde. Per immagini piu' grandi (es. foto a colori di
+ricevute), il body Vercel potrebbe rifiutare. Migrazione a signed URL e'
+**futuro scope**: richiede un bucket analogo `image-imports` + una rotta
+`/api/ocr/receipt/upload-url`.
 
 ### Code References
 - Client config: `@/frontend/src/lib/supabase/client.ts`
