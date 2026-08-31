@@ -225,9 +225,10 @@ export async function POST(request: Request): Promise<NextResponse<ExtractRespon
     const doc = await pdfjs.getDocument({
       data,
       // Nessun worker separato: in ambiente server il costo di avviarlo non
-      // ripaga, e semplifica il deploy.
+      // ripaga, e semplifica il deploy. (isEvalSupported rimosso: deprecato
+      // nelle versioni recenti di pdfjs-dist, ora sotto 'disableCombineTextItems'
+      // o rimosso del tutto a seconda della major.)
       useSystemFonts: true,
-      isEvalSupported: false,
     }).promise;
 
     // Si legge PRIMA di distruggere il documento: `doc.destroy()` libera le
