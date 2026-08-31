@@ -207,7 +207,9 @@ export async function POST(request: Request): Promise<NextResponse<ExtractRespon
   }
 
   // %PDF — se i magic bytes non ci sono, non è un PDF e non ha senso proseguire.
-  if (data.subarray(0, 4).toString("latin1") !== "%PDF") {
+  // .slice() invece di .subarray(): TS 5.7+ tipizza Uint8Array<ArrayBuffer> con
+  // subarray(begin, end?) mentre Uint8Array<ArrayBufferLike> richiede .slice().
+  if (data.slice(0, 4).toString("latin1") !== "%PDF") {
     return NextResponse.json(
       { success: false, error: "not_a_pdf" },
       { status: 400 }
