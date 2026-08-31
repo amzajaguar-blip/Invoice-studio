@@ -256,7 +256,11 @@ export async function POST(request: Request): Promise<NextResponse<ExtractRespon
       page.cleanup();
     }
 
-    await doc.destroy();
+    // In pdfjs 4.x, distruggere esplicitamente il documento non serve: la GC
+    // libera le strutture interne quando doc esce dallo scope, e destroy() e'
+    // stato rimosso dal typing di PDFDocumentProxy. Chiamare page.cleanup()
+    // (gia' fatto nel loop) e' sufficiente per liberare la memoria di ogni
+    // pagina dopo l'elaborazione.
 
     // Un PDF fatto di sole immagini scansionate non ha testo estraibile: dirlo,
     // invece di restituire pagine vuote che l'app convertirebbe in un file vuoto.
