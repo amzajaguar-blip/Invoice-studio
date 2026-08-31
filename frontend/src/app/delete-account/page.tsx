@@ -6,11 +6,11 @@ import { CheckCircle, AlertTriangle } from "lucide-react";
 
 /**
  * DeleteAccountPage — Google Play Store Data Safety required page.
- * URL: https://invoicestudio.app/delete-account
+ * URL: https://milo.mindprint.it/delete-account
  *
  * Provides two deletion paths:
  * 1. In-app: Settings → Elimina account (authenticated)
- * 2. Email: mailto:privacy@invoicestudio.it (from registered email)
+ * 2. Email: mailto:privacy@milo.mindprint.it (from registered email)
  */
 export default function DeleteAccountPage() {
   const [email, setEmail] = useState("");
@@ -30,7 +30,7 @@ export default function DeleteAccountPage() {
         `fatti salvi gli obblighi di conservazione fiscale previsti dalla legge italiana (10 anni per le fatture emesse).\n\n` +
         `Cordiali saluti`
     );
-    window.location.href = `mailto:privacy@invoicestudio.it?subject=${subject}&body=${body}`;
+    window.location.href = `mailto:privacy@milo.mindprint.it?subject=${subject}&body=${body}`;
     setStatus("sent");
   };
 
@@ -61,10 +61,10 @@ export default function DeleteAccountPage() {
             Inserisci l&apos;indirizzo email del tuo account. Ti verrà aperto il
             client email con una richiesta pre-compilata da inviare a{" "}
             <a
-              href="mailto:privacy@invoicestudio.it"
+              href="mailto:privacy@milo.mindprint.it"
               className="text-[#6c63ff] hover:text-[#8b5cf6] transition-colors"
             >
-              privacy@invoicestudio.it
+              privacy@milo.mindprint.it
             </a>
             .
           </p>
@@ -77,7 +77,7 @@ export default function DeleteAccountPage() {
           ) : status === "error" ? (
             <div className="p-4 bg-[#7f1d1d]/20 border border-[#7f1d1d] rounded-md text-sm text-[#fecaca]">
               <AlertTriangle className="w-4 h-4 inline-block align-text-bottom mr-1" /> Si è verificato un errore. Prova a scrivere direttamente a{" "}
-              <span className="text-[#f0f0f2]">privacy@invoicestudio.it</span>.
+              <span className="text-[#f0f0f2]">privacy@milo.mindprint.it</span>.
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3">
@@ -112,7 +112,7 @@ export default function DeleteAccountPage() {
                 href="/login"
                 className="text-[#6c63ff] hover:text-[#8b5cf6] transition-colors"
               >
-                invoicestudio.app/login
+                milo.mindprint.it/login
               </Link>
             </li>
             <li>
@@ -210,10 +210,10 @@ export default function DeleteAccountPage() {
           <p className="text-sm leading-relaxed text-[#9ca3af]">
             Titolare del Trattamento: InvoiceStudio —{" "}
             <a
-              href="mailto:privacy@invoicestudio.it"
+              href="mailto:privacy@milo.mindprint.it"
               className="text-[#6c63ff] hover:text-[#8b5cf6] transition-colors"
             >
-              privacy@invoicestudio.it
+              privacy@milo.mindprint.it
             </a>
             . Diritto di reclamo al{" "}
             <a

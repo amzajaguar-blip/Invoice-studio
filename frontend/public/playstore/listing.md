@@ -54,10 +54,10 @@ Business → Finance & Accounting
 fatture, freelancer, partita iva, fatturazione, stripe, pagamenti, pdf, italia, forfettario, ritenuta d'acconto
 
 ## Privacy Policy URL
-https://invoicestudio.app/privacy
+https://milo.mindprint.it/privacy
 
 ## Website
-https://invoicestudio.app
+https://milo.mindprint.it
 
 ## Support Email
-support@invoicestudio.app
+privacy@milo.mindprint.it
