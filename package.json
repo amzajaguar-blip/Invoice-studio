@@ -1,0 +1,12 @@
+{
+  "name": "invoice-studio-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Root wrapper for Vercel. Delegates to frontend/ — see that directory for the real app.",
+  "scripts": {
+    "build": "cd frontend && npm run build",
+    "dev": "cd frontend && npm run dev",
+    "start": "cd frontend && npm run start",
+    "lint": "cd frontend && npm run lint"
+  }
+}
