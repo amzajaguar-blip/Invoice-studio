@@ -379,7 +379,12 @@ export default function GenerateScreen() {
 
       // Il file esiste gia': `countGeneratedDocument` non solleva, e sceglie da
       // sola fra RPC Supabase e contatore locale a seconda che l'orgId ci sia.
-      if (orgId !== 'loading') {
+      //
+      // Sorgente 'pdf': il conteggio l'ha gia' fatto il server dentro
+      // /api/convert/pdf-extract (incrementMiloQuota), subito dopo
+      // l'estrazione riuscita. Contare di nuovo qui duplicherebbe il consumo
+      // di quota per un solo documento generato.
+      if (orgId !== 'loading' && imported?.source !== 'pdf') {
         await countGeneratedDocument(orgId);
       }
 

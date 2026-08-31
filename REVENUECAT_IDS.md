@@ -1,8 +1,9 @@
 # RevenueCat & Google Play — Configuration
 
-> Last synced: 2026-07-25 (commit `0ac8813` on `main`). Keep this file
-> consistent with `mobile/app/(app)/ProUpgrade.tsx` (`PRODUCT_IDS`) and the
-> Google Play Console subscription product IDs.
+> Last synced: 2026-08-10 (letto direttamente da Play Console, vedi commento
+> in testa a `PRODUCT_IDS` in `mobile/app/(app)/ProUpgrade.tsx`). Keep this
+> file consistent with that constant and the Google Play Console subscription
+> product IDs.
 
 ## Project
 
@@ -20,23 +21,23 @@
 Use these IDs **exactly** when creating the subscription on Google Play
 Console *and* when mapping them to Products inside the RevenueCat project.
 
-| Product ID (Play + RC) | Type | Price | Notes |
-|---|---|---|---|
-| `vela.premium.monthly` | Monthly subscription | 4,99 € / month | Identified on the client via `startsWith('vela.premium.monthly')` to allow any qualified base‑plan suffix. |
-| `vela_premium_yearly` | Annual subscription | 39,99 € / year (per project plan definition) | On RC the qualified base plan is `vela_premium_yearly:vela-premium-yearly-base`. Matched client‑side with `startsWith('vela_premium_yearly')`. |
+| Product ID (Play + RC) | Base plan | Type | Price | Notes |
+|---|---|---|---|---|
+| `vela.premium.monthly` | `vela-premium-monthly` | Monthly subscription | 4,99 € / month | Identified on the client via `startsWith('vela.premium.monthly')` to allow any qualified base‑plan suffix. |
+| `milo.premium_yearly.base` | `milo-premium-yearly-annual` | Annual subscription | 39,99 € / year (per project plan definition) | Renamed on Play Console after the app's rebrand to "Milo Office" — this superseded the old `vela_premium_yearly` ID (this file previously documented the stale one). Matched client‑side with `startsWith('milo.premium_yearly.base')`. |
 
 ### Why `startsWith()` instead of `===`
 
 RevenueCat/Google Play can return qualified base‑plan identifiers of the form
-`vela_premium_yearly:vela-premium-yearly-base`. The exact string returned by
-`pkg.product.identifier` may or may not include the `:basePlanId` suffix
-depending on whether the offering is split into multiple base plans.
+`milo.premium_yearly.base:milo-premium-yearly-annual`. The exact string
+returned by `pkg.product.identifier` may or may not include the `:basePlanId`
+suffix depending on whether the offering is split into multiple base plans.
 `startsWith()` makes the matching robust to either form without inflating
 the constants surface area.
 
 ### Where these IDs live in code
 
-- `mobile/app/(app)/ProUpgrade.tsx` → constant `PRODUCT_IDS = { monthly: 'vela.premium.monthly', yearly: 'vela_premium_yearly' }`.
+- `mobile/app/(app)/ProUpgrade.tsx` → constant `PRODUCT_IDS = { monthly: 'vela.premium.monthly', yearly: 'milo.premium_yearly.base' }`.
 - Comparison sites in that file use `p.product.identifier?.startsWith(targetId)`.
 
 ## What was fixed and when

@@ -68,7 +68,6 @@ import { generateFromImported } from "@/lib/document-engine";
 import { QuotaPaywall } from "@/components/QuotaPaywall";
 import {
   checkQuotaOrLocal,
-  countGeneratedDocument,
   DEFAULT_FREE_QUOTA,
 } from "@/lib/quota-engine";
 import { supabase } from "@/lib/supabase";
@@ -378,9 +377,11 @@ export default function ScannerScreen() {
       const produced = outcome.value;
       if (!executed || !produced) return;
 
-      if (orgId !== "loading") {
-        await countGeneratedDocument(orgId);
-      }
+      // Il conteggio l'ha gia' fatto il server dentro /api/ocr/receipt
+      // (incrementMiloQuota), subito dopo l'OCR riuscito: ogni documento
+      // scansionato passa sempre da li', quindi non c'e' un percorso locale
+      // da contare qui — a differenza di generate.tsx, che ha anche
+      // sorgenti puramente locali.
 
       const shownName = toDisplayName(produced.filename);
       const body = produced.shared

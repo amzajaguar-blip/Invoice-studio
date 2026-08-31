@@ -6,6 +6,7 @@ import { getAuthFromRequest } from "@/lib/supabase/auth-helper";
 import { rateLimit, getRateLimitKey } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { MAX_PDF_BUCKET_BYTES } from "@/lib/upload-limits";
+import { checkMiloQuota, incrementMiloQuota } from "@/lib/milo-quota";
 
 /**
  * POST /api/convert/pdf-extract — estrae il testo di un PDF, pagina per pagina.
@@ -118,6 +119,7 @@ export async function POST(request: Request): Promise<NextResponse<ExtractRespon
       { status: 401 }
     );
   }
+  const { orgId, supabase } = auth;
 
   // Questa rotta e' la piu' cara del progetto: fino a 60 secondi di parsing
   // pdf.js su un corpo che puo' arrivare al tetto del bucket (25 MB).
@@ -132,6 +134,17 @@ export async function POST(request: Request): Promise<NextResponse<ExtractRespon
     return NextResponse.json(
       { success: false, error: "rate_limited" },
       { status: 429 }
+    );
+  }
+
+  // Pre-check economico: evita di scaricare ed elaborare un PDF (fino a
+  // 25 MB, fino a 60s di parsing) per un'org che ha gia' esaurito la quota
+  // gratuita e non e' Pro. Vedi frontend/src/lib/milo-quota.ts.
+  const quota = await checkMiloQuota(supabase, orgId);
+  if (!quota.allowed) {
+    return NextResponse.json(
+      { success: false, error: "quota_exceeded" },
+      { status: 402 }
     );
   }
 
@@ -269,6 +282,19 @@ export async function POST(request: Request): Promise<NextResponse<ExtractRespon
         { success: false, error: "no_text_layer" },
         { status: 422 }
       );
+    }
+
+    // Gate autoritativo, DOPO il successo: il pre-check sopra e' solo
+    // un'ottimizzazione, questo e' cio' che conta davvero la quota (skip per
+    // le org Pro e per gli errori di rete — vedi incrementMiloQuota).
+    if (!quota.isPremium && !quota.networkError) {
+      const counted = await incrementMiloQuota(supabase, orgId);
+      if (!counted) {
+        return NextResponse.json(
+          { success: false, error: "quota_exceeded" },
+          { status: 402 }
+        );
+      }
     }
 
     return NextResponse.json({

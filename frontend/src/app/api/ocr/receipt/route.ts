@@ -5,6 +5,9 @@ import { NextResponse } from "next/server";
 import { createWorker } from "tesseract.js";
 import { getAuthFromRequest } from "@/lib/supabase/auth-helper";
 import { preprocessImage } from "@/lib/ocr-preprocess";
+import { rateLimit, getRateLimitKey } from "@/lib/rate-limit";
+import { checkMiloQuota, incrementMiloQuota } from "@/lib/milo-quota";
+import { MAX_UPLOAD_BYTES } from "@/lib/upload-limits";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -417,6 +420,32 @@ export async function POST(request: Request): Promise<NextResponse<OcrResponse>>
       { status: 401 }
     );
   }
+  const { user, orgId, supabase } = auth;
+
+  // ── Rate limit ───────────────────────────────────────────────────────────
+  // Non c'era alcun throttle su questa rotta: un worker Tesseract per
+  // richiesta, senza limite, e' un rischio di costo/disponibilita' a se'
+  // stante — indipendente dalla quota documenti. Stesso tetto di
+  // /api/convert/pdf-extract (10/min), l'altra rotta cara del progetto.
+  const rlKey = getRateLimitKey(request, user.id);
+  const { allowed: rateAllowed } = rateLimit(`ocr-receipt:${rlKey}`, 10, 60_000);
+  if (!rateAllowed) {
+    return NextResponse.json(
+      { success: false, error: "rate_limited" },
+      { status: 429 }
+    );
+  }
+
+  // ── Quota pre-check ─────────────────────────────────────────────────────
+  // Evita di avviare Tesseract per un'org gia' senza quota e non Pro.
+  // Vedi frontend/src/lib/milo-quota.ts.
+  const quota = await checkMiloQuota(supabase, orgId);
+  if (!quota.allowed) {
+    return NextResponse.json(
+      { success: false, error: "quota_exceeded" },
+      { status: 402 }
+    );
+  }
 
   // ── Parse request body ──────────────────────────────────────────────────
 
@@ -451,6 +480,20 @@ export async function POST(request: Request): Promise<NextResponse<OcrResponse>>
     return NextResponse.json(
       { success: false, error: "Empty image data" },
       { status: 400 }
+    );
+  }
+
+  // ── Controllo dimensione esplicito ──────────────────────────────────────
+  // Prima di questo controllo la rotta non aveva alcun tetto proprio: si
+  // affidava solo al limite di default del body Vercel (~4,5 MB), che
+  // risponde con un 413 generico senza corpo JSON leggibile dal client.
+  // In pratica raro da colpire (le foto arrivano gia' compresse a qualita'
+  // 0.8 da scanner.tsx), ma senza questo controllo l'errore che l'utente
+  // vede non spiega nulla.
+  if (decoded.buffer.length > MAX_UPLOAD_BYTES) {
+    return NextResponse.json(
+      { success: false, error: "Image too large", detail: `Max ${MAX_UPLOAD_BYTES / (1024 * 1024)}MB` },
+      { status: 413 }
     );
   }
 
@@ -579,6 +622,20 @@ export async function POST(request: Request): Promise<NextResponse<OcrResponse>>
     rawText,
     confidence,
   };
+
+  // Gate autoritativo, DOPO il successo — vedi la stessa scelta in
+  // /api/convert/pdf-extract e il commento su incrementMiloQuota.
+  // networkError: il pre-check non sapeva se l'org e' Pro, non rifiutiamo
+  // per un errore che non e' colpa del chiamante.
+  if (!quota.isPremium && !quota.networkError) {
+    const counted = await incrementMiloQuota(supabase, orgId);
+    if (!counted) {
+      return NextResponse.json(
+        { success: false, error: "quota_exceeded" },
+        { status: 402 }
+      );
+    }
+  }
 
   return NextResponse.json({ success: true, data });
 }

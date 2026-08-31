@@ -50,6 +50,15 @@ export interface ImportedContent {
   sourceName: string;
   /** Dimensione in byte, quando il selettore la fornisce. */
   sourceSize?: number;
+  /**
+   * 'pdf' quando il testo arriva da /api/convert/pdf-extract (il server ha
+   * gia' contato la quota li' — vedi incrementMiloQuota lato backend),
+   * 'local' quando la lettura e' avvenuta interamente sul device.
+   * generate.tsx usa questo campo per decidere se contare di nuovo il
+   * documento dopo la generazione: farlo per 'pdf' duplicherebbe il
+   * conteggio gia' fatto dal server.
+   */
+  source: 'pdf' | 'local';
 }
 
 export type PickedFile = {
@@ -274,6 +283,7 @@ export async function readLocalFile(file: PickedFile): Promise<ImportedContent> 
     sourceExt: file.ext,
     sourceName: file.name,
     sourceSize: file.size,
+    source: 'local' as const,
   };
 
   if (['xlsx', 'xls', 'ods', 'csv'].includes(file.ext)) {
@@ -316,6 +326,7 @@ export function importedFromPdfPages(
     sourceExt: file.ext,
     sourceName: file.name,
     sourceSize: file.size,
+    source: 'pdf',
   };
 }
 

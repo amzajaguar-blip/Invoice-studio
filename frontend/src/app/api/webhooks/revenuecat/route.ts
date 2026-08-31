@@ -112,7 +112,13 @@ export async function POST(req: Request) {
     }
 
     // 💳 LOGICA DI BUSINESS: Mapping Eventi -> Piani
+    //
+    // targetMiloProActive alimenta organizations.milo_pro_active, il backstop
+    // server-side per la quota di Milo Office (OCR/PDF-extract) — un campo
+    // dedicato, SEPARATO da targetPlan/organizations.plan che serve solo al
+    // sito web legacy. Vedi migrazione 20260831010000_milo_quota_hardening.sql.
     let targetPlan: "free" | "pro" | null = null;
+    let targetMiloProActive: boolean | null = null;
 
     switch (type) {
       case "INITIAL_PURCHASE":
@@ -120,11 +126,13 @@ export async function POST(req: Request) {
       case "UNCANCELLATION":
       case "NON_RENEWING_PURCHASE":
         targetPlan = "pro";
+        targetMiloProActive = true;
         break;
 
       case "EXPIRATION":
       case "BILLING_ISSUE":
         targetPlan = "free";
+        targetMiloProActive = false;
         break;
 
       // Per CANCELLATION (disdetta rinnovo), l'utente mantiene il PRO fino all'EXPIRATION.
@@ -150,6 +158,10 @@ export async function POST(req: Request) {
         .from("organizations")
         .update({
           plan: targetPlan,
+          milo_pro_active: targetMiloProActive,
+          milo_pro_expires_at: event.expiration_at_ms
+            ? new Date(event.expiration_at_ms).toISOString()
+            : null,
           updated_at: new Date().toISOString(),
         })
         .eq("id", orgId);
