@@ -373,11 +373,16 @@ export default function ProUpgradeScreen() {
         <Text style={s.subtitle}>{t("modal.pro_upgrade.subtitle")}</Text>
       </View>
 
-      {/* Vantaggi — unificati con InvoiceLimitModal */}
+      {/* Vantaggi — unificati con InvoiceLimitModal.
+          "email_pdf" e "formats" erano qui prima: promettevano condivisione
+          via email e tutti i formati (PDF/Excel/Word/RTF) come esclusiva Pro,
+          ma nessuna delle due e' mai stata ristretta ai gratuiti (verificato
+          nel codice: ne' generate.tsx/scanner.tsx ne' document-format-engine.ts
+          controllano isPremium per queste due cose). Rimosse invece di
+          restringerle: sono gia' un valore reale per i gratuiti e toglierlo
+          e' una decisione di prodotto esplicitamente rimandata. */}
       <View style={s.featuresBox}>
         <FeatureItem text={t("modal.pro_upgrade.feature.unlimited")} />
-        <FeatureItem text={t("modal.pro_upgrade.feature.email_pdf")} />
-        <FeatureItem text={t("modal.pro_upgrade.feature.formats")} />
         <FeatureItem text={t("modal.pro_upgrade.feature.support")} />
         <FeatureItem text={t("modal.pro_upgrade.feature.cancel_anytime")} />
       </View>
