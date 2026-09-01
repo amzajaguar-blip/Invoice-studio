@@ -126,8 +126,12 @@
 -dontwarn com.google.mlkit.**
 
 # ── AndroidX ──────────────────────────────────────────────────────────────────
--keep class androidx.** { *; }
--keep interface androidx.** { *; }
+# Nessun -keep a pacchetto intero: ogni AAR AndroidX porta con se' le proprie
+# consumer-proguard-rules.pro, che AGP fonde automaticamente nella run di R8.
+# Un keep manuale qui sopra duplicava quella copertura e teneva non offuscato
+# l'intero namespace androidx.* — che in un'app RN/Expo e' la fetta piu' grande
+# del bytecode — abbassando artificialmente il punteggio "Offuscamento" di
+# Play Console senza aggiungere protezione reale.
 -dontwarn androidx.**
 
 # ── AsyncStorage (React Native Community) ──────────────────────
