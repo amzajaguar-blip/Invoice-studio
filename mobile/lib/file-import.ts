@@ -26,6 +26,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as XLSX from 'xlsx';
 import JSZip from 'jszip';
 import { MAX_UPLOAD_BYTES } from './upload-limits';
+import { base64ToBytes } from './base64';
 
 // ─── Tipi ─────────────────────────────────────────────────────────────────────
 
@@ -382,9 +383,7 @@ export async function readAsBlob(file: PickedFile, mimeType: string): Promise<Bl
   const base64 = await FileSystem.readAsStringAsync(file.uri, {
     encoding: FileSystem.EncodingType.Base64,
   });
-  const bin = globalThis.atob(base64);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const bytes = new Uint8Array(base64ToBytes(base64));
   return new Blob([bytes], { type: mimeType });
 }
 

@@ -29,6 +29,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as Print from 'expo-print';
 import * as XLSX from 'xlsx';
+import { base64Encode } from './base64';
 import { money, qty, excelCurrencyFormat, EXCEL_QTY_FORMAT } from './format/money';
 import {
   Document,
@@ -1012,7 +1013,7 @@ function _arrayBufferToBase64(buffer: ArrayBuffer): string {
   for (let i = 0; i < bytes.byteLength; i++) {
     binary += String.fromCharCode(bytes[i]);
   }
-  return btoa(binary);
+  return base64Encode(binary);
 }
 
 // ─── Conversione di un file importato ────────────────────────────────────────

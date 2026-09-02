@@ -55,3 +55,6 @@ invoice-studio-497410-*.json
 NUOVE IMPLEMENTAZIONI/extracted/
 NUOVE IMPLEMENTAZIONI/*.zip
 artifacts/
+
+# Build artifacts scaricati localmente (non committare, sono binari da GitHub Actions)
+build-output/

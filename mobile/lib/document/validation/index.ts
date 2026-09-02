@@ -8,6 +8,7 @@
 
 import * as FileSystem from 'expo-file-system/legacy';
 import * as XLSX from 'xlsx';
+import { base64ToBytes as decodeBase64ToBytes } from '../../base64';
 import type { DocumentModel, BlockElement } from '../model';
 import type { OutputFormat } from '../builders';
 import { documentToText } from '../builders/shared';
@@ -451,8 +452,7 @@ export async function generateValidateRepair(
 
 function base64ToBytes(b64: string): number[] {
   try {
-    const binary = atob(b64);
-    return Array.from(binary, (c) => c.charCodeAt(0));
+    return decodeBase64ToBytes(b64);
   } catch {
     return [];
   }

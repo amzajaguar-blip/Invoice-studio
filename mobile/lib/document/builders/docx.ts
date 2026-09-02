@@ -7,6 +7,7 @@
  */
 
 import * as FileSystem from 'expo-file-system/legacy';
+import { base64Encode } from '../../base64';
 import {
   Document,
   Packer,
@@ -546,5 +547,5 @@ function _arrayBufferToBase64(buffer: ArrayBuffer): string {
   for (let i = 0; i < bytes.byteLength; i++) {
     binary += String.fromCharCode(bytes[i]);
   }
-  return btoa(binary);
+  return base64Encode(binary);
 }
