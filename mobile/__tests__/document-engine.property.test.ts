@@ -111,6 +111,35 @@ describe('document-engine builders — matrice formati × classi di input', () =
     );
   });
 
+  it('RTF: \\cf punta sempre a un indice numerico valido nella \\colortbl, senza iniettare frammenti hex nel testo', () => {
+    fc.assert(
+      fc.property(bodyText(), bodyText(), (title, body) => {
+        const model = buildModel(title, body);
+        const content = buildRtfString(model);
+
+        // Ogni \cf deve essere seguito solo da cifre prima di uno spazio —
+        // un colore esadecimale (es. 11181C) lascerebbe una 'C' o 'AF' letterale
+        // subito dopo le cifre, che qui verrebbe rifiutato dalla regex.
+        const cfMatches = [...content.matchAll(/\\cf(\S*)( |$)/g)];
+        for (const [, arg] of cfMatches) {
+          expect(arg).toMatch(/^\d+$/);
+        }
+
+        // Ogni indice usato deve esistere nella \colortbl generata (numero di
+        // entry `;` = numero massimo di indici validi, escluso l'indice 0 auto).
+        const colorTableMatch = content.match(/\{\\colortbl;(.*?)\}/);
+        expect(colorTableMatch).not.toBeNull();
+        const entryCount = (colorTableMatch![1].match(/;/g) ?? []).length;
+        for (const [, arg] of cfMatches) {
+          const idx = parseInt(arg, 10);
+          expect(idx).toBeGreaterThanOrEqual(0);
+          expect(idx).toBeLessThanOrEqual(entryCount);
+        }
+      }),
+      { numRuns: 50 }
+    );
+  });
+
   it('TXT contiene il testo del corpo verbatim (round-trip unicode)', () => {
     fc.assert(
       fc.property(bodyText(), bodyText(), (title, body) => {

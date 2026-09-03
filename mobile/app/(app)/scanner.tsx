@@ -66,6 +66,7 @@ import {
 } from "@/components/FormatPickerModal";
 import { generateFromImported } from "@/lib/document-engine";
 import { QuotaPaywall } from "@/components/QuotaPaywall";
+import { maybeRequestReview } from "@/lib/store-rating";
 import {
   checkQuotaOrLocal,
   DEFAULT_FREE_QUOTA,
@@ -382,6 +383,12 @@ export default function ScannerScreen() {
       // scansionato passa sempre da li', quindi non c'e' un percorso locale
       // da contare qui — a differenza di generate.tsx, che ha anche
       // sorgenti puramente locali.
+
+      // Export riuscito: chiede la recensione nativa allo store (stesso
+      // criterio non-gating di generate.tsx — vedi il commento li').
+      if (orgId !== "loading" && orgId) {
+        maybeRequestReview(orgId, "pdf_exported").catch(() => {});
+      }
 
       const shownName = toDisplayName(produced.filename);
       const body = produced.shared

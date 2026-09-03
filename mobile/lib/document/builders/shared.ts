@@ -169,7 +169,13 @@ export function blockToText(block: BlockElement): string {
   }
 }
 
-/** Estrae tutto il testo piatto del documento (per validazione non-vuoto). */
+/**
+ * Estrae tutto il testo piatto del documento (per validazione non-vuoto e
+ * come corpo del TXT). Non fa `.trim()`: un body il cui contenuto reale è
+ * whitespace (spazi/newline voluti dall'utente, es. per allineamento) deve
+ * arrivare intatto nel file TXT — chi vuole sapere "il documento è vuoto?"
+ * fa `.trim().length === 0` sul risultato, non il contrario.
+ */
 export function documentToText(model: DocumentModel): string {
-  return model.blocks.map(blockToText).join('\n').trim();
+  return model.blocks.map(blockToText).join('\n');
 }

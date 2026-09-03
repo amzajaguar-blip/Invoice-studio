@@ -312,24 +312,24 @@ export async function preloadGenerateInterstitial(): Promise<void> {
 }
 
 /**
- * Show the preloaded "generate" interstitial if — and only if:
- *   1. the SDK is initialized (UMP consent resolved via initAds),
- *   2. an ad has finished preloading,
- *   3. at least MIN_INTERVAL_BETWEEN_ADS_MS has passed since the last
- *      interstitial (shared throttle with maybeShowInterstitial — same ad
- *      unit, so the same frequency cap applies),
- *   4. the device is online.
+ * Show the "generate" interstitial — deliberately on EVERY free-tier export,
+ * with no frequency cap: this is the free-plan monetization lever, one ad
+ * per generated file.
  *
- * Returns true if the ad was opened, false otherwise (not ready, throttled,
- * offline, or show failure). On dismissal (CLOSED) or show failure the next
- * ad is preloaded automatically. Never throws — the document flow must
- * continue regardless.
+ * Path A — an ad already finished preloading (generateAdReady): show it
+ * instantly.
+ * Path B — no ad preloaded yet (first export before preload completed, or
+ * the last preload failed): fall back to an on-demand load, mirroring
+ * maybeShowInterstitial()'s proven load()→LOADED/ERROR→show() pattern, so
+ * the ad still appears rather than being silently skipped.
+ *
+ * Returns true if the ad was opened, false otherwise (SDK not initialized,
+ * offline, no fill, or load timeout — genuinely unavoidable cases). On
+ * dismissal (CLOSED) or show failure the next ad is preloaded automatically.
+ * Never throws — the document flow must continue regardless.
  */
 export async function showGenerateInterstitialIfReady(): Promise<boolean> {
-  if (!initialized || !generateAdReady || !generateAd) return false;
-
-  const now = Date.now();
-  if (now - lastShownAt < MIN_INTERVAL_BETWEEN_ADS_MS) return false;
+  if (!initialized) return false;
 
   try {
     const net = await NetInfo.fetch();
@@ -338,12 +338,55 @@ export async function showGenerateInterstitialIfReady(): Promise<boolean> {
     return false;
   }
 
-  // Detach from module state before showing — a shown ad instance cannot be
-  // reused, so the slot is cleared regardless of the outcome.
-  const ad = generateAd;
-  generateAd = null;
-  generateAdReady = false;
+  if (generateAdReady && generateAd) {
+    // Detach from module state before showing — a shown ad instance cannot
+    // be reused, so the slot is cleared regardless of the outcome.
+    const ad = generateAd;
+    generateAd = null;
+    generateAdReady = false;
+    return showAndPreloadNext(ad);
+  }
 
+  // No preloaded ad ready — load one on demand instead of skipping.
+  return new Promise<boolean>((resolve) => {
+    let settled = false;
+    const settle = (result: boolean) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutHandle);
+      resolve(result);
+    };
+
+    const timeoutHandle = setTimeout(() => settle(false), AD_LOAD_TIMEOUT_MS);
+
+    try {
+      const ad = InterstitialAd.createForAdRequest(INTERSTITIAL_AD_UNIT_ID, {
+        requestNonPersonalizedAdsOnly: false,
+      });
+
+      const unsubLoaded = ad.addAdEventListener(AdEventType.LOADED, () => {
+        unsubLoaded();
+        unsubError();
+        showAndPreloadNext(ad).then(settle);
+      });
+
+      const unsubError = ad.addAdEventListener(AdEventType.ERROR, (error) => {
+        unsubLoaded();
+        unsubError();
+        console.warn('[ads] generate interstitial on-demand load failed', error);
+        settle(false);
+      });
+
+      ad.load();
+    } catch (err) {
+      console.warn('[ads] generate interstitial on-demand setup failed', err);
+      settle(false);
+    }
+  });
+}
+
+/** Shows a loaded interstitial instance and preloads the next one afterward. */
+async function showAndPreloadNext(ad: InterstitialAd): Promise<boolean> {
   try {
     const unsubClosed = ad.addAdEventListener(AdEventType.CLOSED, () => {
       unsubClosed();

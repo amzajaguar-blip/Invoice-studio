@@ -21,6 +21,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocale } from "@/components/LocaleProvider";
 import { usePlan } from "@/context/PlanContext";
 import { useDocumentAd } from "@/lib/useDocumentAd";
+import { maybeRequestReview } from "@/lib/store-rating";
 import { QuotaPaywall } from "@/components/QuotaPaywall";
 import { checkQuotaOrLocal, countGeneratedDocument, DEFAULT_FREE_QUOTA } from "@/lib/quota-engine";
 import { supabase } from "@/lib/supabase";
@@ -386,6 +387,15 @@ export default function GenerateScreen() {
       // di quota per un solo documento generato.
       if (orgId !== 'loading' && imported?.source !== 'pdf') {
         await countGeneratedDocument(orgId);
+      }
+
+      // Export riuscito: chiede la recensione nativa allo store, se e' un
+      // momento valido (Requirements 19.1) e non e' passato il cooldown di
+      // 120gg (store-rating.ts). NON si chiede prima "ti piace l'app?": Google
+      // Play vieta esplicitamente il "review gating" (mostrare il prompt
+      // nativo solo a chi risponde positivamente a un sondaggio preliminare).
+      if (orgId !== 'loading' && orgId) {
+        maybeRequestReview(orgId, 'pdf_exported').catch(() => {});
       }
 
       // Il nome mostrato e' lo stesso che l'utente legge nella scheda File,
