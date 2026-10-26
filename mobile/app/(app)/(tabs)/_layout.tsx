@@ -1,11 +1,22 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { BottomTabBar } from "@react-navigation/bottom-tabs";
 import { useLocale } from "@/components/LocaleProvider";
+import { AdBanner } from "@/components/AdBanner";
 
 export default function TabLayout() {
   const { t } = useLocale();
   return (
     <Tabs
+      // Banner AdMob ancorato sopra la tab bar: appare su tutte le schede
+      // (Dashboard / File / Impostazioni) solo per gli utenti free e dietro
+      // consenso UMP. AdBanner si auto-nasconde per i Pro e senza annuncio.
+      tabBar={(props) => (
+        <>
+          <AdBanner />
+          <BottomTabBar {...props} />
+        </>
+      )}
       screenOptions={{
         headerShown: false,
         tabBarStyle: {

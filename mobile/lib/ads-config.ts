@@ -47,7 +47,8 @@ export type AdsMode = 'test-demo' | 'test-device' | 'production';
 export const PRODUCTION_AD_UNITS = {
   appId: 'ca-app-pub-8156953772676654~4738629818',
   interstitial: 'ca-app-pub-8156953772676654/6372493305',
-  rewarded: 'ca-app-pub-8156953772676654/2433248294',
+  rewarded: 'ca-app-pub-8156953772676654/2809726580',
+  banner: 'ca-app-pub-8156953772676654/4020450686',
 } as const;
 
 /**
@@ -58,6 +59,7 @@ const DEMO_AD_UNITS = {
   appId: 'ca-app-pub-3940256099942544~3347511713',
   interstitial: 'ca-app-pub-3940256099942544/1033173712',
   rewarded: 'ca-app-pub-3940256099942544/5224354917',
+  banner: 'ca-app-pub-3940256099942544/6300978111',
 } as const;
 
 function resolveMode(): AdsMode {
@@ -111,6 +113,7 @@ export function describeAdsMode(): string {
     `[ADS] mode=${ADS_MODE} realUnits=${USING_REAL_AD_UNITS} ` +
     `interstitial=${AD_UNITS.interstitial} ` +
     `rewarded=${AD_UNITS.rewarded} ` +
+    `banner=${AD_UNITS.banner} ` +
     `testDevices=${TEST_DEVICE_IDS.length}`
   );
 }
