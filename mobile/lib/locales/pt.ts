@@ -720,6 +720,7 @@ export const pt = {
 "documents.generate.success.msg":"{name} está pronto e encontra-lo no separador Ficheiros.",
 "documents.generate.success.msg_not_shared":"{name} está pronto no separador Ficheiros. A folha de partilha não abriu: podes partilhá-lo a partir de lá.",
 "documents.generate.success.open_files":"Ver em Ficheiros",
+"documents.generate.success.preview":"Pré-visualizar",
 "documents.generate.success.stay":"Continuar",
 "documents.generate.error.title":"Falha ao gerar",
 "documents.generate.error.msg":"Não foi possível gerar o ficheiro {format}.",

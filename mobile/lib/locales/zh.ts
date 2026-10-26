@@ -720,6 +720,7 @@ export const zh = {
 "documents.generate.success.msg":"{name} 已就绪，可在“文件”标签中找到。",
 "documents.generate.success.msg_not_shared":"{name} 已在“文件”标签中就绪。分享面板未打开，你可以从那里分享。",
 "documents.generate.success.open_files":"在文件中查看",
+"documents.generate.success.preview":"预览",
 "documents.generate.success.stay":"继续",
 "documents.generate.error.title":"生成失败",
 "documents.generate.error.msg":"无法生成 {format} 文件。",

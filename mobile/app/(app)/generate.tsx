@@ -411,7 +411,7 @@ export default function GenerateScreen() {
           onPress: () => router.push("/(app)/(tabs)/files"),
         },
         {
-          text: "Anteprima", // Italian leading, English fallback optional
+          text: t("documents.generate.success.preview"),
           onPress: () => {
             const uri = encodeURIComponent(produced.filename);
             router.push({ pathname: "/document-preview", params: { uri } });

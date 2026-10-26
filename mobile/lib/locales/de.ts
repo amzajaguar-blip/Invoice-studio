@@ -720,6 +720,7 @@ export const de = {
 "documents.generate.success.msg":"{name} ist fertig und liegt im Tab Dateien.",
 "documents.generate.success.msg_not_shared":"{name} liegt im Tab Dateien bereit. Das Teilen-Menü ging nicht auf — du kannst es von dort teilen.",
 "documents.generate.success.open_files":"In Dateien ansehen",
+"documents.generate.success.preview":"Vorschau",
 "documents.generate.success.stay":"Weiter",
 "documents.generate.error.title":"Erstellung fehlgeschlagen",
 "documents.generate.error.msg":"Die {format}-Datei konnte nicht erstellt werden.",

@@ -750,6 +750,7 @@ export const en = {
 "documents.generate.success.msg":"{name} is ready — find it in the Files tab.",
 "documents.generate.success.msg_not_shared":"{name} is ready in the Files tab. The share sheet didn't open — you can share it from there.",
 "documents.generate.success.open_files":"See in Files",
+"documents.generate.success.preview":"Preview",
 "documents.generate.success.stay":"Continue",
 "documents.generate.error.title":"Generation failed",
 "documents.generate.error.msg":"The {format} file could not be generated.",

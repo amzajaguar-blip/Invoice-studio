@@ -720,6 +720,7 @@ export const es = {
 "documents.generate.success.msg":"{name} está listo y lo encuentras en la pestaña Archivos.",
 "documents.generate.success.msg_not_shared":"{name} está listo en la pestaña Archivos. No se abrió la hoja de compartir: puedes compartirlo desde ahí.",
 "documents.generate.success.open_files":"Ver en Archivos",
+"documents.generate.success.preview":"Vista previa",
 "documents.generate.success.stay":"Continuar",
 "documents.generate.error.title":"No se pudo generar",
 "documents.generate.error.msg":"No se pudo generar el archivo {format}.",

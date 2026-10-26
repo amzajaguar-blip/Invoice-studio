@@ -730,6 +730,7 @@ export const it = {
 "documents.generate.success.msg":"{name} è pronto e lo trovi nella scheda File.",
 "documents.generate.success.msg_not_shared":"{name} è pronto nella scheda File. Il foglio di condivisione non si è aperto: puoi condividerlo da lì.",
 "documents.generate.success.open_files":"Vedi nei file",
+"documents.generate.success.preview":"Anteprima",
 "documents.generate.success.stay":"Continua",
 "documents.generate.error.title":"Generazione non riuscita",
 "documents.generate.error.msg":"Non è stato possibile generare il file {format}.",

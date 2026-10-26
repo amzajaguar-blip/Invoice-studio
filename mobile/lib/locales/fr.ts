@@ -720,6 +720,7 @@ export const fr = {
 "documents.generate.success.msg":"{name} est prêt, retrouvez-le dans l'onglet Fichiers.",
 "documents.generate.success.msg_not_shared":"{name} est prêt dans l'onglet Fichiers. La feuille de partage ne s'est pas ouverte : vous pouvez le partager depuis là.",
 "documents.generate.success.open_files":"Voir dans Fichiers",
+"documents.generate.success.preview":"Aperçu",
 "documents.generate.success.stay":"Continuer",
 "documents.generate.error.title":"Échec de la génération",
 "documents.generate.error.msg":"Impossible de générer le fichier {format}.",
