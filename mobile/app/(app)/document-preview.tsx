@@ -19,12 +19,12 @@ export default function DocumentPreviewScreen() {
     <View style={s.container}>
       <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
         <Ionicons name="arrow-back" size={24} color="#6c63ff" />
-        <Text style={s.backText}>← {t('back') ?? 'Indietro'}</Text>
+        <Text style={s.backText}>← {t('back')}</Text>
       </TouchableOpacity>
       {fileUri ? (
         <WebView source={{ uri: fileUri }} style={s.webview} />
       ) : (
-        <Text style={s.error}>{t('error') ?? 'Errore'} – file non disponibile</Text>
+        <Text style={s.error}>{t('document.preview.unavailable')}</Text>
       )}
     </View>
   );

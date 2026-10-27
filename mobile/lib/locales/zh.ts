@@ -776,4 +776,13 @@ export const zh = {
 "documents.import.pdf_truncated.msg":"仅转换了 {total} 页中的前 {done} 页，其余内容未包含在生成的文件中。",
 "documents.import.read_failed.title":"无法读取文件",
 "documents.import.read_failed.msg":"无法读取所选的文件。",
+"boost_modal_description":"观看短视频以解锁更多文档。",
+"boost_watch_video_title":"观看视频",
+"retry":"重试",
+"form.client.add_label":"添加客户",
+"client.delete.title":"删除客户",
+"client.delete.confirm":"删除此客户？此操作可能无法撤销。",
+"modal.pro_upgrade.restore.hint":"恢复此 Google 账号已购买的 Pro 订阅",
+"modal.pro_upgrade.trial_a11y":"免费试用",
+"document.preview.unavailable":"文件不可用",
 };

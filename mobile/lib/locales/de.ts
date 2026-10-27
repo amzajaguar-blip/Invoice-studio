@@ -776,4 +776,13 @@ export const de = {
 "documents.import.pdf_truncated.msg":"Es wurden nur die ersten {done} von {total} Seiten umgewandelt. Der Rest fehlt in der erzeugten Datei.",
 "documents.import.read_failed.title":"Datei konnte nicht gelesen werden",
 "documents.import.read_failed.msg":"Wir konnten die gewählte Datei nicht lesen.",
+"boost_modal_description":"Sieh dir ein kurzes Video an, um mehr Dokumente freizuschalten.",
+"boost_watch_video_title":"Video ansehen",
+"retry":"Erneut versuchen",
+"form.client.add_label":"Kunden hinzufügen",
+"client.delete.title":"Kunden löschen",
+"client.delete.confirm":"Diesen Kunden löschen? Dies kann unwiderruflich sein.",
+"modal.pro_upgrade.restore.hint":"Stellt ein bereits mit diesem Google-Konto gekauftes Pro-Abo wieder her",
+"modal.pro_upgrade.trial_a11y":"Kostenlos testen",
+"document.preview.unavailable":"Datei nicht verfügbar",
 };

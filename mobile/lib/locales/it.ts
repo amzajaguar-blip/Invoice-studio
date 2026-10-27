@@ -786,6 +786,15 @@ export const it = {
 "documents.import.pdf_truncated.msg":"Sono state convertite le prime {done} pagine su {total}. Il resto non è incluso nel file generato.",
 "documents.import.read_failed.title":"Lettura non riuscita",
 "documents.import.read_failed.msg":"Non è stato possibile leggere il file scelto.",
+"boost_modal_description":"Guarda un breve video per sbloccare più documenti.",
+"boost_watch_video_title":"Guarda il video",
+"retry":"Riprova",
+"form.client.add_label":"Aggiungi cliente",
+"client.delete.title":"Elimina cliente",
+"client.delete.confirm":"Eliminare questo cliente? L'operazione potrebbe essere irreversibile.",
+"modal.pro_upgrade.restore.hint":"Recupera un abbonamento Pro già acquistato su questo account Google",
+"modal.pro_upgrade.trial_a11y":"Prova gratuita",
+"document.preview.unavailable":"File non disponibile",
 };
 
 export type TranslationKeys = keyof typeof it;

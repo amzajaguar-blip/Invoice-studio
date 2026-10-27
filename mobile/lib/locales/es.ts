@@ -776,4 +776,13 @@ export const es = {
 "documents.import.pdf_truncated.msg":"Solo se han convertido las primeras {done} de {total} páginas. El resto no está en el archivo generado.",
 "documents.import.read_failed.title":"No se pudo leer el archivo",
 "documents.import.read_failed.msg":"No pudimos leer el archivo elegido.",
+"boost_modal_description":"Mira un breve vídeo para desbloquear más documentos.",
+"boost_watch_video_title":"Ver el vídeo",
+"retry":"Reintentar",
+"form.client.add_label":"Añadir cliente",
+"client.delete.title":"Eliminar cliente",
+"client.delete.confirm":"¿Eliminar este cliente? Puede ser irreversible.",
+"modal.pro_upgrade.restore.hint":"Recupera una suscripción Pro ya comprada con esta cuenta de Google",
+"modal.pro_upgrade.trial_a11y":"Prueba gratuita",
+"document.preview.unavailable":"Archivo no disponible",
 };

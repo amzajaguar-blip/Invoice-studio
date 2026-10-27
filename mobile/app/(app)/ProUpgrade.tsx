@@ -399,7 +399,7 @@ export default function ProUpgradeScreen() {
               onPress={() => setSelectedPlan(pkg.id)}
               activeOpacity={0.8}
               accessibilityRole="radio"
-              accessibilityLabel={`${pkg.title}: ${pkg.price}. ${pkg.recurring}${pkg.tag ? ". " + pkg.tag : ""}${trial.hasTrial ? ". Prova gratuita " + trial.text : ""}`}
+              accessibilityLabel={`${pkg.title}: ${pkg.price}. ${pkg.recurring}${pkg.tag ? ". " + pkg.tag : ""}${trial.hasTrial ? ". " + t("modal.pro_upgrade.trial_a11y") + " " + trial.text : ""}`}
               accessibilityState={{ selected: isActive }}
             >
               {pkg.tag && (
@@ -460,7 +460,7 @@ export default function ProUpgradeScreen() {
         disabled={purchaseState === "loading" || purchaseState === "restoring"}
         accessibilityRole="button"
         accessibilityLabel={t("modal.pro_upgrade.restore.a11y")}
-        accessibilityHint="Recupera un abbonamento Pro già acquistato su questo account Google"
+        accessibilityHint={t("modal.pro_upgrade.restore.hint")}
       >
         {purchaseState === "restoring" ? (
           reduceMotion ? (

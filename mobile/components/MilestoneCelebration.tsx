@@ -149,6 +149,10 @@ function MilestoneCelebrationInner({
   reduceMotion,
 }: MilestoneCelebrationInnerProps) {
   const { t } = useLocale();
+  const tTitle = t(`milestone.${milestone.type}.title`);
+  const tBody = t(`milestone.${milestone.type}.body`);
+  const title = tTitle.startsWith('milestone.') ? milestone.title : tTitle;
+  const body = tBody.startsWith('milestone.') ? milestone.body : tBody;
   // ── Animated values ────────────────────────────────────────────────────────
   /** translateY: slide-up — parte da +80 (sotto), arriva a 0 */
   const translateY   = useRef(new Animated.Value(reduceMotion ? 0 : 80)).current;
@@ -251,7 +255,7 @@ function MilestoneCelebrationInner({
       pointerEvents="box-none"
       accessibilityRole="alert"
       accessibilityLiveRegion="assertive"
-      accessibilityLabel={`${milestone.title} ${milestone.body}`}
+      accessibilityLabel={`${title} ${body}`}
     >
       {/* ── Confetti particles (solo se !reduceMotion) ──────────────── */}
       {!reduceMotion && (
@@ -313,10 +317,10 @@ function MilestoneCelebrationInner({
           </View>
           <View style={s.headerTexts}>
             <Text style={s.title} numberOfLines={1}>
-              {milestone.title}
+              {title}
             </Text>
             <Text style={s.body} numberOfLines={2}>
-              {milestone.body}
+              {body}
             </Text>
           </View>
 
