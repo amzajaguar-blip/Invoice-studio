@@ -687,6 +687,9 @@ export const it = {
 "quota.reward_pending":"Elaborazione in corso…",
 "quota.reward_success":"Documento extra sbloccato!",
 "quota.reward_failed":"Errore. Riprova più tardi.",
+"quota.reward_verify_failed":"Verifica server non riuscita. Nessun documento è stato accreditato.",
+"quota.reward_network_error":"Errore di rete. Riprova più tardi.",
+"quota.reward_loading":"Caricamento…",
 "quota.reward_unavailable":"Video non disponibile al momento. Riprova più tardi.",
 "quota.reward_limit_reached":"Hai già sbloccato i 3 documenti extra di oggi. Riprova domani.",
 

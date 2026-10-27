@@ -677,6 +677,9 @@ export const zh = {
 "quota.reward_pending":"处理中…",
 "quota.reward_success":"已解锁额外文档！",
 "quota.reward_failed":"错误，请稍后重试。",
+"quota.reward_verify_failed":"服务器验证失败，未增加任何文档额度。",
+"quota.reward_network_error":"网络错误，请稍后重试。",
+"quota.reward_loading":"加载中…",
 "quota.reward_unavailable":"暂时没有可用的视频，请稍后重试。",
 "quota.reward_limit_reached":"您已解锁今天的 3 份额外文档，请明天再试。",
 

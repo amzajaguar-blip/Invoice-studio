@@ -707,6 +707,9 @@ export const en = {
 "quota.reward_pending":"Processing…",
 "quota.reward_success":"Extra document unlocked!",
 "quota.reward_failed":"Error. Please try again later.",
+"quota.reward_verify_failed":"Server verification failed. No document was credited.",
+"quota.reward_network_error":"Network error. Please try again later.",
+"quota.reward_loading":"Loading…",
 "quota.reward_unavailable":"No video available right now. Please try again later.",
 "quota.reward_limit_reached":"You've already unlocked today's 3 extra documents. Try again tomorrow.",
 

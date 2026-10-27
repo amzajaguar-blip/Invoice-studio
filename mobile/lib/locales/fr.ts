@@ -677,6 +677,9 @@ export const fr = {
 "quota.reward_pending":"Traitement en cours…",
 "quota.reward_success":"Document supplémentaire débloqué !",
 "quota.reward_failed":"Erreur. Veuillez réessayer plus tard.",
+"quota.reward_verify_failed":"Échec de la vérification serveur. Aucun document n'a été crédité.",
+"quota.reward_network_error":"Erreur réseau. Veuillez réessayer plus tard.",
+"quota.reward_loading":"Chargement…",
 "quota.reward_unavailable":"Aucune vidéo disponible pour le moment. Veuillez réessayer plus tard.",
 "quota.reward_limit_reached":"Vous avez déjà débloqué les 3 documents supplémentaires du jour. Réessayez demain.",
 

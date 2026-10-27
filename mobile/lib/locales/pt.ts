@@ -677,6 +677,9 @@ export const pt = {
 "quota.reward_pending":"A processar…",
 "quota.reward_success":"Documento extra desbloqueado!",
 "quota.reward_failed":"Erro. Por favor, tente novamente mais tarde.",
+"quota.reward_verify_failed":"Falha na verificação do servidor. Nenhum documento foi creditado.",
+"quota.reward_network_error":"Erro de rede. Tente novamente mais tarde.",
+"quota.reward_loading":"A carregar…",
 "quota.reward_unavailable":"Nenhum vídeo disponível no momento. Tente novamente mais tarde.",
 "quota.reward_limit_reached":"Você já desbloqueou os 3 documentos extras de hoje. Tente novamente amanhã.",
 

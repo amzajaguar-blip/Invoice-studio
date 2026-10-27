@@ -677,6 +677,9 @@ export const de = {
 "quota.reward_pending":"Wird verarbeitet…",
 "quota.reward_success":"Zusätzliches Dokument freigeschaltet!",
 "quota.reward_failed":"Fehler. Bitte später erneut versuchen.",
+"quota.reward_verify_failed":"Serverprüfung fehlgeschlagen. Es wurde kein Dokument gutgeschrieben.",
+"quota.reward_network_error":"Netzwerkfehler. Bitte später erneut versuchen.",
+"quota.reward_loading":"Wird geladen…",
 "quota.reward_unavailable":"Derzeit kein Video verfügbar. Bitte später erneut versuchen.",
 "quota.reward_limit_reached":"Du hast die 3 zusätzlichen Dokumente für heute bereits freigeschaltet. Versuche es morgen erneut.",
 

@@ -127,7 +127,7 @@ export function QuotaPaywall({
       if (error || !data) {
         Alert.alert(
           t("quota.reward_failed"),
-          "Verifica server non riuscita. Nessun documento è stato accreditato."
+          t("quota.reward_verify_failed")
         );
         return;
       }
@@ -145,7 +145,7 @@ export function QuotaPaywall({
       onQuotaUpdated();
     } catch (err) {
       console.error("[QuotaPaywall] reward credit error:", err);
-      Alert.alert(t("quota.reward_failed"), "Errore di rete. Riprova più tardi.");
+      Alert.alert(t("quota.reward_failed"), t("quota.reward_network_error"));
     } finally {
       setSsvPending(false);
     }
@@ -250,7 +250,7 @@ export function QuotaPaywall({
             <>
               <ActivityIndicator size="small" color="#6c63ff" />
               <Text style={s.rewardBtnText}>
-                {ssvPending ? t("quota.reward_pending") : "Caricamento…"}
+                {ssvPending ? t("quota.reward_pending") : t("quota.reward_loading")}
               </Text>
             </>
           ) : (
