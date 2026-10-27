@@ -229,6 +229,7 @@ export default function IAPPaywall({
           style={StyleSheet.absoluteFill}
           onPress={handleDismiss}
           accessibilityLabel={t('cancel') ?? 'Chiudi'}
+          accessibilityRole="button"
         />
 
         <Animated.View

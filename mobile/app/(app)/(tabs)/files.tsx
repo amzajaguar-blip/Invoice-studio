@@ -328,7 +328,7 @@ export default function FilesScreen() {
         animationType="fade"
         onRequestClose={closeActions}
       >
-        <TouchableOpacity style={s.sheetBackdrop} activeOpacity={1} onPress={closeActions}>
+        <TouchableOpacity style={s.sheetBackdrop} activeOpacity={1} onPress={closeActions} accessibilityRole="button" accessibilityLabel={t("close")}>
           <View style={s.sheet}>
             <Text style={s.sheetTitle} numberOfLines={1}>
               {selected?.displayName ?? ""}

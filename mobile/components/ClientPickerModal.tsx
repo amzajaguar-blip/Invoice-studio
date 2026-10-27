@@ -121,7 +121,7 @@ export function ClientPickerModal({
         {/* Header */}
         <View style={s.header}>
           <Text style={s.title}>Seleziona cliente</Text>
-          <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button">
             <Ionicons name="close" size={24} color="#9ca3af" />
           </TouchableOpacity>
         </View>
@@ -141,7 +141,7 @@ export function ClientPickerModal({
             returnKeyType="search"
           />
           {query.length > 0 && (
-            <TouchableOpacity onPress={() => setQuery("")}>
+            <TouchableOpacity onPress={() => setQuery("")} accessibilityRole="button">
               <Ionicons name="close-circle" size={18} color="#6b7280" />
             </TouchableOpacity>
           )}

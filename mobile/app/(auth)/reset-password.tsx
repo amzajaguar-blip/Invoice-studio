@@ -150,6 +150,7 @@ export default function ResetPasswordScreen() {
             <TouchableOpacity
               style={styles.primaryButton}
               onPress={() => router.replace("/(auth)/forgot-password")}
+              accessibilityRole="button"
             >
               <Text style={styles.primaryButtonText}>
                 {t("reset.invalid_link.back_to_login")}
@@ -183,6 +184,7 @@ export default function ResetPasswordScreen() {
                 await supabase.auth.signOut();
                 router.replace("/(auth)/login");
               }}
+              accessibilityRole="button"
             >
               <Text style={styles.primaryButtonText}>
                 {t("reset.success.go_to_login")}
@@ -251,6 +253,7 @@ export default function ResetPasswordScreen() {
             style={[styles.primaryButton, (!sessionReady || submitting) && styles.disabled]}
             onPress={handleSubmit}
             disabled={!sessionReady || submitting}
+            accessibilityRole="button"
           >
             {submitting ? (
               <ActivityIndicator size="small" color="#ffffff" />

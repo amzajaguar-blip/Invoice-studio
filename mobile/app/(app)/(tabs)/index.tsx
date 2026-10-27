@@ -394,7 +394,7 @@ export default function DashboardScreen() {
                   { icon: 'folder-outline', label: t("tabs.dashboard.onboarding.first_files"), onPress: () => router.push('/(app)/(tabs)/files') },
                   { icon: 'settings-outline', label: t("tabs.dashboard.onboarding.profile_setup"), onPress: () => router.push('/(app)/(tabs)/settings') },
                 ].map((item) => (
-                  <TouchableOpacity key={item.label} style={styles.onboardingCard} onPress={item.onPress} activeOpacity={0.8}>
+                  <TouchableOpacity key={item.label} style={styles.onboardingCard} onPress={item.onPress} activeOpacity={0.8} accessibilityRole="button">
                     <View style={styles.onboardingIconWrap}>
                       <Ionicons name={item.icon as any} size={22} color="#6c63ff" />
                     </View>
@@ -464,7 +464,7 @@ export default function DashboardScreen() {
                       {isPremium ? (
                         <Text style={styles.reportCTAText}>{t("tabs.dashboard.report.view_full")}</Text>
                       ) : (
-                        <TouchableOpacity onPress={() => router.push('/(app)/ProUpgrade' as never)}>
+                        <TouchableOpacity onPress={() => router.push('/(app)/ProUpgrade' as never)} accessibilityRole="button">
                           <Text style={[styles.reportCTAText, { color: '#6c63ff' }]}>{t("tabs.dashboard.report.upgrade_cta")}</Text>
                         </TouchableOpacity>
                       )}

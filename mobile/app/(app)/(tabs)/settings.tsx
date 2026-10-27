@@ -237,11 +237,11 @@ export default function SettingsScreen() {
 
       {/* Account */}
       <Text style={styles.sectionTitle}>{t("account")}</Text>
-      <TouchableOpacity style={styles.button} onPress={handleSignOut}>
+      <TouchableOpacity style={styles.button} onPress={handleSignOut} accessibilityRole="button">
         <Text style={styles.buttonText}>{t("logout")}</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button} onPress={() => Linking.openURL("https://milo.mindprint.it/privacy")}>
+      <TouchableOpacity style={styles.button} onPress={() => Linking.openURL("https://milo.mindprint.it/privacy")} accessibilityRole="button">
         <Text style={styles.buttonText}>{t("tabs.settings.account.privacy_policy")}</Text>
       </TouchableOpacity>
 
@@ -251,6 +251,7 @@ export default function SettingsScreen() {
           await showPrivacyOptionsForm();
           showToast({ message: t("settings_privacy_options_opened"), type: "success" });
         }}
+        accessibilityRole="button"
       >
         <Text style={styles.buttonText}>{t("settings_privacy_options")}</Text>
       </TouchableOpacity>
@@ -258,6 +259,7 @@ export default function SettingsScreen() {
       <TouchableOpacity
         style={[styles.button, styles.deleteButton]}
         onPress={handleDeleteAccount}
+        accessibilityRole="button"
       >
         <Text style={[styles.buttonText, styles.deleteText]}>{t("deleteAccount")}</Text>
       </TouchableOpacity>

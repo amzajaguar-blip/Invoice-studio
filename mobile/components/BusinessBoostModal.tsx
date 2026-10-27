@@ -198,6 +198,7 @@ export default function BusinessBoostModal({
           style={StyleSheet.absoluteFill}
           onPress={handleClose}
           accessibilityLabel={t('cancel')}
+          accessibilityRole="button"
         />
 
         <Animated.View

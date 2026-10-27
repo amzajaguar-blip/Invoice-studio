@@ -488,7 +488,7 @@ export default function ScannerScreen() {
                 : t("scanner.permission.allow")}
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.back()} style={styles.cancelLink}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.cancelLink} accessibilityRole="button">
             <Text style={styles.cancelLinkTxt}>{t("scanner.permission.cancel")}</Text>
           </TouchableOpacity>
         </View>

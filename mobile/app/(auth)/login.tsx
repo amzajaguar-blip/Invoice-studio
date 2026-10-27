@@ -60,6 +60,7 @@ export default function LoginScreen() {
             style={[styles.googleButton, loading && styles.disabled]}
             onPress={handleGoogleLogin}
             disabled={loading}
+            accessibilityRole="button"
           >
             {loading ? (
               <ActivityIndicator size="small" color="#1f2937" />
@@ -74,6 +75,7 @@ export default function LoginScreen() {
             style={styles.forgotLink}
             onPress={() => router.push("/(auth)/forgot-password" as any)}
             disabled={loading}
+            accessibilityRole="button"
           >
             <Text style={styles.forgotLinkText}>{t("login.forgot_password_link")}</Text>
           </TouchableOpacity>

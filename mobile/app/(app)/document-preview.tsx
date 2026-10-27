@@ -17,7 +17,7 @@ export default function DocumentPreviewScreen() {
 
   return (
     <View style={s.container}>
-      <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
+      <TouchableOpacity onPress={() => router.back()} style={s.backBtn} accessibilityRole="button">
         <Ionicons name="arrow-back" size={24} color="#6c63ff" />
         <Text style={s.backText}>← {t('back')}</Text>
       </TouchableOpacity>

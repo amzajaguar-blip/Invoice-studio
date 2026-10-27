@@ -90,6 +90,7 @@ export default function ForgotPasswordScreen() {
             <TouchableOpacity
               style={styles.primaryButton}
               onPress={() => router.replace("/(auth)/login")}
+              accessibilityRole="button"
             >
               <Text style={styles.primaryButtonText}>
                 {t("reset.forgot.back_to_login")}
@@ -142,6 +143,7 @@ export default function ForgotPasswordScreen() {
             style={[styles.primaryButton, loading && styles.disabled]}
             onPress={handleSubmit}
             disabled={loading}
+            accessibilityRole="button"
           >
             {loading ? (
               <ActivityIndicator size="small" color="#ffffff" />
@@ -156,6 +158,7 @@ export default function ForgotPasswordScreen() {
             style={styles.linkButton}
             onPress={() => router.replace("/(auth)/login")}
             disabled={loading}
+            accessibilityRole="button"
           >
             <Text style={styles.linkButtonText}>
               {t("reset.forgot.back_to_login")}

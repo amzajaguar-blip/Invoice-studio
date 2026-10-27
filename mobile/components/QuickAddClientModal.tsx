@@ -123,7 +123,7 @@ export function QuickAddClientModal({
         <View style={styles.modalContent}>
           <View style={styles.header}>
             <Text style={styles.title}>{t("form.client.add_label")}</Text>
-            <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
+            <TouchableOpacity onPress={handleClose} style={styles.closeBtn} accessibilityRole="button" accessibilityLabel={t("close")}>
               <Ionicons name="close" size={20} color="#6b7280" />
             </TouchableOpacity>
           </View>
@@ -180,6 +180,7 @@ export function QuickAddClientModal({
               style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
               onPress={handleSave}
               disabled={saving}
+              accessibilityRole="button"
             >
               {saving ? (
                 <ActivityIndicator color="#fff" size="small" />
