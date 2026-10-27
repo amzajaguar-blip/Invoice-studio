@@ -43,6 +43,7 @@ import {
   Easing,
   Image,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -154,6 +155,10 @@ export default function ScannerScreen() {
 
   useEffect(() => {
     let cancelled = false;
+    // Rete lenta o captive portal: dopo 5s si procede senza gate server.
+    const orgTimeout = setTimeout(() => {
+      if (!cancelled) setOrgId((prev) => (prev === "loading" ? null : prev));
+    }, 5000);
     supabase.auth
       .getUser()
       .then(({ data }) => {
@@ -173,6 +178,7 @@ export default function ScannerScreen() {
       });
     return () => {
       cancelled = true;
+      clearTimeout(orgTimeout);
     };
   }, []);
 
@@ -272,18 +278,25 @@ export default function ScannerScreen() {
     setError(null);
 
     try {
-      type ApiFetchResult = Awaited<ReturnType<typeof apiFetch<OcrResult>>>;
-      const fetchPromise = apiFetch<OcrResult>("/api/ocr/receipt", {
-        method: "POST",
-        body: JSON.stringify({ imageBase64: photoBase64 }),
-      });
-      const timeoutPromise = new Promise<ApiFetchResult>((_, reject) =>
-        setTimeout(() => reject(new Error(t("scanner.analyze.timeout"))), ANALYZE_TIMEOUT_MS)
-      );
-      const { data, error: apiError, status } = await Promise.race<ApiFetchResult>([
-        fetchPromise,
-        timeoutPromise,
-      ]);
+      // L'abort ferma davvero la richiesta: senza, il server poteva finire
+      // l'OCR e scalare la quota mentre l'utente vedeva un errore di timeout.
+      const controller = new AbortController();
+      let timedOut = false;
+      const timer = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+      }, ANALYZE_TIMEOUT_MS);
+      let result: Awaited<ReturnType<typeof apiFetch<OcrResult>>>;
+      try {
+        result = await apiFetch<OcrResult>("/api/ocr/receipt", {
+          method: "POST",
+          body: JSON.stringify({ imageBase64: photoBase64 }),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timer);
+      }
+      const { data, error: apiError, status } = result;
 
       if (!isMounted.current) return;
 
@@ -292,7 +305,13 @@ export default function ScannerScreen() {
           router.replace("/(auth)/login" as any);
           return;
         }
-        setError(t("scanner.analyze.extraction_failed"));
+        setError(
+          timedOut
+            ? t("scanner.analyze.timeout")
+            : status === 0
+              ? t("scanner.analyze.network")
+              : t("scanner.analyze.extraction_failed")
+        );
         setScanState("preview");
         return;
       }
@@ -449,11 +468,23 @@ export default function ScannerScreen() {
           </Text>
           <TouchableOpacity
             style={styles.primaryBtn}
-            onPress={requestPermission}
+            onPress={() =>
+              permission.canAskAgain === false
+                ? Linking.openSettings()
+                : requestPermission()
+            }
             accessibilityRole="button"
-            accessibilityLabel={t("scanner.permission.allow")}
+            accessibilityLabel={
+              permission.canAskAgain === false
+                ? t("scanner.permission.open_settings")
+                : t("scanner.permission.allow")
+            }
           >
-            <Text style={styles.primaryBtnTxt}>{t("scanner.permission.allow")}</Text>
+            <Text style={styles.primaryBtnTxt}>
+              {permission.canAskAgain === false
+                ? t("scanner.permission.open_settings")
+                : t("scanner.permission.allow")}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.back()} style={styles.cancelLink}>
             <Text style={styles.cancelLinkTxt}>{t("scanner.permission.cancel")}</Text>

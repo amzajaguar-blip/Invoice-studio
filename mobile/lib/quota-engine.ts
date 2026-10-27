@@ -136,15 +136,30 @@ async function bumpLocalCount(): Promise<void> {
  * organizzazione: un abbonato Pro non deve incontrare il muro solo perche' la
  * sua riga `organizations` non e' mai stata creata.
  */
+const PRO_CACHE_KEY = 'milo_quota_last_pro_at';
+const PRO_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
 async function isPremiumNow(): Promise<boolean> {
   try {
     const customerInfo = await Purchases.getCustomerInfo();
-    return !!customerInfo.entitlements.active['pro'];
+    const isPro = !!customerInfo.entitlements.active['pro'];
+    try {
+      if (isPro) await AsyncStorage.setItem(PRO_CACHE_KEY, String(Date.now()));
+      else await AsyncStorage.removeItem(PRO_CACHE_KEY);
+    } catch {
+      // Cache best-effort: non deve mai influire sul risultato.
+    }
+    return isPro;
   } catch {
-    // RevenueCat non raggiungibile — pessimistic fallback: non bypass quota.
-    // L'utente premium con rete assente vedrà il gate quota, ma non verrà bloccato
-    // se ha ancora quota residua. Caso raro; accettabile per MVP.
-    return false;
+    // RevenueCat non raggiungibile: chi era Pro nell'ultima verifica riuscita
+    // (entro 7 giorni) non deve vedere il muro per un problema di rete.
+    try {
+      const raw = await AsyncStorage.getItem(PRO_CACHE_KEY);
+      const ts = raw ? parseInt(raw, 10) : 0;
+      return ts > 0 && Date.now() - ts < PRO_CACHE_TTL_MS;
+    } catch {
+      return false;
+    }
   }
 }
 

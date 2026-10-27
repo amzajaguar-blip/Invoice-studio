@@ -49,9 +49,11 @@ function StartupErrorView({ error, errorInfo, onReset }: { error?: Error; errorI
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <Text style={styles.title}>{t('error.startup_crash.title')}</Text>
-        <Text style={styles.error}>{error?.message ?? t('error.startup_crash.unknown')}</Text>
-        <Text style={styles.stack}>{error?.stack}</Text>
-        <Text style={styles.stack}>{errorInfo?.componentStack}</Text>
+        <Text style={styles.error}>
+          {__DEV__ ? (error?.message ?? t('error.startup_crash.unknown')) : t('error.startup_crash.unknown')}
+        </Text>
+        {__DEV__ && <Text style={styles.stack}>{error?.stack}</Text>}
+        {__DEV__ && <Text style={styles.stack}>{errorInfo?.componentStack}</Text>}
       </ScrollView>
       <TouchableOpacity style={styles.resetBtn} onPress={handleGoHome}>
         <Text style={styles.resetBtnText}>{t('error.startup_crash.go_home')}</Text>

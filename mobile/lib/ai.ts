@@ -63,7 +63,12 @@ export async function apiFetch<T = unknown>(
       },
     });
 
-    const json = await res.json();
+    let json: any = {};
+    try {
+      json = await res.json();
+    } catch {
+      // Body non-JSON (es. 502 HTML del gateway): si decide dallo status.
+    }
 
     if (!res.ok) {
       return {

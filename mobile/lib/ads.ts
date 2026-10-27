@@ -37,7 +37,7 @@ export const INTERSTITIAL_EVERY_N_INVOICES = 4;
 const MIN_INTERVAL_BETWEEN_ADS_MS = 60_000;
 
 /** Timeout waiting for an ad to load before giving up (ms). */
-const AD_LOAD_TIMEOUT_MS = 8_000;
+const AD_LOAD_TIMEOUT_MS = 3_000;
 
 // ─── State ───────────────────────────────────────────────────────────────────
 

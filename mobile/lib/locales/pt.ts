@@ -296,6 +296,7 @@ export const pt = {
 "scanner.permission.title":"Acesso à câmera",
 "scanner.permission.subtitle":"Permita o acesso para digitalizar recibos e documentos com a IA do Milo.",
 "scanner.permission.allow":"Permitir câmera",
+"scanner.permission.open_settings":"Abrir Definições",
 "scanner.permission.cancel":"Cancelar",
 "scanner.capture_error.unable_acquire":"Não foi possível capturar a imagem.",
 "scanner.capture_error.shot_failed":"Erro ao capturar. Verifique se a câmera está pronta.",

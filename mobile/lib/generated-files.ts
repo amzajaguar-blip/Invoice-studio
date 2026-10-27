@@ -306,9 +306,15 @@ export async function saveToDevice(file: GeneratedFile): Promise<SaveToDeviceRes
     file.mimeType
   );
 
-  await FileSystem.writeAsStringAsync(targetUri, content, {
-    encoding: FileSystem.EncodingType.Base64,
-  });
+  try {
+    await FileSystem.writeAsStringAsync(targetUri, content, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+  } catch (err) {
+    // Evita di lasciare nella cartella scelta un file vuoto o troncato.
+    await FileSystem.deleteAsync(targetUri, { idempotent: true }).catch(() => {});
+    throw err;
+  }
 
   return { status: 'saved', folderName: describeSafFolder(permission.directoryUri) };
 }

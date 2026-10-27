@@ -297,6 +297,7 @@ export const en = {
 "scanner.permission.title":"Camera access",
 "scanner.permission.subtitle":"Allow access to scan receipts and documents with Milo's AI.",
 "scanner.permission.allow":"Allow camera",
+"scanner.permission.open_settings":"Open Settings",
 "scanner.permission.cancel":"Cancel",
 "scanner.capture_error.unable_acquire":"Could not capture the image.",
 "scanner.capture_error.shot_failed":"Capture failed. Make sure the camera is ready.",

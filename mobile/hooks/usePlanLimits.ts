@@ -156,7 +156,10 @@ export function usePlanLimits(): UsePlanLimitsReturn {
   // ─── refreshLimits: aggiorna i limiti da Supabase ───────────────────────
   const refreshLimits = useCallback(async (): Promise<void> => {
     const id = orgId ?? (await resolveOrgId());
-    if (!id) return;
+    if (!id) {
+      if (mountedRef.current) setLimits((prev) => ({ ...prev, isLoading: false }));
+      return;
+    }
 
     // Aggiorna orgId se non era ancora impostato
     if (!orgId && mountedRef.current) {
@@ -198,7 +201,11 @@ export function usePlanLimits(): UsePlanLimitsReturn {
 
     async function initLimits() {
       const id = await resolveOrgId();
-      if (cancelled || !id) return;
+      if (cancelled) return;
+      if (!id) {
+        if (mountedRef.current) setLimits((prev) => ({ ...prev, isLoading: false }));
+        return;
+      }
 
       if (mountedRef.current) {
         setOrgId(id);

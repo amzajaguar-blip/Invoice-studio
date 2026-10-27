@@ -296,6 +296,7 @@ export const fr = {
 "scanner.permission.title":"Accesso fotocamera",
 "scanner.permission.subtitle":"Consenti l'accesso per scansionare ricevute e documenti con l'AI in stile Milo.",
 "scanner.permission.allow":"Consenti fotocamera",
+"scanner.permission.open_settings":"Ouvrir les Réglages",
 "scanner.permission.cancel":"Annulla",
 "scanner.capture_error.unable_acquire":"Impossibile acquisire l'immagine.",
 "scanner.capture_error.shot_failed":"Errore durante lo scatto. Assicurati che la fotocamera sia pronta.",

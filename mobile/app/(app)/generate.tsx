@@ -105,6 +105,10 @@ export default function GenerateScreen() {
   // blocca: il gate viene saltato, non trasformato in un errore per l'utente.
   useEffect(() => {
     let cancelled = false;
+    // Rete lenta o captive portal: dopo 5s si procede senza gate server.
+    const orgTimeout = setTimeout(() => {
+      if (!cancelled) setOrgId((prev) => (prev === "loading" ? null : prev));
+    }, 5000);
     supabase.auth
       .getUser()
       .then(({ data }) => {
@@ -124,6 +128,7 @@ export default function GenerateScreen() {
       });
     return () => {
       cancelled = true;
+      clearTimeout(orgTimeout);
     };
   }, []);
 
