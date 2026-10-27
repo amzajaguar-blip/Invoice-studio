@@ -47,7 +47,7 @@ const FORMAT_COLOR: Record<OutputFormat, string> = {
 export default function FilesScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
 
   const [files, setFiles] = useState<GeneratedFile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -204,7 +204,7 @@ export default function FilesScreen() {
             {item.displayName}
           </Text>
           <Text style={s.cardMeta}>
-            {new Date(item.modifiedAt).toLocaleDateString("it-IT", {
+            {new Date(item.modifiedAt).toLocaleDateString(locale, {
               day: "numeric",
               month: "short",
             })}
@@ -222,7 +222,7 @@ export default function FilesScreen() {
         </TouchableOpacity>
       </View>
     ),
-    [t]
+    [t, locale]
   );
 
   // ─── Stati della schermata ──────────────────────────────────────────────────
@@ -283,6 +283,9 @@ export default function FilesScreen() {
         data={files}
         keyExtractor={(item) => item.uri}
         renderItem={renderItem}
+        initialNumToRender={10}
+        windowSize={7}
+        removeClippedSubviews
         ListHeaderComponent={header}
         contentContainerStyle={s.listContent}
         refreshControl={

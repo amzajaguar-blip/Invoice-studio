@@ -226,7 +226,9 @@ export default function ScannerScreen() {
     setError(null);
     try {
       const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.8,
+        // 0.5: a piena risoluzione tiene l'OCR leggibile ma resta sotto il limite
+        // di body del server (~4.5 MB in base64) anche con sensori da 50 MP.
+        quality: 0.5,
         base64: true,
       });
       if (isMounted.current) {

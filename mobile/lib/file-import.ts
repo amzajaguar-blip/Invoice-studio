@@ -23,8 +23,9 @@
 
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
-import * as XLSX from 'xlsx';
-import JSZip from 'jszip';
+// Caricati alla prima lettura, non all'avvio.
+const loadXLSX = () => import('xlsx');
+const loadJSZip = async () => (await import('jszip')).default;
 import { MAX_UPLOAD_BYTES } from './upload-limits';
 import { base64ToBytes } from './base64';
 
@@ -185,7 +186,8 @@ export async function pickFileToConvert(): Promise<PickResult> {
  * griglia esce come array di array, senza interpretare quale colonna sia cosa —
  * interpretare sarebbe indovinare.
  */
-function readSpreadsheet(base64: string): string[][] {
+async function readSpreadsheet(base64: string): Promise<string[][]> {
+  const XLSX = await loadXLSX();
   const workbook = XLSX.read(base64, { type: 'base64' });
   const firstSheetName = workbook.SheetNames[0];
   if (!firstSheetName) return [];
@@ -203,6 +205,7 @@ function readSpreadsheet(base64: string): string[][] {
  * `<w:t>`; i `<w:p>` sono i paragrafi e diventano gli a capo.
  */
 async function readDocx(base64: string): Promise<string> {
+  const JSZip = await loadJSZip();
   const zip = await JSZip.loadAsync(base64, { base64: true });
   const entry = zip.file('word/document.xml');
   if (!entry) {
@@ -291,7 +294,7 @@ export async function readLocalFile(file: PickedFile): Promise<ImportedContent> 
     const base64 = await FileSystem.readAsStringAsync(file.uri, {
       encoding: FileSystem.EncodingType.Base64,
     });
-    return { ...common, kind: 'table', rows: readSpreadsheet(base64) };
+    return { ...common, kind: 'table', rows: await readSpreadsheet(base64) };
   }
 
   if (file.ext === 'docx') {

@@ -15,7 +15,7 @@ import { PlanProvider } from "@/context/PlanContext";
 import { EngagementProvider } from "@/context/EngagementContext";
 import { StartupErrorBoundary } from "@/app/components/StartupErrorBoundary";
 import { useEffect } from "react";
-import { Platform } from "react-native";
+import { InteractionManager, Platform } from "react-native";
 import Constants from "expo-constants";
 import Purchases, { LOG_LEVEL } from "react-native-purchases";
 import * as Notifications from "expo-notifications";
@@ -211,11 +211,17 @@ export default function RootLayout() {
     }
 
     // Initialize Google Mobile Ads SDK (AdMob interstitial for free tier).
-    initAds()
-      .then(() => logBoot("BOOT_002b AdMob Google Mobile Ads SDK initialized"))
-      .catch((err) => logBootError("AdMob init failed (non-fatal)", err));
+    // Dopo il primo render: UMP + SDK ads non devono competere con l'avvio.
+    const adsTask = InteractionManager.runAfterInteractions(() => {
+      initAds()
+        .then(() => logBoot("BOOT_002b AdMob Google Mobile Ads SDK initialized"))
+        .catch((err) => logBootError("AdMob init failed (non-fatal)", err));
+    });
 
-    return () => rcIdentityUnsubscribe?.();
+    return () => {
+      adsTask.cancel();
+      rcIdentityUnsubscribe?.();
+    };
   }, []);
 
   return (

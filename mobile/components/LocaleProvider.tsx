@@ -50,12 +50,12 @@ type I18nLike = { locale?: string | null };
 
 export const LocaleProvider = ({ children }: { children: React.ReactNode }) => {
   // eslint-disable-next-line no-console
-  console.log('[LocaleProvider] mount — i18n:', typeof i18n, i18n?.locale);
+  if (__DEV__) console.log('[LocaleProvider] mount — i18n:', typeof i18n, i18n?.locale);
 
   const [localeState, setLocaleState] = useState<LocaleCode>(() => {
     const initial = getSafeLocale();
     // eslint-disable-next-line no-console
-    console.log('[LocaleProvider] initial locale state:', initial);
+    if (__DEV__) console.log('[LocaleProvider] initial locale state:', initial);
     return initial;
   });
 
@@ -66,7 +66,7 @@ export const LocaleProvider = ({ children }: { children: React.ReactNode }) => {
         if (!cancelled) {
           const loaded = getSafeLocale();
           // eslint-disable-next-line no-console
-          console.log('[LocaleProvider] loadSavedLocale resolved:', loaded);
+          if (__DEV__) console.log('[LocaleProvider] loadSavedLocale resolved:', loaded);
           setLocaleState(loaded);
         }
       })

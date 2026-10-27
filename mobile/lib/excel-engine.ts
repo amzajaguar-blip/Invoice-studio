@@ -14,7 +14,8 @@
  *   expo-sharing ~14.0.0
  */
 
-import * as XLSX from 'xlsx';
+// Caricato alla prima esportazione/lettura, non all'avvio: SheetJS e' pesante da valutare.
+const loadXLSX = () => import('xlsx');
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { ExpenseReport, ExpenseItem } from '@/shared/types';
@@ -240,6 +241,7 @@ async function generateXLSX(
   const headers = getHeaders(options.locale);
   const { rows, totalRowIndex } = buildRows(reports, headers);
 
+  const XLSX = await loadXLSX();
   const worksheet = XLSX.utils.aoa_to_sheet(rows);
 
   // Applica bold all'ultima riga (totale complessivo)

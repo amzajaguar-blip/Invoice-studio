@@ -181,7 +181,7 @@ export function usePlanLimits(): UsePlanLimitsReturn {
     });
 
     if (mountedRef.current) {
-      setLimits(fresh);
+      setLimits((prev) => (JSON.stringify(prev) === JSON.stringify(fresh) ? prev : fresh));
 
       // Scrivi timestamp separato per controllare la validità cache lato hook
       try {
@@ -234,7 +234,7 @@ export function usePlanLimits(): UsePlanLimitsReturn {
             },
           }).then((fresh) => {
             if (!cancelled && mountedRef.current) {
-              setLimits(fresh);
+              setLimits((prev) => (JSON.stringify(prev) === JSON.stringify(fresh) ? prev : fresh));
             }
           }).catch(() => {});
 
@@ -254,7 +254,7 @@ export function usePlanLimits(): UsePlanLimitsReturn {
         });
 
         if (!cancelled && mountedRef.current) {
-          setLimits(fresh);
+          setLimits((prev) => (JSON.stringify(prev) === JSON.stringify(fresh) ? prev : fresh));
         }
       } else {
         // Nessuna cache: fetch da Supabase
@@ -268,7 +268,7 @@ export function usePlanLimits(): UsePlanLimitsReturn {
         });
 
         if (!cancelled && mountedRef.current) {
-          setLimits(fresh);
+          setLimits((prev) => (JSON.stringify(prev) === JSON.stringify(fresh) ? prev : fresh));
         }
       }
     }

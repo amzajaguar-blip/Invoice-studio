@@ -28,7 +28,8 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as Print from 'expo-print';
-import * as XLSX from 'xlsx';
+// Caricato alla prima esportazione/lettura, non all'avvio: SheetJS e' pesante da valutare.
+const loadXLSX = () => import('xlsx');
 import { base64Encode } from './base64';
 import { money, qty, excelCurrencyFormat, EXCEL_QTY_FORMAT } from './format/money';
 import {
@@ -663,6 +664,7 @@ export async function generateDocumentXLSX(
     rows.push([options.translatedLabel]);
   }
 
+  const XLSX = await loadXLSX();
   const worksheet = XLSX.utils.aoa_to_sheet(rows);
 
   // ── Formati numerici: la valuta e' un formato, non testo ──────────────────
@@ -1110,6 +1112,7 @@ export async function generateFromImported(
         ? (content.rows ?? []).map((row) => row.map((c) => _sanitizeCell(c)))
         : _textLines(content.text ?? '').map((line) => [_sanitizeCell(line)]);
 
+    const XLSX = await loadXLSX();
     const sheet = XLSX.utils.aoa_to_sheet(aoa.length ? aoa : [['']]);
     const widest = aoa.reduce((max, row) => Math.max(max, row.length), 1);
     sheet['!cols'] = Array.from({ length: widest }, () => ({ wch: 28 }));
